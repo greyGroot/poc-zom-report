@@ -77,14 +77,31 @@ function formatKyivTime(isoString) {
 }
 
 /**
- * Format duration into human readable format (e.g. 70 -> "1 год 10 хв")
+ * Format meeting duration (given in minutes) into human readable format (e.g. 70 -> "1 год 10 хв")
  */
-function formatDuration(minutes) {
+function formatMinutesDuration(minutes) {
   const m = Number(minutes) || 0;
   if (m < 60) return `${m} хв`;
   const hours = Math.floor(m / 60);
   const remainingMinutes = m % 60;
   return remainingMinutes > 0 ? `${hours} год ${remainingMinutes} хв` : `${hours} год`;
+}
+
+/**
+ * Format participant duration (Zoom returns participants duration in SECONDS)
+ * e.g. 201s -> "3 хв 21 с", 3537s -> "58 хв 57 с"
+ */
+function formatSecondsDuration(totalSeconds) {
+  const s = Math.round(Number(totalSeconds) || 0);
+  if (s < 60) return `${s} с`;
+  const totalMinutes = Math.floor(s / 60);
+  const remainingSeconds = s % 60;
+  if (totalMinutes < 60) {
+    return remainingSeconds > 0 ? `${totalMinutes} хв ${remainingSeconds} с` : `${totalMinutes} хв`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0 ? `${hours} год ${mins} хв` : `${hours} год`;
 }
 
 export default async function handler(req, res) {
@@ -172,15 +189,14 @@ export default async function handler(req, res) {
 
               if (aggregated.has(key)) {
                 const existing = aggregated.get(key);
-                existing.duration += duration;
+                existing.durationSeconds += duration;
                 if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
                 if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
               } else {
                 aggregated.set(key, {
                   name: name,
                   email: p.user_email || '',
-                  duration: duration,
-                  durationFormatted: formatDuration(duration),
+                  durationSeconds: duration,
                   joinTime: formatKyivTime(p.join_time),
                   leaveTime: formatKyivTime(p.leave_time),
                   isHost: isHost
@@ -188,7 +204,11 @@ export default async function handler(req, res) {
               }
             }
 
-            participantsDetails = Array.from(aggregated.values());
+            participantsDetails = Array.from(aggregated.values()).map(p => ({
+              ...p,
+              durationMinutes: Math.round(p.durationSeconds / 60),
+              durationFormatted: formatSecondsDuration(p.durationSeconds)
+            }));
           } else {
             participantsScopeEnabled = false;
           }
@@ -227,7 +247,7 @@ export default async function handler(req, res) {
           timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
           // 2. ЯК ДОВГО:
           durationMinutes: durationMin,
-          durationFormatted: formatDuration(durationMin),
+          durationFormatted: formatMinutesDuration(durationMin),
           totalMinutes: meeting.total_minutes || 0,
           // 3. З КИМ:
           participantsCount: count,
