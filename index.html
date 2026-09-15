@@ -8,17 +8,21 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       margin: 24px;
-      color: #222;
-      background: #fafafa;
+      color: #212529;
+      background: #f8f9fa;
     }
     h1 {
-      margin-bottom: 6px;
-      font-size: 1.5rem;
+      margin-bottom: 4px;
+      font-size: 1.6rem;
+    }
+    .muted {
+      color: #6c757d;
+      font-size: 13px;
     }
     .controls {
-      margin: 16px 0;
+      margin: 18px 0;
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
       flex-wrap: wrap;
     }
@@ -30,11 +34,18 @@
       background: #0d6efd;
       color: white;
       border: 1px solid #0b5ed7;
-      border-radius: 4px;
+      border-radius: 6px;
+      transition: background 0.15s ease-in-out;
+    }
+    button:hover:not(:disabled) {
+      background: #0b5ed7;
     }
     button.secondary {
       background: #6c757d;
       border-color: #5c636a;
+    }
+    button.secondary:hover:not(:disabled) {
+      background: #5c636a;
     }
     button:disabled {
       opacity: 0.6;
@@ -43,14 +54,15 @@
     input[type="date"] {
       padding: 7px 10px;
       font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      background: #fff;
     }
     .status-box {
       margin: 14px 0;
-      padding: 10px 14px;
+      padding: 12px 16px;
       background: #e9ecef;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 14px;
     }
     .status-box.error {
@@ -63,41 +75,87 @@
       color: #0f5132;
       border: 1px solid #badbcc;
     }
+    .hint-box {
+      margin: 14px 0;
+      padding: 12px 16px;
+      background: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .table-container {
+      overflow-x: auto;
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-top: 14px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #ffffff;
-      margin-top: 14px;
       font-size: 14px;
     }
     th, td {
-      border: 1px solid #dee2e6;
-      padding: 10px 12px;
+      padding: 12px 14px;
       text-align: left;
+      border-bottom: 1px solid #dee2e6;
       vertical-align: top;
     }
     th {
       background-color: #f1f3f5;
       font-weight: 600;
+      color: #495057;
+      white-space: nowrap;
     }
-    tr:nth-child(even) {
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover {
       background-color: #f8f9fa;
     }
     .badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 3px;
+      padding: 3px 9px;
+      border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
+      white-space: nowrap;
     }
-    .badge-gray { background: #e2e3e5; color: #41464b; }
-    .muted { color: #6c757d; font-size: 12px; }
+    .badge-green {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+    .badge-yellow {
+      background: #fff3cd;
+      color: #664d03;
+    }
+    .badge-red {
+      background: #f8d7da;
+      color: #842029;
+    }
+    .badge-tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 4px;
+      font-weight: 600;
+    }
+    .tag-student { background: #e0f2fe; color: #0369a1; }
+    .tag-host { background: #fef3c7; color: #92400e; }
+    .participant-row {
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
 
   <h1>Zoom Attendance Telemetry PoC</h1>
-  <div class="muted">Моніторинг проведених Zoom-уроків мовної школи (Europe/Kyiv)</div>
+  <div class="muted">Моніторинг проведених Zoom-уроків викладачів (Europe/Kyiv)</div>
 
   <div class="controls">
     <button id="btnToday" type="button">Сьогодні</button>
@@ -106,21 +164,30 @@
     <button id="btnLoad" class="secondary" type="button">Показати</button>
   </div>
 
-  <div id="statusMessage" class="status-box">Завантаження...</div>
+  <div id="statusMessage" class="status-box">Завантаження даних...</div>
 
-  <table id="resultsTable" style="display: none;">
-    <thead>
-      <tr>
-        <th style="width: 40px;">#</th>
-        <th>Викладач (Ім'я / Email)</th>
-        <th>Тема та ID зустрічі</th>
-        <th>Початок (Київ) та тривалість</th>
-        <th>К-сть учасників</th>
-        <th>Список учасників (Participants)</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <div id="scopeHint" class="hint-box" style="display: none;">
+    💡 <strong>Підказка для поіменного списку учнів:</strong> Зараз Zoom повертає кількість підключених учасників. 
+    Щоб бачити в колонці «З ким» точні імена кожного учня та скільки хвилин він був на уроці, додайте в додатку Zoom Marketplace 
+    дозвіл <code>report:read:list_meeting_participants:admin</code> (Scopes &rarr; Report &rarr; View meeting participant report).
+  </div>
+
+  <div class="table-container" id="tableContainer" style="display: none;">
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th style="width: 30px;">#</th>
+          <th>Викладач</th>
+          <th>Тема уроку та ID</th>
+          <th>КОЛИ (Київ)</th>
+          <th>ЯК ДОВГО</th>
+          <th>З КИМ (Учасники)</th>
+          <th>СТАТУС УРОКУ</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
   <script>
     const btnToday = document.getElementById('btnToday');
@@ -128,10 +195,11 @@
     const datePicker = document.getElementById('datePicker');
     const btnLoad = document.getElementById('btnLoad');
     const statusMsg = document.getElementById('statusMessage');
-    const resultsTable = document.getElementById('resultsTable');
+    const scopeHint = document.getElementById('scopeHint');
+    const tableContainer = document.getElementById('tableContainer');
     const tableBody = document.getElementById('tableBody');
 
-    // Calculate date YYYY-MM-DD in Europe/Kyiv timezone with optional offset
+    // Return date formatted YYYY-MM-DD in Kyiv timezone
     function getKyivDateString(dayOffset = 0) {
       const now = new Date();
       now.setDate(now.getDate() + dayOffset);
@@ -147,7 +215,8 @@
       datePicker.value = date;
       statusMsg.className = 'status-box';
       statusMsg.textContent = `Завантаження даних за ${date}...`;
-      resultsTable.style.display = 'none';
+      tableContainer.style.display = 'none';
+      scopeHint.style.display = 'none';
       tableBody.innerHTML = '';
 
       btnToday.disabled = true;
@@ -161,27 +230,63 @@
           throw new Error(errData.error || `Помилка сервера HTTP ${response.status}`);
         }
 
-        const data = await response.json();
+        const payload = await response.json();
+        const meetings = Array.isArray(payload) ? payload : (payload.meetings || []);
 
-        if (!Array.isArray(data) || data.length === 0) {
+        if (payload.participantsScopeEnabled === false) {
+          scopeHint.style.display = 'block';
+        }
+
+        if (meetings.length === 0) {
           statusMsg.className = 'status-box';
-          statusMsg.textContent = `Зустрічей не знайдено за ${date}.`;
+          statusMsg.textContent = `За ${date} проведених зустрічей не знайдено.`;
           return;
         }
 
         statusMsg.className = 'status-box success';
-        statusMsg.textContent = `За ${date} знайдено зустрічей: ${data.length}`;
+        statusMsg.textContent = `За ${date} знайдено проведених уроків: ${meetings.length}`;
 
-        data.forEach((item, index) => {
+        meetings.forEach((item, index) => {
           const tr = document.createElement('tr');
 
-          // Participants formatting
-          let participantsHtml = '<span class="muted">—</span>';
-          if (item.participants && item.participants.length > 0) {
-            participantsHtml = item.participants.map(name => `<div>• ${escapeHtml(name)}</div>`).join('');
-          } else if (item.participantsCount > 0) {
-            participantsHtml = `<span class="muted">${item.participantsCount} учасник(ів)</span>`;
+          // 1. КОЛИ (Time Range)
+          const whenHtml = `
+            <strong>${escapeHtml(item.timeRangeKyiv || item.startTimeKyiv || '—')}</strong>
+            <div class="muted">${escapeHtml(item.date || date)}</div>
+          `;
+
+          // 2. ЯК ДОВГО (Duration)
+          const howLongHtml = `
+            <strong>${escapeHtml(item.durationFormatted || (item.durationMinutes + ' хв'))}</strong>
+            <div class="muted">${item.durationMinutes || item.duration || 0} хв (тривалість)</div>
+          `;
+
+          // 3. З КИМ (Participants Details)
+          let withWhomHtml = '';
+          const pList = item.participants || [];
+          if (Array.isArray(pList) && pList.length > 0) {
+            withWhomHtml = pList.map(p => {
+              const pName = typeof p === 'string' ? p : (p.name || p.email || 'Учасник');
+              const isHost = typeof p === 'object' ? p.isHost : false;
+              const pDur = typeof p === 'object' && p.durationFormatted ? ` (${p.durationFormatted})` : '';
+              const tag = isHost ? '<span class="badge-tag tag-host">Викладач</span>' : '<span class="badge-tag tag-student">Учень</span>';
+              return `<div class="participant-row">• <strong>${escapeHtml(pName)}</strong>${tag} <span class="muted">${pDur}</span></div>`;
+            }).join('');
+          } else {
+            const count = item.participantsCount || 0;
+            withWhomHtml = `<div><strong>${count}</strong> учасник(ів)</div><div class="muted">Поіменний список недоступний</div>`;
           }
+
+          // 4. СТАТУС
+          let badgeClass = 'badge-red';
+          let statusText = item.statusLabel || 'Короткий дзвінок';
+          if (item.status === 'VERIFIED') {
+            badgeClass = 'badge-green';
+          } else if (item.status === 'ONLY_HOST') {
+            badgeClass = 'badge-yellow';
+          }
+
+          const statusHtml = `<span class="badge ${badgeClass}">${escapeHtml(statusText)}</span>`;
 
           tr.innerHTML = `
             <td>${index + 1}</td>
@@ -193,19 +298,16 @@
               <strong>${escapeHtml(item.topic || 'Без назви')}</strong>
               <div class="muted">ID: ${escapeHtml(String(item.meetingId || ''))}</div>
             </td>
-            <td>
-              <div>${item.startTimeKyiv ? item.startTimeKyiv : ''}</div>
-              <div class="muted">${item.duration} хв</div>
-            </td>
-            <td>
-              <strong>${item.participantsCount}</strong>
-            </td>
-            <td>${participantsHtml}</td>
+            <td>${whenHtml}</td>
+            <td>${howLongHtml}</td>
+            <td>${withWhomHtml}</td>
+            <td>${statusHtml}</td>
           `;
+
           tableBody.appendChild(tr);
         });
 
-        resultsTable.style.display = 'table';
+        tableContainer.style.display = 'block';
       } catch (err) {
         statusMsg.className = 'status-box error';
         statusMsg.textContent = `Помилка завантаження: ${err.message}`;
@@ -235,9 +337,9 @@
     });
 
     // Initial load: today
-    const todayStr = getKyivDateString(0);
-    datePicker.value = todayStr;
-    loadReport(todayStr);
+    const initialDate = getKyivDateString(0);
+    datePicker.value = initialDate;
+    loadReport(initialDate);
   </script>
 </body>
 </html>

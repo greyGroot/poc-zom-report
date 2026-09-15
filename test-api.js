@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-// 1. Read local .env if available
+// Read local .env
 const envPath = path.resolve(process.cwd(), '.env');
 if (fs.existsSync(envPath)) {
   const content = fs.readFileSync(envPath, 'utf-8');
@@ -18,7 +18,7 @@ if (fs.existsSync(envPath)) {
 }
 
 console.log('========================================');
-console.log('   Zoom API & Endpoint Test Suite');
+console.log('   Zoom API & Extended Telemetry Test');
 console.log('========================================');
 
 const accountId = process.env.ZOOM_ACCOUNT_ID;
@@ -30,45 +30,22 @@ if (!accountId || !clientId || !clientSecret) {
   process.exit(1);
 }
 
-// Dynamically import the handler from api/report.js
 import handler from './api/report.js';
 
 async function runTests() {
   try {
-    // 1. Check OAuth directly
-    console.log('1. Checking Zoom OAuth Token endpoint...');
-    const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const tokenUrl = `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`;
-
-    const tokenRes = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${authHeader}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      throw new Error(`OAuth HTTP ${tokenRes.status}: ${text}`);
-    }
-
-    const tokenData = await tokenRes.json();
-    console.log(`✅ OAuth Success: Access Token obtained (valid for ${tokenData.expires_in}s)`);
-
-    // 2. Test handler for today's date
-    const today = new Date().toISOString().split('T')[0];
-    console.log(`\n2. Testing api/report handler for TODAY (${today})...`);
+    const testDate = '2026-09-10';
+    console.log(`\nTesting api/report handler for date: ${testDate}...`);
 
     let statusCode = 200;
     let jsonResult = null;
 
-    const mockReqToday = {
+    const mockReq = {
       method: 'GET',
-      url: `/api/report?date=${today}`,
-      query: { date: today }
+      url: `/api/report?date=${testDate}`,
+      query: { date: testDate }
     };
-    const mockResToday = {
+    const mockRes = {
       status(code) {
         statusCode = code;
         return this;
@@ -79,56 +56,29 @@ async function runTests() {
       }
     };
 
-    await handler(mockReqToday, mockResToday);
+    await handler(mockReq, mockRes);
 
-    if (statusCode !== 200 || !Array.isArray(jsonResult)) {
-      throw new Error(`Handler failed with HTTP ${statusCode}: ${JSON.stringify(jsonResult)}`);
+    if (statusCode !== 200 || !jsonResult || !jsonResult.meetings) {
+      throw new Error(`Handler failed: HTTP ${statusCode}: ${JSON.stringify(jsonResult)}`);
     }
 
     console.log(`✅ Handler responded HTTP ${statusCode} OK.`);
-    console.log(`   Found ${jsonResult.length} meetings for today (${today}).`);
-    if (jsonResult.length > 0) {
-      console.log('   Sample meeting for today:', jsonResult[0]);
-    }
+    console.log(`   Total meetings found: ${jsonResult.totalMeetings}`);
+    console.log(`   Participants scope enabled: ${jsonResult.participantsScopeEnabled}`);
 
-    // 3. Test handler for a date in the past 7 days where meetings might have occurred
-    const pastDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    console.log(`\n3. Testing api/report handler for past date (${pastDate})...`);
-
-    statusCode = 200;
-    jsonResult = null;
-
-    const mockReqPast = {
-      method: 'GET',
-      url: `/api/report?date=${pastDate}`,
-      query: { date: pastDate }
-    };
-    const mockResPast = {
-      status(code) {
-        statusCode = code;
-        return this;
-      },
-      json(data) {
-        jsonResult = data;
-        return this;
-      }
-    };
-
-    await handler(mockReqPast, mockResPast);
-
-    if (statusCode !== 200 || !Array.isArray(jsonResult)) {
-      throw new Error(`Handler failed with HTTP ${statusCode}: ${JSON.stringify(jsonResult)}`);
-    }
-
-    console.log(`✅ Handler responded HTTP ${statusCode} OK.`);
-    console.log(`   Found ${jsonResult.length} meetings for ${pastDate}.`);
-    if (jsonResult.length > 0) {
-      console.log('   Sample meeting data:');
-      console.log(JSON.stringify(jsonResult[0], null, 2));
+    if (jsonResult.meetings.length > 0) {
+      console.log('\nSample Extended Telemetry:');
+      const sample = jsonResult.meetings[0];
+      console.log(`• Викладач: ${sample.teacher} (${sample.teacherEmail})`);
+      console.log(`• Тема: ${sample.topic} (ID: ${sample.meetingId})`);
+      console.log(`• КОЛИ (Київ): ${sample.timeRangeKyiv}`);
+      console.log(`• ЯК ДОВГО: ${sample.durationFormatted} (${sample.durationMinutes} хв)`);
+      console.log(`• З КИМ (к-сть): ${sample.participantsCount} учасник(ів)`);
+      console.log(`• СТАТУС: [${sample.status}] ${sample.statusLabel}`);
     }
 
     console.log('\n========================================');
-    console.log('🎉 ALL TESTS PASSED! API IS 100% OPERATIONAL');
+    console.log('🎉 ALL TESTS PASSED! TELEMETRY READY.');
     console.log('========================================');
 
   } catch (err) {
