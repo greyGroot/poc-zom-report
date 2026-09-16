@@ -420,9 +420,25 @@ export function getRedisClient(options = {}) {
     return currentClient;
   }
 
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  // Support Vercel KV (automatically provisioned by Vercel) and standalone Upstash Redis
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   const isTest = process.env.NODE_ENV === 'test' || process.env.USE_IN_MEMORY_REDIS === 'true';
+
+  if ((!url || !token) && !isTest) {
+    try {
+      if (typeof Redis.fromEnv === 'function') {
+        const envClient = Redis.fromEnv();
+        if (envClient) {
+          currentClient = envClient;
+          isMock = false;
+          return currentClient;
+        }
+      }
+    } catch {
+      // ignore and fall back to in-memory
+    }
+  }
 
   if (!url || !token || isTest) {
     currentClient = new InMemoryRedis();
@@ -442,7 +458,7 @@ export function getRedisClient(options = {}) {
     isMock = false;
     return currentClient;
   } catch (err) {
-    console.warn(`[Redis] Failed to initialize Upstash client (${err.message}). Falling back to InMemoryRedis.`);
+    console.warn(`[Redis] Failed to initialize Upstash/Vercel KV client (${err.message}). Falling back to InMemoryRedis.`);
     currentClient = new InMemoryRedis();
     isMock = true;
     return currentClient;
