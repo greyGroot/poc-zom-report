@@ -175,6 +175,9 @@ export default async function handler(req, res) {
       toDate = temp;
     }
 
+    const isOverview = (req.query && req.query.overview === 'true') ||
+      (Boolean(req.url) && new URL(req.url, 'http://localhost').searchParams.get('overview') === 'true');
+
     // 2. Authenticate with Zoom
     const token = await getZoomAccessToken();
 
@@ -218,6 +221,115 @@ export default async function handler(req, res) {
       }
     }
 
+    // Fast-path: Overview mode (returns meeting metadata instantly without per-meeting participant calls)
+    if (isOverview) {
+      const processedMeetings = rawMeetingsToProcess.map(({ meeting, teacher }) => {
+        const durationMin = meeting.duration || 0;
+        const startTimeKyiv = formatKyivTime(meeting.start_time);
+        const endTimeKyiv = formatKyivTime(meeting.end_time);
+        const meetingDateKyiv = formatKyivDate(meeting.start_time);
+        const count = meeting.participants_count || 0;
+
+        let status = 'SHORT_CALL';
+        let statusLabel = 'Короткий дзвінок (< 15 хв)';
+        if (durationMin >= 30 && count >= 2) {
+          status = 'VERIFIED';
+          statusLabel = 'Верифікований урок (≥ 30 хв)';
+        } else if (durationMin >= 15 && count <= 1) {
+          status = 'ONLY_HOST';
+          statusLabel = 'Тільки викладач (No-Show)';
+        }
+
+        const teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.email;
+
+        return {
+          teacher: teacherName,
+          teacherEmail: teacher.email,
+          topic: meeting.topic || 'Без назви',
+          meetingId: meeting.id,
+          date: meetingDateKyiv,
+          startTime: meeting.start_time,
+          endTime: meeting.end_time,
+          startTimeKyiv: startTimeKyiv,
+          endTimeKyiv: endTimeKyiv,
+          timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
+          durationMinutes: durationMin,
+          durationFormatted: formatMinutesDuration(durationMin),
+          totalMinutes: meeting.total_minutes || 0,
+          participantsCount: count,
+          participants: [],
+          students: [],
+          status: status,
+          statusLabel: statusLabel,
+          isOverview: true
+        };
+      });
+
+      processedMeetings.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+      // Group by Date for day-by-day presentation
+      const groupedDaysMap = new Map();
+      for (const m of processedMeetings) {
+        const d = m.date;
+        if (!groupedDaysMap.has(d)) {
+          groupedDaysMap.set(d, {
+            date: d,
+            meetings: [],
+            totalMeetings: 0,
+            verifiedCount: 0,
+            onlyHostCount: 0,
+            shortCallCount: 0,
+            totalDurationMinutes: 0
+          });
+        }
+        const dayObj = groupedDaysMap.get(d);
+        dayObj.meetings.push(m);
+        dayObj.totalMeetings += 1;
+        dayObj.totalDurationMinutes += m.durationMinutes;
+        if (m.status === 'VERIFIED') dayObj.verifiedCount += 1;
+        else if (m.status === 'ONLY_HOST') dayObj.onlyHostCount += 1;
+        else dayObj.shortCallCount += 1;
+      }
+
+      const days = Array.from(groupedDaysMap.values()).map(d => ({
+        ...d,
+        totalDurationFormatted: formatMinutesDuration(d.totalDurationMinutes)
+      }));
+
+      const totalMeetings = processedMeetings.length;
+      const verifiedMeetings = processedMeetings.filter(m => m.status === 'VERIFIED').length;
+      const onlyHostMeetings = processedMeetings.filter(m => m.status === 'ONLY_HOST').length;
+      const shortCallMeetings = processedMeetings.filter(m => m.status === 'SHORT_CALL').length;
+      const totalDurationMinutes = processedMeetings.reduce((sum, m) => sum + (m.durationMinutes || 0), 0);
+
+      const overviewPayload = {
+        from: fromDate,
+        to: toDate,
+        totalMeetings: totalMeetings,
+        totalDays: days.length,
+        summary: {
+          totalMeetings,
+          verifiedMeetings,
+          onlyHostMeetings,
+          shortCallMeetings,
+          totalDurationMinutes,
+          totalDurationFormatted: formatMinutesDuration(totalDurationMinutes)
+        },
+        participantsScopeEnabled: participantsScopeEnabled,
+        days: days,
+        meetings: processedMeetings,
+        isOverview: true
+      };
+
+      if (res && typeof res.status === 'function') {
+        return res.status(200).json(overviewPayload);
+      }
+      return new Response(JSON.stringify(overviewPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // 5. Fetch participants telemetry in rate-safe chunks of 2 with small delay to avoid Zoom 429 limits
     const processedMeetings = [];
     const chunkSize = 2;
@@ -243,8 +355,16 @@ export default async function handler(req, res) {
               const email = (p.user_email || '').trim().toLowerCase();
               const key = email || name.toLowerCase();
               const duration = Number(p.duration) || 0;
-              const isHost = (email && email === teacher.email.toLowerCase()) ||
-                             (name.toLowerCase() === teacherName.toLowerCase());
+              
+              // Host detection:
+              // 1. Zoom session user_id for meeting host is always '16778240'
+              // 2. Or matching teacher account email/name or 'Empire'
+              // 3. Or if only 1 participant joined, they are the teacher waiting
+              const isHost = (String(p.user_id) === '16778240') ||
+                             (email && email === teacher.email.toLowerCase()) ||
+                             (name.toLowerCase() === teacherName.toLowerCase()) ||
+                             (name.toLowerCase().includes('empire')) ||
+                             (rawParts.length === 1);
 
               // Identifier: email, phone, or Zoom user ID
               const identifier = email || (p.id ? `ID: ${p.id}` : (p.customer_key || 'Гість (без пошти)'));
@@ -254,6 +374,7 @@ export default async function handler(req, res) {
                 existing.durationSeconds += duration;
                 if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
                 if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
+                if (isHost) existing.isHost = true;
               } else {
                 aggregated.set(key, {
                   name: name,
@@ -282,6 +403,12 @@ export default async function handler(req, res) {
           console.warn(`Failed to fetch participants for meeting ${meeting.id}:`, err.message);
         }
 
+        // Determine actual teacher display name if the host participant has a specific personal name
+        const hostParticipant = participantsDetails.find(p => p.isHost);
+        const actualTeacherName = (hostParticipant && hostParticipant.name && !hostParticipant.name.toLowerCase().includes('empire'))
+          ? hostParticipant.name
+          : teacherName;
+
         const count = participantsDetails.length > 0 ? participantsDetails.length : (meeting.participants_count || 0);
         const durationMin = meeting.duration || 0;
         const startTimeKyiv = formatKyivTime(meeting.start_time);
@@ -294,16 +421,17 @@ export default async function handler(req, res) {
         // Validation status
         let status = 'SHORT_CALL';
         let statusLabel = 'Короткий дзвінок (< 15 хв)';
-        if (durationMin >= 30 && count >= 2) {
+        if (durationMin >= 30 && count >= 2 && students.length >= 1) {
           status = 'VERIFIED';
           statusLabel = 'Верифікований урок (≥ 30 хв)';
-        } else if (durationMin >= 15 && count <= 1) {
+        } else if (durationMin >= 15 && (count <= 1 || students.length === 0)) {
           status = 'ONLY_HOST';
           statusLabel = 'Тільки викладач (No-Show)';
         }
 
         return {
-          teacher: teacherName,
+          teacher: actualTeacherName,
+          teacherAccount: teacherName,
           teacherEmail: teacher.email,
           topic: meeting.topic || 'Без назви',
           meetingId: meeting.id,
@@ -324,7 +452,8 @@ export default async function handler(req, res) {
           students: students,
           // СТАТУС:
           status: status,
-          statusLabel: statusLabel
+          statusLabel: statusLabel,
+          isOverview: false
         };
       }));
 
