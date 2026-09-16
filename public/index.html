@@ -955,256 +955,86 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
-    .session-interval-tag {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 11px;
-      color: #334155;
-      display: inline-block;
-      margin-right: 4px;
-      margin-top: 2px;
-    }
-
-    /* Live Webhook Monitoring Feed Styles */
-    .mon-ribbon {
+    /* Top Shared Navigation */
+    .app-nav {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
       justify-content: space-between;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      align-items: center;
+      gap: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 14px;
-    }
-    .mon-badges-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-    .mon-status-pill {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 5px 11px;
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .mon-status-active {
-      background: #dcfce7;
-      color: #166534;
-      border: 1px solid #bbf7d0;
-    }
-    .mon-status-db {
-      background: #eff6ff;
-      color: #1e40af;
-      border: 1px solid #bfdbfe;
-    }
-    .mon-status-events {
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #cbd5e1;
-    }
-    .mon-status-errors {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-    .mon-status-ok {
-      background: #f0fdf4;
-      color: #15803d;
-      border: 1px solid #bbf7d0;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
 
-    .mon-filter-chips {
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .nav-links {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 14px;
-    }
-    .mon-chip {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .mon-chip:hover {
-      background: #f1f5f9;
-    }
-    .mon-chip.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .mon-error-banner {
-      background: #fef2f2;
-      border: 1px solid #f87171;
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 16px;
-      color: #991b1b;
-      font-size: 13px;
-    }
-    .mon-error-item {
-      margin-top: 8px;
-      padding: 8px 12px;
-      background: #fff;
-      border: 1px solid #fca5a5;
-      border-radius: 6px;
-      font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 12px;
-      color: #b91c1c;
-    }
-
-    .mon-events-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .mon-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 14px 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      transition: border-color 0.15s, transform 0.15s;
-    }
-    .mon-card:hover {
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
-    .mon-card.event-started { border-left: 6px solid #22c55e; }
-    .mon-card.event-joined { border-left: 6px solid #3b82f6; }
-    .mon-card.event-left { border-left: 6px solid #f97316; }
-    .mon-card.event-ended { border-left: 6px solid #ef4444; }
-    .mon-card.event-validation { border-left: 6px solid #8b5cf6; }
-    .mon-card.event-error { border-left: 6px solid #dc2626; background: #fffdfd; }
-    .mon-card.event-unexpected { border-left: 6px solid #eab308; }
-
-    .mon-card-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .mon-card-time {
-      font-size: 12px;
-      color: #64748b;
-      font-weight: 600;
-    }
-    .mon-card-body {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      font-size: 13px;
-      color: #1e293b;
-    }
-    @media (min-width: 680px) {
-      .mon-card-body {
-        grid-template-columns: 1.5fr 2fr 1fr;
-        align-items: center;
-      }
-    }
-    .mon-item-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .mon-item-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: #64748b;
-      font-weight: 600;
-    }
-    .mon-item-value {
-      font-weight: 600;
-      color: #0f172a;
     }
 
-    .mon-raw-btn {
-      font-size: 11px;
-      padding: 5px 10px;
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
+    .nav-link {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-    }
-    .mon-raw-btn:hover {
-      background: #e2e8f0;
-      color: #0f172a;
-    }
-
-    .mon-raw-payload {
-      margin-top: 10px;
-      background: #0f172a;
-      color: #38bdf8;
-      padding: 14px;
+      gap: 6px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
       border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 11px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      position: relative;
+      text-decoration: none;
+      transition: all 0.15s ease;
     }
-    .mon-copy-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #475569;
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-size: 11px;
-      cursor: pointer;
+
+    .nav-link:hover {
+      color: var(--text-main);
+      background: #f1f5f9;
     }
-    .mon-copy-btn:hover {
-      background: #334155;
-      color: #fff;
+
+    .nav-link.active {
+      color: var(--primary);
+      background: #eff6ff;
+      border-color: #bfdbfe;
     }
   </style>
 </head>
 <body>
 
   <div class="container">
+    <!-- Top Shared Navigation -->
+    <nav class="app-nav">
+      <a href="/" class="nav-brand">
+        <span>🎓</span>
+        <span>Zoom Telemetry 2Grow</span>
+      </a>
+      <div class="nav-links">
+        <a href="/" class="nav-link active">📊 Класичний звіт</a>
+        <a href="/telemetry.html" class="nav-link">⚡ Телеметрія наживо</a>
+        <a href="/events.html" class="nav-link">📝 Події Zoom</a>
+      </div>
+    </nav>
+
     <header>
-      <h1>Zoom Attendance Telemetry PoC</h1>
+      <h1>Звіт проведених уроків Zoom</h1>
       <div class="subtitle">Моніторинг проведених уроків мовної школи за днями (Europe/Kyiv)</div>
     </header>
 
-    <!-- Main Mode Navigation Tabs -->
-    <nav class="main-tabs-nav" role="tablist">
-      <button type="button" class="main-tab-btn active" id="tabBtnReports" role="tab" aria-selected="true" onclick="switchTab('reports')">
-        <span>📊 Reports API (Класичний звіт)</span>
-      </button>
-      <button type="button" class="main-tab-btn" id="tabBtnTelemetry" role="tab" aria-selected="false" onclick="switchTab('telemetry')">
-        <span>⚡ Zoom Webhook Monitor (Події наживо)</span>
-        <span class="live-dot" title="Live Zoom Events"></span>
-      </button>
-    </nav>
-
-    <!-- View 1: Reports API (Classic PoC Report) -->
-    <div id="viewReports" class="tab-view">
       <!-- Filter & Presets Panel -->
       <div class="filter-panel">
         <div class="quick-presets">
@@ -1280,93 +1110,6 @@
 
       <!-- Days Container -->
       <div class="days-list" id="daysContainer"></div>
-    </div>
-
-    <!-- View 2: Live Webhook Monitoring Log (Zoom Events Stream) -->
-    <div id="viewTelemetry" class="tab-view" style="display: none;">
-      <!-- Status Ribbon -->
-      <div class="mon-ribbon">
-        <div class="mon-badges-group">
-          <span class="mon-status-pill mon-status-active">
-            <span class="live-dot"></span> Слухач вебхуків активний
-          </span>
-          <span class="mon-status-pill mon-status-db" id="monDbBadge">
-            🗄️ База: Завантаження...
-          </span>
-          <span class="mon-status-pill mon-status-events">
-            📝 Всього подій: <strong id="monTotalEvents">0</strong>
-          </span>
-          <span class="mon-status-pill mon-status-ok" id="monErrorsBadge">
-            ✅ Помилок: <strong>0</strong>
-          </span>
-        </div>
-
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="btn-apply" id="btnMonRefresh" style="min-height: 36px; padding: 6px 14px; background: #0284c7;">
-            <span>🔄 Оновити</span>
-          </button>
-          <label class="auto-refresh-wrapper" title="Автоматичне оновлення подій кожні 3 секунди" style="padding: 6px 10px; min-height: 36px;">
-            <input type="checkbox" id="monAutoRefreshCheck" checked>
-            <span>Авто</span>
-            <span class="countdown-chip" id="monCountdownLabel">3с</span>
-          </label>
-          <button type="button" class="btn-preset" id="btnMonPrint" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
-            <span>🖨️ Друк подій</span>
-          </button>
-          <button type="button" class="btn-preset" id="btnMonDownloadJson" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
-            <span>💾 Завантажити JSON</span>
-          </button>
-          <button type="button" class="btn-preset" id="btnMonCopyAll" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
-            <span>📋 Скопіювати все</span>
-          </button>
-          <a href="/events.html" target="_blank" class="btn-preset" style="min-height: 36px; padding: 6px 12px; text-decoration: none; color: #0284c7; border-color: #bae6fd; display: inline-flex; align-items: center; gap: 4px;">
-            <span>↗️ Окрема сторінка подій</span>
-          </a>
-          <button type="button" class="btn-preset" id="btnMonClearLogs" style="min-height: 36px; padding: 6px 12px; color: #dc2626; border-color: #fca5a5;">
-            <span>🧹 Очистити події</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Zoom Lifecycle Tip -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 14px; margin-bottom: 12px; font-size: 12px; color: #334155; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-        <span>💡 <strong>Підказка Zoom:</strong> Закриття вкладки без натискання «Завершити для всіх» викликає таймаут серійних серверів Zoom (від 60 до 120 секунд), перш ніж Zoom надішле подію <code>meeting.ended</code>. Натискайте червону кнопку «Завершити для всіх» у Zoom для миттєвого виклику вебхука.</span>
-      </div>
-
-      <!-- Filter Chips -->
-      <div class="mon-filter-chips">
-        <button type="button" class="mon-chip active" data-filter="all">Всі події (<span id="countFilterAll">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="meeting.started">🟢 Started (<span id="countFilterStarted">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="participant_joined">🔵 Joined / Admitted (<span id="countFilterJoined">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="meeting.participant_data_connection_established">📶 Data Connected (<span id="countFilterConnected">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="meeting.participant_left">🟠 Left (<span id="countFilterLeft">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="meeting.ended">🔴 Ended (<span id="countFilterEnded">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="endpoint.url_validation">🟣 CRC Validation (<span id="countFilterCRC">0</span>)</button>
-        <button type="button" class="mon-chip" data-filter="errors">⚠️ Помилки (<span id="countFilterErrors">0</span>)</button>
-      </div>
-
-      <!-- Error & Diagnostic Banner -->
-      <div id="monErrorBanner" class="mon-error-banner" style="display: none;">
-        <div style="font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
-          <span>⚠️ Виявлено помилки або неочікувані виклики вебхуків:</span>
-        </div>
-        <div id="monErrorList" style="margin-top: 8px;"></div>
-      </div>
-
-      <!-- Status Alert -->
-      <div id="monStatusAlert" class="status-alert status-loading" style="display: none;">Завантаження подій...</div>
-
-      <!-- Main Events Feed Container -->
-      <div id="monEventsList" class="mon-events-list"></div>
-
-      <!-- Collapsible Aggregated Meetings In Redis -->
-      <div style="margin-top: 24px; padding-top: 14px; border-top: 1px dashed #cbd5e1;">
-        <button type="button" class="btn-global-toggle" id="btnToggleMeetingsSummary" style="width: 100%; text-align: left; justify-content: space-between; display: flex; padding: 10px 14px;">
-          <span>📦 Збережені агреговані зустрічі в Redis (<span id="monMeetingsCount">0</span>)</span>
-          <span id="meetingsArrow">▼</span>
-        </button>
-        <div id="meetingsSummaryContainer" style="display: none; margin-top: 10px;"></div>
-      </div>
     </div>
   </div>
 
@@ -1923,623 +1666,9 @@
     const defaultTo = formatKyivYMD(now);
     fetchData(defaultFrom, defaultTo);
 
-    /* ==========================================================================
-       TELEMETRY CONTROLLER (Zoom Webhooks + Upstash Redis)
-       ========================================================================== */
-    const tabBtnReports = document.getElementById('tabBtnReports');
-    const tabBtnTelemetry = document.getElementById('tabBtnTelemetry');
-    const viewReports = document.getElementById('viewReports');
-    const viewTelemetry = document.getElementById('viewTelemetry');
-    let currentTab = 'reports';
-
-    window.switchTab = function(targetTab) {
-      currentTab = targetTab;
-      if (targetTab === 'telemetry') {
-        tabBtnReports.classList.remove('active');
-        tabBtnReports.setAttribute('aria-selected', 'false');
-        tabBtnTelemetry.classList.add('active');
-        tabBtnTelemetry.setAttribute('aria-selected', 'true');
-        viewReports.style.display = 'none';
-        viewTelemetry.style.display = 'block';
-        window.location.hash = '#telemetry';
-        if (!telemetryLoadedOnce) {
-          fetchTelemetryData();
-        }
-      } else {
-        tabBtnTelemetry.classList.remove('active');
-        tabBtnTelemetry.setAttribute('aria-selected', 'false');
-        tabBtnReports.classList.add('active');
-        tabBtnReports.setAttribute('aria-selected', 'true');
-        viewTelemetry.style.display = 'none';
-        viewReports.style.display = 'block';
-        window.location.hash = '#reports';
-      }
-    };
-
-    const telInputDate = document.getElementById('telInputDate');
-    const btnTelToday = document.getElementById('btnTelToday');
-    const btnTelAllDates = document.getElementById('btnTelAllDates');
-    const telInputHost = document.getElementById('telInputHost');
-    const btnTelHostPreset = document.getElementById('btnTelHostPreset');
-    const btnTelApply = document.getElementById('btnTelApply');
-    const btnTelRefresh = document.getElementById('btnTelRefresh');
-    const telAutoRefreshCheck = document.getElementById('telAutoRefreshCheck');
-    const telCountdownLabel = document.getElementById('telCountdownLabel');
-
-    const telSummaryBar = document.getElementById('telSummaryBar');
-    const kpiTelTotal = document.getElementById('kpiTelTotal');
-    const kpiTelLive = document.getElementById('kpiTelLive');
-    const kpiTelVerified = document.getElementById('kpiTelVerified');
-    const kpiTelOnlyHost = document.getElementById('kpiTelOnlyHost');
-    const kpiTelShort = document.getElementById('kpiTelShort');
-
-    const telActionBar = document.getElementById('telActionBar');
-    const btnTelGlobalToggle = document.getElementById('btnTelGlobalToggle');
-    const telInfo = document.getElementById('telInfo');
-    const telStatusAlert = document.getElementById('telStatusAlert');
-    const telContainer = document.getElementById('telContainer');
-
-    let telemetryLoadedOnce = false;
-    let allTelDrawersExpanded = false;
-    let countdownRemaining = 10;
-
-    function formatKyivTimeOnly(isoStr) {
-      if (!isoStr) return '';
-      try {
-        const d = new Date(isoStr);
-        return new Intl.DateTimeFormat('uk-UA', {
-          timeZone: 'Europe/Kyiv',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        }).format(d);
-      } catch {
-        return isoStr;
-      }
-    }
-
-    function formatKyivDateTime(isoStr) {
-      if (!isoStr) return '—';
-      try {
-        const d = new Date(isoStr);
-        return new Intl.DateTimeFormat('uk-UA', {
-          timeZone: 'Europe/Kyiv',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).format(d);
-      } catch {
-        return isoStr;
-      }
-    }
-
-    function formatSecondsToHM(seconds) {
-      const total = Math.max(0, Math.round(Number(seconds) || 0));
-      const m = Math.floor(total / 60);
-      const s = total % 60;
-      if (m === 0) return `${s} с`;
-      return s > 0 ? `${m} хв ${s} с` : `${m} хв`;
-    }
-
-    function renderTelParticipant(p) {
-      const isHost = p.is_host === true;
-      const roleTag = isHost
-        ? '<span class="tag-role tag-host">Викладач (Організатор)</span>'
-        : '<span class="tag-role tag-student">Студент</span>';
-
-      const emailText = p.email ? p.email : '—';
-      const phoneText = p.phone ? `<span class="id-bubble">📞 ${escapeHtml(p.phone)}</span>` : '';
-      const userIdText = p.user_id ? `<span class="muted">ID: ${escapeHtml(String(p.user_id))}</span>` : '';
-      const ipText = p.ip_address ? `<span class="ip-badge">🌐 IP: ${escapeHtml(p.ip_address)}</span>` : '';
-      const deviceText = p.device ? `<span class="qos-badge">💻 ${escapeHtml(p.device)}</span>` : '';
-
-      const joinTime = p.join_time ? formatKyivTimeOnly(p.join_time) : '';
-      const leaveTime = p.leave_time ? formatKyivTimeOnly(p.leave_time) : '';
-      const timeRange = (joinTime && leaveTime) ? ` (${joinTime} – ${leaveTime})` : (joinTime ? ` (з ${joinTime})` : '');
-
-      const durStr = p.duration_seconds !== undefined
-        ? formatSecondsToHM(p.duration_seconds)
-        : (p.duration ? `${p.duration} хв` : '—');
-
-      let intervalsHtml = '';
-      if (Array.isArray(p.sessions) && p.sessions.length > 1) {
-        intervalsHtml = `
-          <div style="margin-top: 6px; font-size: 11px; color: #475569;">
-            <strong>Сесії підключень (${p.sessions.length}):</strong>
-            <div style="margin-top: 2px;">
-              ${p.sessions.map((s, idx) => `
-                <span class="session-interval-tag">#${idx + 1}: ${formatKyivTimeOnly(s.join_time)} – ${formatKyivTimeOnly(s.leave_time) || 'в ефірі'}</span>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="student-item ${isHost ? 'is-host' : ''}">
-          <div class="st-header">
-            <span class="st-name">${escapeHtml(p.name || p.user_name || 'Учасник')}</span>
-            ${roleTag}
-          </div>
-          <div class="st-id-line">
-            <span class="id-bubble">✉️ ${escapeHtml(emailText)}</span>
-            ${phoneText}
-            ${userIdText}
-            ${ipText}
-            ${deviceText}
-          </div>
-          <div class="st-time">
-            ⏱️ Час на уроці: <strong>${escapeHtml(durStr)}</strong><span class="muted">${timeRange}</span>
-          </div>
-          ${intervalsHtml}
-        </div>
-      `;
-    }
-
-    // ========================================================================
-    // Live Webhook Event Monitor Logic (Tab 2)
-    // ========================================================================
-    const monDbBadge = document.getElementById('monDbBadge');
-    const monTotalEvents = document.getElementById('monTotalEvents');
-    const monErrorsBadge = document.getElementById('monErrorsBadge');
-    const btnMonRefresh = document.getElementById('btnMonRefresh');
-    const monAutoRefreshCheck = document.getElementById('monAutoRefreshCheck');
-    const monCountdownLabel = document.getElementById('monCountdownLabel');
-    const btnMonClearLogs = document.getElementById('btnMonClearLogs');
-    const monErrorBanner = document.getElementById('monErrorBanner');
-    const monErrorList = document.getElementById('monErrorList');
-    const monStatusAlert = document.getElementById('monStatusAlert');
-    const monEventsList = document.getElementById('monEventsList');
-    const btnToggleMeetingsSummary = document.getElementById('btnToggleMeetingsSummary');
-    const meetingsArrow = document.getElementById('meetingsArrow');
-    const meetingsSummaryContainer = document.getElementById('meetingsSummaryContainer');
-    const monMeetingsCount = document.getElementById('monMeetingsCount');
-
-    const btnMonPrint = document.getElementById('btnMonPrint');
-    const btnMonDownloadJson = document.getElementById('btnMonDownloadJson');
-    const btnMonCopyAll = document.getElementById('btnMonCopyAll');
-
-    let currentMonFilter = 'all';
-    let monCountdown = 3;
-    let monEventsData = [];
-    let monErrorsData = [];
-    let monMeetingsData = [];
-    let meetingsSummaryExpanded = false;
-    const expandedPayloads = new Set();
-
-    function formatTimeAgo(isoString) {
-      if (!isoString) return '';
-      const diffSec = Math.max(0, Math.round((Date.now() - Date.parse(isoString)) / 1000));
-      if (diffSec < 5) return 'щойно';
-      if (diffSec < 60) return `${diffSec}с тому`;
-      const diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return `${diffMin}хв тому`;
-      const diffHours = Math.floor(diffMin / 60);
-      return `${diffHours}год тому`;
-    }
-
-    function formatDurationHuman(seconds) {
-      const s = Math.max(0, Math.round(Number(seconds) || 0));
-      if (s === 0) return '0 сек';
-      if (s < 60) return `${s} сек`;
-      const m = Math.floor(s / 60);
-      const remS = s % 60;
-      return remS > 0 ? `${m} хв ${remS} сек` : `${m} хв`;
-    }
-
-    async function fetchTelemetryData() {
-      telemetryLoadedOnce = true;
-      if (monStatusAlert) monStatusAlert.style.display = 'none';
-
-      try {
-        const res = await fetch('/api/telemetry');
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        monEventsData = data.events || [];
-        monErrorsData = data.errors || [];
-        monMeetingsData = data.meetings || [];
-
-        // Update Ribbon
-        if (monDbBadge) monDbBadge.textContent = '🗄️ База: ' + (data.redis_provider || 'Vercel KV');
-        if (monTotalEvents) monTotalEvents.textContent = monEventsData.length;
-
-        if (monErrorsBadge) {
-          if (monErrorsData.length > 0) {
-            monErrorsBadge.className = 'mon-status-pill mon-status-errors';
-            monErrorsBadge.innerHTML = `⚠️ Помилок: <strong>${monErrorsData.length}</strong>`;
-          } else {
-            monErrorsBadge.className = 'mon-status-pill mon-status-ok';
-            monErrorsBadge.innerHTML = `✅ Помилок: <strong>0</strong>`;
-          }
-        }
-
-        updateFilterCounts();
-        renderErrorsBanner();
-        renderEventsFeed();
-        renderMeetingsSummary();
-
-      } catch (err) {
-        if (monStatusAlert) {
-          monStatusAlert.style.display = 'block';
-          monStatusAlert.className = 'status-alert status-empty';
-          monStatusAlert.textContent = `Помилка завантаження подій: ${err.message}`;
-        }
-      }
-    }
-
-    function updateFilterCounts() {
-      const startedCount = monEventsData.filter(e => e.event === 'meeting.started').length;
-      const joinedCount = monEventsData.filter(e => e.event === 'meeting.participant_joined' || e.event === 'meeting.participant_admitted').length;
-      const connectedCount = monEventsData.filter(e => e.event === 'meeting.participant_data_connection_established' || e.event === 'meeting.participant_connection_established').length;
-      const leftCount = monEventsData.filter(e => e.event === 'meeting.participant_left').length;
-      const endedCount = monEventsData.filter(e => e.event === 'meeting.ended').length;
-      const crcCount = monEventsData.filter(e => e.event === 'endpoint.url_validation').length;
-      const errCount = monErrorsData.length;
-
-      const elAll = document.getElementById('countFilterAll');
-      const elStarted = document.getElementById('countFilterStarted');
-      const elJoined = document.getElementById('countFilterJoined');
-      const elConnected = document.getElementById('countFilterConnected');
-      const elLeft = document.getElementById('countFilterLeft');
-      const elEnded = document.getElementById('countFilterEnded');
-      const elCRC = document.getElementById('countFilterCRC');
-      const elErrors = document.getElementById('countFilterErrors');
-
-      if (elAll) elAll.textContent = monEventsData.length;
-      if (elStarted) elStarted.textContent = startedCount;
-      if (elJoined) elJoined.textContent = joinedCount;
-      if (elConnected) elConnected.textContent = connectedCount;
-      if (elLeft) elLeft.textContent = leftCount;
-      if (elEnded) elEnded.textContent = endedCount;
-      if (elCRC) elCRC.textContent = crcCount;
-      if (elErrors) elErrors.textContent = errCount;
-      if (monMeetingsCount) monMeetingsCount.textContent = monMeetingsData.length;
-    }
-
-    function renderErrorsBanner() {
-      if (!monErrorBanner || !monErrorList) return;
-
-      if (monErrorsData.length === 0) {
-        monErrorBanner.style.display = 'none';
-        monErrorList.innerHTML = '';
-        return;
-      }
-
-      monErrorBanner.style.display = 'block';
-      monErrorList.innerHTML = monErrorsData.map(err => {
-        const timeStr = err.timestamp ? new Date(err.timestamp).toLocaleTimeString('uk-UA') : '';
-        return `
-          <div class="mon-error-item">
-            <div><strong>[${escapeHtml(timeStr)}] ${escapeHtml(err.event || 'Помилка')}:</strong> ${escapeHtml(err.error || err.message || 'Неочікувана подія')}</div>
-            ${err.raw_body_snippet ? `<div style="margin-top: 4px; color: #475569; word-break: break-all;">Дані запиту: ${escapeHtml(err.raw_body_snippet)}</div>` : ''}
-          </div>
-        `;
-      }).join('');
-    }
-
-    function getEventMeta(eventStr) {
-      if (!eventStr) return { label: 'Невідома подія', icon: '❓', cardClass: 'event-unexpected', badgeColor: '#eab308' };
-      if (eventStr === 'meeting.started') {
-        return { label: 'Початок зустрічі', icon: '🟢', cardClass: 'event-started', badgeColor: '#22c55e' };
-      }
-      if (eventStr === 'meeting.participant_joined') {
-        return { label: 'Учасник зайшов', icon: '🔵', cardClass: 'event-joined', badgeColor: '#3b82f6' };
-      }
-      if (eventStr === 'meeting.participant_admitted') {
-        return { label: 'Допущено з зали очікування', icon: '🔵', cardClass: 'event-joined', badgeColor: '#2563eb' };
-      }
-      if (eventStr === 'meeting.participant_data_connection_established' || eventStr === 'meeting.participant_connection_established') {
-        return { label: 'З\'єднання встановлено (Audio/Video Data)', icon: '📶', cardClass: 'event-joined', badgeColor: '#0284c7' };
-      }
-      if (eventStr === 'meeting.participant_left') {
-        return { label: 'Учасник вийшов', icon: '🟠', cardClass: 'event-left', badgeColor: '#f97316' };
-      }
-      if (eventStr === 'meeting.ended') {
-        return { label: 'Зустріч завершено', icon: '🔴', cardClass: 'event-ended', badgeColor: '#ef4444' };
-      }
-      if (eventStr === 'endpoint.url_validation') {
-        return { label: 'CRC Перевірка зв\'язку від Zoom', icon: '🟣', cardClass: 'event-validation', badgeColor: '#8b5cf6' };
-      }
-      if (eventStr.startsWith('error')) {
-        return { label: 'Помилка вебхука', icon: '⚠️', cardClass: 'event-error', badgeColor: '#dc2626' };
-      }
-      return { label: eventStr, icon: '⚡', cardClass: 'event-unexpected', badgeColor: '#eab308' };
-    }
-
-    function renderEventsFeed() {
-      if (!monEventsList) return;
-
-      let filtered = monEventsData;
-      if (currentMonFilter === 'meeting.started') {
-        filtered = monEventsData.filter(e => e.event === 'meeting.started');
-      } else if (currentMonFilter === 'participant_joined') {
-        filtered = monEventsData.filter(e => e.event === 'meeting.participant_joined' || e.event === 'meeting.participant_admitted');
-      } else if (currentMonFilter === 'meeting.participant_data_connection_established') {
-        filtered = monEventsData.filter(e => e.event === 'meeting.participant_data_connection_established' || e.event === 'meeting.participant_connection_established');
-      } else if (currentMonFilter === 'meeting.participant_left') {
-        filtered = monEventsData.filter(e => e.event === 'meeting.participant_left');
-      } else if (currentMonFilter === 'meeting.ended') {
-        filtered = monEventsData.filter(e => e.event === 'meeting.ended');
-      } else if (currentMonFilter === 'endpoint.url_validation') {
-        filtered = monEventsData.filter(e => e.event === 'endpoint.url_validation');
-      } else if (currentMonFilter === 'errors') {
-        filtered = monErrorsData;
-      }
-
-      if (filtered.length === 0) {
-        monEventsList.innerHTML = `
-          <div class="status-alert status-empty" style="display: block; padding: 24px; text-align: center; border-radius: 12px;">
-            <div style="font-size: 24px; margin-bottom: 6px;">📡</div>
-            <div style="font-weight: 700; font-size: 14px; color: #1e293b;">Поки що немає зафіксованих подій для цього фільтра</div>
-            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
-              Запустіть мітинг у Zoom або виконайте дію, щоб події з'явилися тут наживо.
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      monEventsList.innerHTML = filtered.map((item, idx) => {
-        const id = item.id || `evt_${idx}`;
-        const meta = getEventMeta(item.event);
-        const timeFormatted = item.timestamp ? new Date(item.timestamp).toLocaleTimeString('uk-UA') : '—';
-        const timeAgo = formatTimeAgo(item.timestamp);
-        const isPayloadOpen = expandedPayloads.has(id);
-
-        let whoText = '—';
-        if (item.participant_name) {
-          whoText = `<strong>${escapeHtml(item.participant_name)}</strong>`;
-          if (item.participant_email) whoText += ` (${escapeHtml(item.participant_email)})`;
-          else if (item.participant_user_id) whoText += ` [ID: ${escapeHtml(item.participant_user_id)}]`;
-        } else if (item.host_email) {
-          whoText = `Організатор: <strong>${escapeHtml(item.host_email)}</strong>`;
-        } else if (item.message) {
-          whoText = escapeHtml(item.message);
-        }
-
-        const detailsList = [];
-        if (item.details) {
-          if (item.details.join_time && item.details.leave_time) {
-            const diffSec = Math.round((Date.parse(item.details.leave_time) - Date.parse(item.details.join_time)) / 1000);
-            if (diffSec > 0) detailsList.push(`Час участі: <strong>${formatDurationHuman(diffSec)}</strong>`);
-          } else if (item.details.duration !== undefined && Number(item.details.duration) > 0) {
-            detailsList.push(`Тривалість Zoom: <strong>${formatDurationHuman(Number(item.details.duration) * 60)}</strong>`);
-          }
-          if (item.details.join_time) detailsList.push(`Вхід: ${formatKyivTimeOnly(item.details.join_time)}`);
-          if (item.details.leave_time) detailsList.push(`Вихід: ${formatKyivTimeOnly(item.details.leave_time)}`);
-          if (item.details.connections) detailsList.push(`Канали зв'язку: ${escapeHtml(item.details.connections)}`);
-        }
-        if (item.status === 'error' && item.error) {
-          detailsList.push(`Помилка: ${item.error}`);
-        }
-        const detailsStr = detailsList.length > 0 ? detailsList.join(' • ') : '—';
-
-        const rawJsonString = item.payload_raw || JSON.stringify(item, null, 2);
-
-        return `
-          <div class="mon-card ${meta.cardClass}" id="card_${id}">
-            <div class="mon-card-header">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="badge" style="background: ${meta.badgeColor}15; color: ${meta.badgeColor}; border: 1px solid ${meta.badgeColor}40; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
-                  ${meta.icon} ${meta.label}
-                </span>
-                <code style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${escapeHtml(item.event || '—')}</code>
-              </div>
-              <div class="mon-card-time">
-                ⏰ ${escapeHtml(timeFormatted)} <span style="font-weight: normal; color: #94a3b8;">(${timeAgo})</span>
-              </div>
-            </div>
-
-            <div class="mon-card-body">
-              <div class="mon-item-group">
-                <span class="mon-item-label">Зустріч / ID</span>
-                <span class="mon-item-value">
-                  ${item.meeting_id ? `<code>${escapeHtml(String(item.meeting_id))}</code>` : '—'}
-                  <div style="font-size: 11px; color: #64748b; font-weight: normal;">${escapeHtml(item.topic || '')}</div>
-                </span>
-              </div>
-
-              <div class="mon-item-group">
-                <span class="mon-item-label">Учасник / Дія</span>
-                <span class="mon-item-value">${whoText}</span>
-                <div style="font-size: 11px; color: #64748b; font-weight: normal;">${detailsStr}</div>
-              </div>
-
-              <div style="display: flex; justify-content: flex-end; align-items: center;">
-                <button type="button" class="mon-raw-btn" onclick="toggleRawPayload('${id}')">
-                  <span>${isPayloadOpen ? '▲ Згорнути JSON' : '▼ Сирий JSON від Zoom'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div id="payload_${id}" class="mon-raw-payload" style="display: ${isPayloadOpen ? 'block' : 'none'};">
-              <button type="button" class="mon-copy-btn" onclick="copyRawPayload('${id}')">📋 Скопіювати JSON</button>
-              <pre id="pre_${id}" style="margin: 0; font-size: 11px;">${escapeHtml(rawJsonString)}</pre>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    window.toggleRawPayload = function(id) {
-      const el = document.getElementById(`payload_${id}`);
-      if (!el) return;
-      const isOpen = el.style.display !== 'none';
-      if (isOpen) {
-        el.style.display = 'none';
-        expandedPayloads.delete(id);
-      } else {
-        el.style.display = 'block';
-        expandedPayloads.add(id);
-      }
-      const card = document.getElementById(`card_${id}`);
-      if (card) {
-        const btn = card.querySelector('.mon-raw-btn span');
-        if (btn) btn.textContent = isOpen ? '▼ Сирий JSON від Zoom' : '▲ Згорнути JSON';
-      }
-    };
-
-    window.copyRawPayload = function(id) {
-      const pre = document.getElementById(`pre_${id}`);
-      if (!pre) return;
-      navigator.clipboard.writeText(pre.textContent).then(() => {
-        alert('JSON скопійовано в буфер обміну!');
-      }).catch(() => {
-        alert('Не вдалося скопіювати.');
-      });
-    };
-
-    function renderMeetingsSummary() {
-      if (!meetingsSummaryContainer) return;
-
-      if (monMeetingsData.length === 0) {
-        meetingsSummaryContainer.innerHTML = '<div class="muted" style="padding: 10px;">В базі даних Redis ще немає збережених мітингів.</div>';
-        return;
-      }
-
-      let html = '<div style="display: grid; gap: 8px;">';
-      monMeetingsData.forEach(m => {
-        const parts = m.participants || [];
-        const durSec = m.duration_seconds !== undefined ? m.duration_seconds : (m.duration ? m.duration * 60 : 0);
-        const durFormatted = formatDurationHuman(durSec);
-        const isLive = m.status === 'live';
-        const badge = isLive
-          ? '<span class="badge badge-live-meeting"><span class="live-dot"></span> В ефірі</span>'
-          : '<span class="badge badge-ended-meeting">Завершено</span>';
-
-        html += `
-          <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <div>
-                <strong>${escapeHtml(m.topic || 'Zoom Meeting')}</strong>
-                <span class="muted" style="margin-left: 6px;">ID: <code>${escapeHtml(String(m.meeting_id))}</code></span>
-              </div>
-              <div>${badge} <span style="font-weight: 700; color: #0284c7; margin-left: 6px;">⏱️ ${durFormatted}</span></div>
-            </div>
-            <div style="font-size: 12px; color: #475569;">
-              <span>👤 Організатор: ${escapeHtml(m.host_name || m.host_email || '—')}</span>
-              <span style="margin: 0 6px;">•</span>
-              <span>👥 Учасників: ${parts.length}</span>
-            </div>
-            ${parts.length > 0 ? `
-              <div style="margin-top: 6px; font-size: 11px; background: #f8fafc; padding: 8px 10px; border-radius: 6px; display: grid; gap: 4px;">
-                ${parts.map(p => {
-                  const pSec = p.duration_seconds !== undefined ? p.duration_seconds : (p.duration ? p.duration * 60 : 0);
-                  const pDur = formatDurationHuman(pSec);
-                  return `<div>• <strong>${escapeHtml(p.name || p.user_name || 'Гість')}</strong> (${escapeHtml(p.email || p.user_id || 'ID')}) — <strong>⏱️ ${pDur}</strong></div>`;
-                }).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      });
-      html += '</div>';
-      meetingsSummaryContainer.innerHTML = html;
-    }
-
-    // Print Button
-    if (btnMonPrint) {
-      btnMonPrint.addEventListener('click', () => {
-        window.print();
-      });
-    }
-
-    // Download JSON Button
-    if (btnMonDownloadJson) {
-      btnMonDownloadJson.addEventListener('click', () => {
-        const jsonStr = JSON.stringify(monEventsData, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `zoom_webhook_events_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      });
-    }
-
-    // Copy All JSON Button
-    if (btnMonCopyAll) {
-      btnMonCopyAll.addEventListener('click', () => {
-        const jsonStr = JSON.stringify(monEventsData, null, 2);
-        navigator.clipboard.writeText(jsonStr).then(() => {
-          alert(`Скопійовано всі події (${monEventsData.length} шт.) у форматі JSON!`);
-        }).catch(() => {
-          alert('Не вдалося скопіювати.');
-        });
-      });
-    }
-
-    // Toggle Meetings Summary
-    if (btnToggleMeetingsSummary) {
-      btnToggleMeetingsSummary.addEventListener('click', () => {
-        meetingsSummaryExpanded = !meetingsSummaryExpanded;
-        if (meetingsSummaryContainer) meetingsSummaryContainer.style.display = meetingsSummaryExpanded ? 'block' : 'none';
-        if (meetingsArrow) meetingsArrow.textContent = meetingsSummaryExpanded ? '▲' : '▼';
-      });
-    }
-
-    // Filter Chips Click
-    document.querySelectorAll('.mon-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.mon-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentMonFilter = btn.getAttribute('data-filter');
-        renderEventsFeed();
-      });
-    });
-
-    // Refresh Button
-    if (btnMonRefresh) {
-      btnMonRefresh.addEventListener('click', () => {
-        monCountdown = 3;
-        if (monCountdownLabel) monCountdownLabel.textContent = '3с';
-        fetchTelemetryData();
-      });
-    }
-
-    // Clear Logs Button
-    if (btnMonClearLogs) {
-      btnMonClearLogs.addEventListener('click', async () => {
-        if (!confirm('Ви дійсно бажаєте очистити журнал подій вебхуків?')) return;
-        try {
-          await fetch('/api/telemetry?action=clear_logs');
-          await fetchTelemetryData();
-        } catch (err) {
-          alert('Помилка очищення логів: ' + err.message);
-        }
-      });
-    }
-
-    // Auto-refresh timer every 1s
-    setInterval(() => {
-      if (currentTab !== 'telemetry' || (monAutoRefreshCheck && !monAutoRefreshCheck.checked)) {
-        monCountdown = 3;
-        if (monCountdownLabel) monCountdownLabel.textContent = '3с';
-        return;
-      }
-      monCountdown--;
-      if (monCountdown <= 0) {
-        monCountdown = 3;
-        if (monCountdownLabel) monCountdownLabel.textContent = '3с';
-        fetchTelemetryData();
-      } else {
-        if (monCountdownLabel) monCountdownLabel.textContent = `${monCountdown}с`;
-      }
-    }, 1000);
-
-    // Hash routing on load
+    // Hash redirect if user bookmarked #telemetry
     if (window.location.hash === '#telemetry' || window.location.pathname.includes('webhooks')) {
-      switchTab('telemetry');
+      window.location.href = '/telemetry.html';
     }
   </script>
 </body>

@@ -240,13 +240,71 @@
       font-weight: 700;
     }
 
+    /* Top Shared Navigation */
+    .app-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      background: #f1f5f9;
+    }
+
+    .nav-link.active {
+      color: var(--primary);
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+
     /* Print Stylesheet */
     @media print {
       body {
         background: #fff;
         padding: 0;
       }
-      header button, header .link-btn, .view-tabs, .auto-refresh-pill, #btnClear {
+      .app-nav, header button, header .link-btn, .view-tabs, .auto-refresh-pill, #btnClear {
         display: none !important;
       }
       .table-box {
@@ -268,6 +326,19 @@
 <body>
 
   <div class="container">
+    <!-- Top Shared Navigation -->
+    <nav class="app-nav">
+      <a href="/" class="nav-brand">
+        <span>🎓</span>
+        <span>Zoom Telemetry 2Grow</span>
+      </a>
+      <div class="nav-links">
+        <a href="/" class="nav-link">📊 Класичний звіт</a>
+        <a href="/telemetry.html" class="nav-link">⚡ Телеметрія наживо</a>
+        <a href="/events.html" class="nav-link active">📝 Події Zoom</a>
+      </div>
+    </nav>
+
     <header>
       <div class="title-group">
         <h1>📡 Zoom Webhook Raw Events Explorer</h1>
