@@ -6,6 +6,7 @@ import { Redis } from '@upstash/redis';
 
 export const MEETING_KEY_PREFIX = 'zoom:meeting:';
 export const MEETINGS_INDEX_KEY = 'zoom:meetings:index';
+export const WEBHOOK_LOGS_KEY = 'zoom:webhook:logs';
 
 /**
  * Deep clone helper for in-memory isolation.
@@ -198,6 +199,42 @@ export class InMemoryRedis {
   constructor() {
     this.store = new Map();
     this.zsets = new Map();
+    this.lists = new Map();
+  }
+
+  async lpush(key, ...values) {
+    let list = this.lists.get(key);
+    if (!list) {
+      list = [];
+      this.lists.set(key, list);
+    }
+    for (const val of values.flat()) {
+      list.unshift(cloneDeep(val));
+    }
+    return list.length;
+  }
+
+  async lrange(key, start = 0, stop = -1) {
+    const list = this.lists.get(key) || [];
+    const len = list.length;
+    let s = Number(start);
+    let e = Number(stop);
+    if (s < 0) s = Math.max(0, len + s);
+    if (e < 0) e = Math.max(0, len + e);
+    const sliced = list.slice(s, e + 1);
+    return cloneDeep(sliced);
+  }
+
+  async ltrim(key, start, stop) {
+    const list = this.lists.get(key) || [];
+    const len = list.length;
+    let s = Number(start);
+    let e = Number(stop);
+    if (s < 0) s = Math.max(0, len + s);
+    if (e < 0) e = Math.max(0, len + e);
+    const trimmed = list.slice(s, e + 1);
+    this.lists.set(key, trimmed);
+    return 'OK';
   }
 
   async get(key) {
@@ -216,6 +253,7 @@ export class InMemoryRedis {
     for (const key of keys.flat()) {
       if (this.store.delete(key)) count++;
       if (this.zsets.delete(key)) count++;
+      if (this.lists.delete(key)) count++;
     }
     return count;
   }
@@ -681,3 +719,72 @@ export async function deleteMeeting(meetingId) {
     return true;
   });
 }
+
+/**
+ * Record an incoming webhook event log in Redis for live monitoring and debugging.
+ * Stores up to the last 100 events in a capped Redis list.
+ * @param {object} entry
+ */
+export async function recordWebhookLog(entry) {
+  try {
+    const redis = getRedisClient();
+    const item = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toISOString(),
+      ...entry
+    };
+    if (typeof redis.lpush === 'function') {
+      await redis.lpush(WEBHOOK_LOGS_KEY, JSON.stringify(item));
+      if (typeof redis.ltrim === 'function') {
+        await redis.ltrim(WEBHOOK_LOGS_KEY, 0, 199);
+      }
+    }
+  } catch (err) {
+    console.warn('[Redis] Error saving webhook log:', err.message);
+  }
+}
+
+/**
+ * Retrieve the most recent webhook event logs from Redis.
+ * @param {number} [limit=100]
+ * @returns {Promise<Array<object>>}
+ */
+export async function getWebhookLogs(limit = 100) {
+  try {
+    const redis = getRedisClient();
+    if (typeof redis.lrange === 'function') {
+      const raw = await redis.lrange(WEBHOOK_LOGS_KEY, 0, limit - 1);
+      return (raw || []).map(r => {
+        if (typeof r === 'object' && r !== null) return r;
+        try {
+          return JSON.parse(r);
+        } catch {
+          return { raw: String(r) };
+        }
+      });
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Redis] Error fetching webhook logs:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Clear all webhook event logs from Redis.
+ * @returns {Promise<boolean>}
+ */
+export async function clearWebhookLogs() {
+  try {
+    const redis = getRedisClient();
+    if (typeof redis.del === 'function') {
+      await redis.del(WEBHOOK_LOGS_KEY);
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Redis] Error clearing webhook logs:', err.message);
+    return false;
+  }
+}
+
+

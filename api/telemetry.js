@@ -2,7 +2,7 @@
 // Pure ESM Telemetry Query API for poc-zoom-report
 // Supports Vercel Serverless (Node req, res) and Web Fetch API (request)
 
-import { getMeetingsByIndex } from './lib/redis.js';
+import { getMeetingsByIndex, getWebhookLogs, clearWebhookLogs, isMockClient } from './lib/redis.js';
 
 /**
  * Universal responder abstraction supporting Node.js (req, res) and Web Fetch API (request).
@@ -169,16 +169,21 @@ export function normalizeParticipants(rawParticipants, meetingHostInfo = {}) {
  * @returns {number}
  */
 export function calculateDurationMinutes(meeting, participants = []) {
-  if (meeting.duration !== undefined && meeting.duration !== null && !Number.isNaN(Number(meeting.duration))) {
-    return Number(meeting.duration);
-  }
-
   if (meeting.end_time && meeting.start_time) {
     const startMs = Date.parse(meeting.start_time);
     const endMs = Date.parse(meeting.end_time);
     if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs >= startMs) {
-      return Math.round((endMs - startMs) / 60000);
+      const diffMin = Math.round((endMs - startMs) / 60000);
+      if (diffMin > 0) return diffMin;
+      if (meeting.duration !== undefined && meeting.duration !== null && !Number.isNaN(Number(meeting.duration)) && Number(meeting.duration) > 0) {
+        return Number(meeting.duration);
+      }
+      return 0;
     }
+  }
+
+  if (meeting.duration !== undefined && meeting.duration !== null && !Number.isNaN(Number(meeting.duration)) && Number(meeting.duration) > 0) {
+    return Number(meeting.duration);
   }
 
   if (Array.isArray(participants) && participants.length > 0) {
@@ -192,7 +197,7 @@ export function calculateDurationMinutes(meeting, participants = []) {
     }
   }
 
-  if (meeting.start_time) {
+  if (meeting.status !== 'ended' && !meeting.end_time && meeting.start_time) {
     const startMs = Date.parse(meeting.start_time);
     if (!Number.isNaN(startMs) && Date.now() >= startMs) {
       return Math.round((Date.now() - startMs) / 60000);
@@ -325,9 +330,15 @@ export default async function handler(reqOrRequest, optionalRes) {
     return responder.send(200, { success: true, message: 'CORS OK' });
   }
 
-  // Reject non-GET requests with 405 Method Not Allowed
-  if (method !== 'GET') {
-    return responder.send(405, { success: false, error: 'Method Not Allowed' }, { 'Allow': 'GET, OPTIONS' });
+  // Reject non-GET/non-DELETE requests with 405 Method Not Allowed
+  if (method !== 'GET' && method !== 'DELETE') {
+    return responder.send(405, { success: false, error: 'Method Not Allowed' }, { 'Allow': 'GET, DELETE, OPTIONS' });
+  }
+
+  // Handle clearing logs
+  if (query.action === 'clear_logs' || method === 'DELETE') {
+    await clearWebhookLogs();
+    return responder.send(200, { success: true, message: 'Logs cleared successfully' });
   }
 
   try {
@@ -345,14 +356,21 @@ export default async function handler(reqOrRequest, optionalRes) {
     });
 
     const formattedMeetings = (meetings || []).map(formatMeeting);
-
     const responseDate = date || getCurrentKyivDate();
+
+    const events = await getWebhookLogs(100);
+    const errors = events.filter(e => e.status === 'error' || e.event?.startsWith('error') || e.status === 'unexpected_event');
 
     return responder.send(200, {
       success: true,
       date: responseDate,
       total_meetings: formattedMeetings.length,
-      meetings: formattedMeetings
+      meetings: formattedMeetings,
+      total_events: events.length,
+      total_errors: errors.length,
+      errors,
+      events,
+      redis_provider: process.env.KV_REST_API_URL ? 'Vercel KV' : (process.env.UPSTASH_REDIS_REST_URL ? 'Upstash Redis' : (isMockClient() ? 'In-Memory Mock' : 'Remote Redis'))
     });
   } catch (err) {
     console.error('[Telemetry API] Error handling request:', err);

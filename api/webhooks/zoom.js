@@ -3,7 +3,7 @@
 // Supports Vercel Serverless (Node req, res) and Web Fetch API (request)
 
 import crypto from 'crypto';
-import { saveMeeting, getMeeting, withMeetingLock } from '../lib/redis.js';
+import { saveMeeting, getMeeting, withMeetingLock, recordWebhookLog } from '../lib/redis.js';
 import { fetchZoomMeetingQoS, enrichMeetingWithQoS } from '../lib/zoom.js';
 
 /**
@@ -269,6 +269,15 @@ export default async function handler(reqOrRequest, optionalRes) {
         .update(plainToken)
         .digest('hex');
 
+      try {
+        await recordWebhookLog({
+          event: 'endpoint.url_validation',
+          status: 'success',
+          topic: 'Zoom CRC Validation',
+          message: 'CRC challenge-response verified successfully'
+        });
+      } catch {}
+
       return responder.send(200, { plainToken, encryptedToken });
     }
 
@@ -282,6 +291,42 @@ export default async function handler(reqOrRequest, optionalRes) {
 
     const rawMeetingId = object.id || object.meeting_id || object.uuid;
     const meetingId = rawMeetingId !== undefined && rawMeetingId !== null ? String(rawMeetingId) : null;
+
+    // Log incoming webhook event to Redis for live monitoring and diagnostics
+    try {
+      const isKnownEvent = [
+        'meeting.started',
+        'meeting.ended',
+        'meeting.participant_joined',
+        'meeting.participant_left',
+        'meeting.participant_admitted',
+        'meeting.participant_joined_waiting_room',
+        'meeting.participant_left_waiting_room'
+      ].includes(event);
+
+      await recordWebhookLog({
+        event,
+        status: isKnownEvent ? 'success' : 'unexpected_event',
+        meeting_id: meetingId,
+        topic: object.topic || (meetingId ? `Meeting ${meetingId}` : 'Zoom Event'),
+        host_email: object.host_email || undefined,
+        host_name: object.host_name || undefined,
+        participant_name: object.participant?.user_name || object.participant?.name || undefined,
+        participant_email: object.participant?.email || object.participant?.user_email || undefined,
+        participant_user_id: object.participant?.user_id !== undefined ? String(object.participant.user_id) : undefined,
+        details: {
+          action: object.action || undefined,
+          join_time: object.participant?.join_time || undefined,
+          leave_time: object.participant?.leave_time || undefined,
+          duration: object.duration !== undefined ? object.duration : undefined,
+          start_time: object.start_time || undefined,
+          end_time: object.end_time || undefined
+        },
+        payload_raw: JSON.stringify(body, null, 2)
+      });
+    } catch {
+      // ignore logging failure
+    }
 
     // ------------------------------------------------------------------------
     // 2. Event: meeting.started
@@ -318,9 +363,9 @@ export default async function handler(reqOrRequest, optionalRes) {
     }
 
     // ------------------------------------------------------------------------
-    // 3. Event: meeting.participant_joined
+    // 3. Event: meeting.participant_joined (or participant_admitted from waiting room)
     // ------------------------------------------------------------------------
-    if (event === 'meeting.participant_joined') {
+    if (event === 'meeting.participant_joined' || event === 'meeting.participant_admitted') {
       if (!meetingId) {
         return responder.send(200, { success: true, message: 'participant_joined missing meeting id' });
       }
@@ -444,7 +489,7 @@ export default async function handler(reqOrRequest, optionalRes) {
     // ------------------------------------------------------------------------
     // 4. Event: meeting.participant_left
     // ------------------------------------------------------------------------
-    if (event === 'meeting.participant_left') {
+    if (event === 'meeting.participant_left' || event === 'meeting.participant_left_waiting_room') {
       if (!meetingId) {
         return responder.send(200, { success: true, message: 'participant_left missing meeting id' });
       }
@@ -608,15 +653,21 @@ export default async function handler(reqOrRequest, optionalRes) {
       const endTime = object.end_time || new Date().toISOString();
       meeting.status = 'ended';
       meeting.end_time = endTime;
+      meeting.updated_at = new Date().toISOString();
 
-      if (object.duration !== undefined && object.duration !== null) {
-        meeting.duration = Number(object.duration);
-      } else if (meeting.start_time && endTime) {
+      let diffMinutes = 0;
+      if (meeting.start_time && endTime) {
         const startMs = Date.parse(meeting.start_time);
         const endMs = Date.parse(endTime);
-        meeting.duration = (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs >= startMs)
-          ? Math.round((endMs - startMs) / 60000)
-          : 0;
+        if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs >= startMs) {
+          diffMinutes = Math.round((endMs - startMs) / 60000);
+        }
+      }
+
+      if (diffMinutes > 0) {
+        meeting.duration = diffMinutes;
+      } else if (object.duration !== undefined && object.duration !== null && Number(object.duration) > 0) {
+        meeting.duration = Number(object.duration);
       } else {
         meeting.duration = meeting.duration || 0;
       }
@@ -679,6 +730,14 @@ export default async function handler(reqOrRequest, optionalRes) {
 
   } catch (err) {
     console.error('[Zoom Webhook] Unhandled exception in webhook handler:', err);
+    try {
+      await recordWebhookLog({
+        event: 'error.handler_exception',
+        status: 'error',
+        error: err.message,
+        stack: err.stack
+      });
+    } catch {}
     return responder.send(500, { error: 'Internal Server Error', message: err.message });
   }
 }
