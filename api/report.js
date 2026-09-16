@@ -123,23 +123,22 @@ function formatSecondsDuration(totalSeconds) {
 }
 
 /**
- * Helper to run async tasks with concurrency limit
+ * Safe fetch for meeting participants with automatic Retry on 429 Rate Limit
  */
-async function mapConcurrent(items, limit, asyncFn) {
-  const results = [];
-  const executing = [];
-  for (const item of items) {
-    const p = Promise.resolve().then(() => asyncFn(item));
-    results.push(p);
-    if (limit <= items.length) {
-      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-      executing.push(e);
-      if (executing.length >= limit) {
-        await Promise.race(executing);
-      }
+async function fetchParticipantsSafe(meetingKey, token, maxRetries = 3) {
+  const url = `https://api.zoom.us/v2/report/meetings/${meetingKey}/participants?page_size=100`;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('Retry-After')) || 1;
+      const waitMs = Math.max(retryAfter * 1000, 1000 * Math.pow(1.5, attempt));
+      console.warn(`Zoom 429 Rate Limit for meeting ${meetingKey}, retrying in ${waitMs}ms...`);
+      await new Promise(r => setTimeout(r, waitMs));
+      continue;
     }
+    return res;
   }
-  return Promise.all(results);
+  return fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
 }
 
 export default async function handler(req, res) {
@@ -219,112 +218,123 @@ export default async function handler(req, res) {
       }
     }
 
-    // 5. Concurrently fetch participants telemetry for all meetings (limit concurrency to 5 to protect rate limits)
-    const processedMeetings = await mapConcurrent(rawMeetingsToProcess, 5, async ({ meeting, teacher }) => {
-      let participantsDetails = [];
-      const meetingKey = meeting.uuid ? encodeURIComponent(encodeURIComponent(meeting.uuid)) : meeting.id;
-      const teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.email;
+    // 5. Fetch participants telemetry in rate-safe chunks of 2 with small delay to avoid Zoom 429 limits
+    const processedMeetings = [];
+    const chunkSize = 2;
 
-      try {
-        const pRes = await fetch(`https://api.zoom.us/v2/report/meetings/${meetingKey}/participants?page_size=100`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          const rawParts = pData.participants || [];
+    for (let i = 0; i < rawMeetingsToProcess.length; i += chunkSize) {
+      const chunk = rawMeetingsToProcess.slice(i, i + chunkSize);
+      const chunkResults = await Promise.all(chunk.map(async ({ meeting, teacher }) => {
+        let participantsDetails = [];
+        const meetingKey = meeting.uuid ? encodeURIComponent(encodeURIComponent(meeting.uuid)) : meeting.id;
+        const teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.email;
 
-          // Aggregate multiple connections for the same person (reconnects)
-          const aggregated = new Map();
-          for (const p of rawParts) {
-            const name = (p.name || p.user_email || 'Учасник').trim();
-            const email = (p.user_email || '').trim().toLowerCase();
-            const key = email || name.toLowerCase();
-            const duration = Number(p.duration) || 0;
-            const isHost = (email && email === teacher.email.toLowerCase()) ||
-                           (name.toLowerCase() === teacherName.toLowerCase());
+        try {
+          const pRes = await fetchParticipantsSafe(meetingKey, token);
+          
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            const rawParts = pData.participants || [];
 
-            // Identifier: email, phone, or Zoom user ID
-            const identifier = email || (p.id ? `ID: ${p.id}` : (p.customer_key || 'Гість (без пошти)'));
+            // Aggregate multiple connections for the same person (reconnects)
+            const aggregated = new Map();
+            for (const p of rawParts) {
+              const name = (p.name || p.user_email || 'Учасник').trim();
+              const email = (p.user_email || '').trim().toLowerCase();
+              const key = email || name.toLowerCase();
+              const duration = Number(p.duration) || 0;
+              const isHost = (email && email === teacher.email.toLowerCase()) ||
+                             (name.toLowerCase() === teacherName.toLowerCase());
 
-            if (aggregated.has(key)) {
-              const existing = aggregated.get(key);
-              existing.durationSeconds += duration;
-              if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
-              if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
-            } else {
-              aggregated.set(key, {
-                name: name,
-                email: p.user_email || '',
-                identifier: identifier,
-                zoomUserId: p.id || '',
-                sessionId: p.user_id || '',
-                customerKey: p.customer_key || '',
-                durationSeconds: duration,
-                joinTime: formatKyivTime(p.join_time),
-                leaveTime: formatKyivTime(p.leave_time),
-                isHost: isHost
-              });
+              // Identifier: email, phone, or Zoom user ID
+              const identifier = email || (p.id ? `ID: ${p.id}` : (p.customer_key || 'Гість (без пошти)'));
+
+              if (aggregated.has(key)) {
+                const existing = aggregated.get(key);
+                existing.durationSeconds += duration;
+                if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
+                if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
+              } else {
+                aggregated.set(key, {
+                  name: name,
+                  email: p.user_email || '',
+                  identifier: identifier,
+                  zoomUserId: p.id || '',
+                  sessionId: p.user_id || '',
+                  customerKey: p.customer_key || '',
+                  durationSeconds: duration,
+                  joinTime: formatKyivTime(p.join_time),
+                  leaveTime: formatKyivTime(p.leave_time),
+                  isHost: isHost
+                });
+              }
             }
+
+            participantsDetails = Array.from(aggregated.values()).map(p => ({
+              ...p,
+              durationMinutes: Math.round(p.durationSeconds / 60),
+              durationFormatted: formatSecondsDuration(p.durationSeconds)
+            }));
+          } else {
+            console.warn(`Participant request for meeting ${meeting.id} returned status ${pRes.status}`);
           }
-
-          participantsDetails = Array.from(aggregated.values()).map(p => ({
-            ...p,
-            durationMinutes: Math.round(p.durationSeconds / 60),
-            durationFormatted: formatSecondsDuration(p.durationSeconds)
-          }));
-        } else {
-          participantsScopeEnabled = false;
+        } catch (err) {
+          console.warn(`Failed to fetch participants for meeting ${meeting.id}:`, err.message);
         }
-      } catch (err) {
-        console.warn(`Failed to fetch participants for meeting ${meeting.id}:`, err.message);
+
+        const count = participantsDetails.length > 0 ? participantsDetails.length : (meeting.participants_count || 0);
+        const durationMin = meeting.duration || 0;
+        const startTimeKyiv = formatKyivTime(meeting.start_time);
+        const endTimeKyiv = formatKyivTime(meeting.end_time);
+        const meetingDateKyiv = formatKyivDate(meeting.start_time);
+
+        // Separate students from host
+        const students = participantsDetails.filter(p => !p.isHost);
+
+        // Validation status
+        let status = 'SHORT_CALL';
+        let statusLabel = 'Короткий дзвінок (< 15 хв)';
+        if (durationMin >= 30 && count >= 2) {
+          status = 'VERIFIED';
+          statusLabel = 'Верифікований урок (≥ 30 хв)';
+        } else if (durationMin >= 15 && count <= 1) {
+          status = 'ONLY_HOST';
+          statusLabel = 'Тільки викладач (No-Show)';
+        }
+
+        return {
+          teacher: teacherName,
+          teacherEmail: teacher.email,
+          topic: meeting.topic || 'Без назви',
+          meetingId: meeting.id,
+          // КОЛИ:
+          date: meetingDateKyiv,
+          startTime: meeting.start_time,
+          endTime: meeting.end_time,
+          startTimeKyiv: startTimeKyiv,
+          endTimeKyiv: endTimeKyiv,
+          timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
+          // ЯК ДОВГО:
+          durationMinutes: durationMin,
+          durationFormatted: formatMinutesDuration(durationMin),
+          totalMinutes: meeting.total_minutes || 0,
+          // З КИМ:
+          participantsCount: count,
+          participants: participantsDetails,
+          students: students,
+          // СТАТУС:
+          status: status,
+          statusLabel: statusLabel
+        };
+      }));
+
+      processedMeetings.push(...chunkResults);
+
+      // Delay 200ms between chunks to stay strictly within Zoom's 3 req/sec rate limit
+      if (i + chunkSize < rawMeetingsToProcess.length) {
+        await new Promise(r => setTimeout(r, 200));
       }
-
-      const count = participantsDetails.length > 0 ? participantsDetails.length : (meeting.participants_count || 0);
-      const durationMin = meeting.duration || 0;
-      const startTimeKyiv = formatKyivTime(meeting.start_time);
-      const endTimeKyiv = formatKyivTime(meeting.end_time);
-      const meetingDateKyiv = formatKyivDate(meeting.start_time);
-
-      // Separate students from host
-      const students = participantsDetails.filter(p => !p.isHost);
-
-      // Validation status
-      let status = 'SHORT_CALL';
-      let statusLabel = 'Короткий дзвінок (< 15 хв)';
-      if (durationMin >= 30 && count >= 2) {
-        status = 'VERIFIED';
-        statusLabel = 'Верифікований урок (≥ 30 хв)';
-      } else if (durationMin >= 15 && count <= 1) {
-        status = 'ONLY_HOST';
-        statusLabel = 'Тільки викладач (No-Show)';
-      }
-
-      return {
-        teacher: teacherName,
-        teacherEmail: teacher.email,
-        topic: meeting.topic || 'Без назви',
-        meetingId: meeting.id,
-        // КОЛИ:
-        date: meetingDateKyiv,
-        startTime: meeting.start_time,
-        endTime: meeting.end_time,
-        startTimeKyiv: startTimeKyiv,
-        endTimeKyiv: endTimeKyiv,
-        timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
-        // ЯК ДОВГО:
-        durationMinutes: durationMin,
-        durationFormatted: formatMinutesDuration(durationMin),
-        totalMinutes: meeting.total_minutes || 0,
-        // З КИМ:
-        participantsCount: count,
-        participants: participantsDetails,
-        students: students,
-        // СТАТУС:
-        status: status,
-        statusLabel: statusLabel
-      };
-    });
+    }
 
     // Sort meetings descending by start time
     processedMeetings.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
