@@ -225,9 +225,16 @@
       text-transform: capitalize;
     }
 
-    .day-metrics {
+    .day-header-right {
       display: flex;
       gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .day-metrics {
+      display: flex;
+      gap: 8px;
       align-items: center;
       flex-wrap: wrap;
       font-size: 12px;
@@ -243,6 +250,19 @@
     .day-badge-green { background: var(--green-bg); color: var(--green-text); }
     .day-badge-yellow { background: var(--yellow-bg); color: var(--yellow-text); }
 
+    .btn-toggle-all {
+      font-size: 11px;
+      padding: 4px 10px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      border-radius: 5px;
+    }
+    .btn-toggle-all:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
     /* Meetings Table Inside Day */
     .meetings-table-container {
       overflow-x: auto;
@@ -257,7 +277,7 @@
     th, td {
       padding: 12px 16px;
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
       border-bottom: 1px solid #f1f5f9;
     }
 
@@ -270,12 +290,19 @@
       letter-spacing: 0.03em;
     }
 
-    tr:last-child td {
-      border-bottom: none;
+    /* Clickable Meeting Row */
+    tr.meeting-row {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
     }
 
-    tr:hover {
-      background: #fafafa;
+    tr.meeting-row:hover {
+      background-color: #f0f7ff !important;
+    }
+
+    tr.meeting-row.is-expanded {
+      background-color: #f0f7ff !important;
+      border-bottom: none;
     }
 
     .teacher-name {
@@ -291,10 +318,12 @@
     .time-slot {
       font-weight: 600;
       color: #0284c7;
+      white-space: nowrap;
     }
 
     .duration-text {
       font-weight: 600;
+      white-space: nowrap;
     }
 
     /* Status Badges */
@@ -311,37 +340,106 @@
     .badge-only-host { background: var(--yellow-bg); color: var(--yellow-text); }
     .badge-short-call { background: var(--red-bg); color: var(--red-text); }
 
-    /* Participant Row */
-    .participants-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    /* Expandable Pill / Action */
+    .participants-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      transition: all 0.15s ease;
     }
 
-    .participant-card {
+    .meeting-row:hover .participants-pill {
+      background: #dbeafe;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+
+    .toggle-arrow {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      color: #64748b;
+    }
+
+    .is-expanded .toggle-arrow {
+      transform: rotate(180deg);
+      color: #1d4ed8;
+    }
+
+    /* Expandable Sub-Row (Drawer) */
+    tr.details-row {
+      background-color: #f8fafc;
+    }
+
+    td.details-cell {
+      padding: 0 16px 16px 16px !important;
+      border-bottom: 2px solid #e2e8f0 !important;
+    }
+
+    .details-drawer {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .students-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .student-card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .participant-header {
+    .student-card.is-host {
+      background: #fffbeb;
+      border-color: #fef3c7;
+    }
+
+    .student-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 6px;
-      flex-wrap: wrap;
     }
 
-    .participant-name {
-      font-weight: 600;
+    .student-name {
+      font-size: 13px;
+      font-weight: 700;
       color: #0f172a;
     }
 
     .tag-role {
       font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 3px;
+      padding: 1px 6px;
+      border-radius: 4px;
       font-weight: 700;
       text-transform: uppercase;
     }
@@ -349,20 +447,30 @@
     .tag-student { background: #dbeafe; color: #1e40af; }
     .tag-host { background: #fef3c7; color: #92400e; }
 
-    .participant-details {
-      margin-top: 2px;
-      font-size: 11px;
-      color: var(--text-muted);
+    .student-meta {
+      font-size: 12px;
+      color: #475569;
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
     }
 
-    .id-tag {
-      color: #475569;
+    .id-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
       background: #e2e8f0;
-      padding: 1px 4px;
-      border-radius: 3px;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    .student-duration {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #0f172a;
+      font-weight: 500;
     }
 
     .muted {
@@ -425,7 +533,7 @@
       </div>
     </div>
 
-    <!-- Status Message -->
+    <!-- Status Alert -->
     <div id="statusAlert" class="status-alert status-loading">Завантаження даних...</div>
 
     <!-- Days Container -->
@@ -450,7 +558,6 @@
     const kpiDuration = document.getElementById('kpiDuration');
     const daysContainer = document.getElementById('daysContainer');
 
-    // Return YYYY-MM-DD in Kyiv timezone for a given Date
     function formatKyivYMD(d) {
       return new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Europe/Kyiv',
@@ -460,13 +567,10 @@
       }).format(d);
     }
 
-    // Get current Kyiv date object
     function getNowKyiv() {
-      const now = new Date();
-      return now;
+      return new Date();
     }
 
-    // Ukrainian readable day formatter
     function formatUkrainianDay(dateString) {
       try {
         const [year, month, day] = dateString.split('-').map(Number);
@@ -527,11 +631,12 @@
         summaryBar.style.display = 'grid';
 
         // Render Day Blocks
-        days.forEach(day => {
+        days.forEach((day, dayIndex) => {
           const dayCard = document.createElement('div');
           dayCard.className = 'day-block';
 
           const formattedDateText = formatUkrainianDay(day.date);
+          const dayDomId = `day_${dayIndex}`;
 
           dayCard.innerHTML = `
             <div class="day-header">
@@ -539,27 +644,30 @@
                 <span>📅</span>
                 <span>${escapeHtml(formattedDateText)}</span>
               </div>
-              <div class="day-metrics">
-                <span class="day-badge day-badge-neutral">Уроків: ${day.totalMeetings}</span>
-                <span class="day-badge day-badge-neutral">Час: ${escapeHtml(day.totalDurationFormatted || '0 хв')}</span>
-                <span class="day-badge day-badge-green">Верифіковано: ${day.verifiedCount}</span>
-                ${day.onlyHostCount > 0 ? `<span class="day-badge day-badge-yellow">Тільки викладач: ${day.onlyHostCount}</span>` : ''}
+              <div class="day-header-right">
+                <div class="day-metrics">
+                  <span class="day-badge day-badge-neutral">Уроків: ${day.totalMeetings}</span>
+                  <span class="day-badge day-badge-neutral">Час: ${escapeHtml(day.totalDurationFormatted || '0 хв')}</span>
+                  <span class="day-badge day-badge-green">Верифіковано: ${day.verifiedCount}</span>
+                  ${day.onlyHostCount > 0 ? `<span class="day-badge day-badge-yellow">Тільки викладач: ${day.onlyHostCount}</span>` : ''}
+                </div>
+                <button type="button" class="btn-toggle-all" onclick="toggleAllDayMeetings('${dayDomId}')">Розгорнути всіх учнів ▼</button>
               </div>
             </div>
             <div class="meetings-table-container">
-              <table>
+              <table id="${dayDomId}">
                 <thead>
                   <tr>
-                    <th style="width: 110px;">Час (Київ)</th>
-                    <th>Викладач</th>
+                    <th style="width: 120px;">Час (Київ)</th>
                     <th>Тема уроку та ID</th>
+                    <th>Викладач</th>
                     <th style="width: 90px;">Тривалість</th>
-                    <th style="width: 140px;">Статус</th>
-                    <th>Хто був (Учасники, ID та час)</th>
+                    <th style="width: 130px;">Статус</th>
+                    <th style="width: 180px;">Учасники (клік для деталей)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${day.meetings.map(m => renderMeetingRow(m)).join('')}
+                  ${day.meetings.map((m, mIdx) => renderMeetingPair(m, `${dayDomId}_m${mIdx}`)).join('')}
                 </tbody>
               </table>
             </div>
@@ -577,33 +685,40 @@
       }
     }
 
-    function renderMeetingRow(m) {
+    function renderMeetingPair(m, rowId) {
       let badgeClass = 'badge-short-call';
       if (m.status === 'VERIFIED') badgeClass = 'badge-verified';
       else if (m.status === 'ONLY_HOST') badgeClass = 'badge-only-host';
 
-      // Participants rendering
-      let participantsHtml = '';
-      if (Array.isArray(m.participants) && m.participants.length > 0) {
-        participantsHtml = `
-          <div class="participants-list">
-            ${m.participants.map(p => {
-              const roleTag = p.isHost 
-                ? '<span class="tag-role tag-host">Викладач</span>' 
+      const count = m.participantsCount || 0;
+      const parts = m.participants || [];
+
+      // Render participants cards in drawer
+      let participantsDrawerContent = '';
+      if (parts.length > 0) {
+        participantsDrawerContent = `
+          <div class="students-grid">
+            ${parts.map(p => {
+              const isHost = p.isHost;
+              const roleTag = isHost
+                ? '<span class="tag-role tag-host">Викладач</span>'
                 : '<span class="tag-role tag-student">Учень</span>';
               
               const idText = p.identifier ? escapeHtml(p.identifier) : 'Гість';
-              const timeWindow = (p.joinTime && p.leaveTime) ? ` • ${p.joinTime} – ${p.leaveTime}` : '';
+              const timeWindow = (p.joinTime && p.leaveTime) ? ` (${p.joinTime} – ${p.leaveTime})` : '';
 
               return `
-                <div class="participant-card">
-                  <div class="participant-header">
-                    <span class="participant-name">${escapeHtml(p.name || 'Учасник')}</span>
+                <div class="student-card ${isHost ? 'is-host' : ''}">
+                  <div class="student-header">
+                    <span class="student-name">${escapeHtml(p.name || 'Учасник')}</span>
                     ${roleTag}
-                    <span class="id-tag">${idText}</span>
                   </div>
-                  <div class="participant-details">
-                    <span>Був на уроці: <strong>${escapeHtml(p.durationFormatted || (p.durationMinutes + ' хв'))}</strong>${timeWindow}</span>
+                  <div class="student-meta">
+                    <span>Пошта / ID:</span>
+                    <span class="id-badge">${idText}</span>
+                  </div>
+                  <div class="student-duration">
+                    ⏱️ Був(ла) на уроці: <strong>${escapeHtml(p.durationFormatted || (p.durationMinutes + ' хв'))}</strong><span class="muted">${timeWindow}</span>
                   </div>
                 </div>
               `;
@@ -611,21 +726,21 @@
           </div>
         `;
       } else {
-        participantsHtml = `<span class="muted">${m.participantsCount || 0} учасник(ів)</span>`;
+        participantsDrawerContent = `<div class="muted">Дані окремих учасників недоступні для цієї зустрічі. Зафіксовано ${count} учасник(ів).</div>`;
       }
 
       return `
-        <tr>
+        <tr class="meeting-row" id="row_${rowId}" onclick="toggleMeetingRow('${rowId}')" title="Клікніть, щоб розгорнути дані студентів">
           <td>
             <div class="time-slot">${escapeHtml(m.timeRangeKyiv || m.startTimeKyiv || '—')}</div>
           </td>
           <td>
-            <div class="teacher-name">${escapeHtml(m.teacher || '—')}</div>
-            <div class="muted">${escapeHtml(m.teacherEmail || '')}</div>
-          </td>
-          <td>
             <div class="topic-name">${escapeHtml(m.topic || 'Без назви')}</div>
             <div class="muted">ID: ${escapeHtml(String(m.meetingId || ''))}</div>
+          </td>
+          <td>
+            <div class="teacher-name">${escapeHtml(m.teacher || '—')}</div>
+            <div class="muted">${escapeHtml(m.teacherEmail || '')}</div>
           </td>
           <td>
             <div class="duration-text">${escapeHtml(m.durationFormatted || (m.durationMinutes + ' хв'))}</div>
@@ -634,11 +749,66 @@
             <span class="badge ${badgeClass}">${escapeHtml(m.statusLabel || m.status)}</span>
           </td>
           <td>
-            ${participantsHtml}
+            <div class="participants-pill">
+              <span>👥 ${count} учасник(ів)</span>
+              <span class="toggle-arrow" id="arrow_${rowId}">▼</span>
+            </div>
+          </td>
+        </tr>
+        <tr class="details-row" id="drawer_${rowId}" style="display: none;">
+          <td colspan="6" class="details-cell">
+            <div class="details-drawer">
+              <div class="details-header">
+                <span>📋 Деталі підключення учасників до уроку: «${escapeHtml(m.topic || '')}» (${count} осіб)</span>
+                <span class="muted">Час проведення: ${escapeHtml(m.timeRangeKyiv || '')} (${escapeHtml(m.durationFormatted || '')})</span>
+              </div>
+              ${participantsDrawerContent}
+            </div>
           </td>
         </tr>
       `;
     }
+
+    // Toggle single meeting row
+    window.toggleMeetingRow = function(rowId) {
+      const row = document.getElementById(`row_${rowId}`);
+      const drawer = document.getElementById(`drawer_${rowId}`);
+      if (!row || !drawer) return;
+
+      const isExpanded = drawer.style.display !== 'none';
+      if (isExpanded) {
+        drawer.style.display = 'none';
+        row.classList.remove('is-expanded');
+      } else {
+        drawer.style.display = 'table-row';
+        row.classList.add('is-expanded');
+      }
+    };
+
+    // Toggle all meetings in a day
+    window.toggleAllDayMeetings = function(tableId) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+
+      const drawers = table.querySelectorAll('tr.details-row');
+      const rows = table.querySelectorAll('tr.meeting-row');
+      const btn = event?.currentTarget;
+
+      const hasHidden = Array.from(drawers).some(d => d.style.display === 'none');
+
+      drawers.forEach(d => {
+        d.style.display = hasHidden ? 'table-row' : 'none';
+      });
+
+      rows.forEach(r => {
+        if (hasHidden) r.classList.add('is-expanded');
+        else r.classList.remove('is-expanded');
+      });
+
+      if (btn) {
+        btn.textContent = hasHidden ? 'Згорнути всіх учнів ▲' : 'Розгорнути всіх учнів ▼';
+      }
+    };
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -650,7 +820,6 @@
         .replace(/'/g, '&#039;');
     }
 
-    // Preset handlers
     btnToday.addEventListener('click', () => {
       setActivePreset(btnToday);
       const today = formatKyivYMD(getNowKyiv());
@@ -668,8 +837,7 @@
     btnThisWeek.addEventListener('click', () => {
       setActivePreset(btnThisWeek);
       const now = getNowKyiv();
-      // Monday of current week
-      const dayOfWeek = now.getDay() || 7; // Sunday is 7, Monday is 1
+      const dayOfWeek = now.getDay() || 7;
       const monday = new Date(now);
       monday.setDate(now.getDate() - (dayOfWeek - 1));
       
@@ -694,7 +862,7 @@
       }
     });
 
-    // Default on page load: "Цей місяць"
+    // Default load: "Цей місяць"
     const now = getNowKyiv();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const defaultFrom = formatKyivYMD(firstDayOfMonth);
