@@ -2,36 +2,45 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Zoom Attendance Telemetry PoC</title>
   <style>
     :root {
       --primary: #0d6efd;
       --primary-hover: #0b5ed7;
-      --bg: #f4f6f9;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
       --border-color: #e2e8f0;
-      --text-main: #1e293b;
+      --text-main: #0f172a;
       --text-muted: #64748b;
       --green-bg: #dcfce7;
-      --green-text: #166534;
+      --green-text: #15803d;
       --yellow-bg: #fef9c3;
       --yellow-text: #854d0e;
       --red-bg: #fee2e2;
-      --red-text: #991b1b;
+      --red-text: #b91c1c;
     }
 
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
-      padding: 24px;
+      padding: 12px;
       background: var(--bg);
       color: var(--text-main);
-      line-height: 1.5;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 24px;
+        font-size: 14px;
+      }
     }
 
     .container {
@@ -40,81 +49,129 @@
     }
 
     header {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     h1 {
-      margin: 0 0 6px 0;
-      font-size: 1.7rem;
-      font-weight: 700;
+      margin: 0 0 4px 0;
+      font-size: 1.4rem;
+      font-weight: 800;
       letter-spacing: -0.02em;
+    }
+
+    @media (min-width: 768px) {
+      h1 {
+        font-size: 1.75rem;
+      }
     }
 
     .subtitle {
       color: var(--text-muted);
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    /* Filter Panel */
+    /* Filter & Controls Panel - Mobile First */
     .filter-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .filter-panel {
+        padding: 18px 20px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
     }
 
     .quick-presets {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    @media (min-width: 520px) {
+      .quick-presets {
+        display: flex;
+        flex-wrap: wrap;
+        width: auto;
+      }
     }
 
     .custom-range {
       display: flex;
+      flex-direction: column;
       gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    @media (min-width: 600px) {
+      .custom-range {
+        flex-direction: row;
+        align-items: center;
+        width: auto;
+      }
+    }
+
+    .date-inputs {
+      display: flex;
+      gap: 8px;
+      width: 100%;
     }
 
     .input-group {
+      flex: 1;
       display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--text-muted);
     }
 
+    @media (min-width: 600px) {
+      .input-group {
+        flex-direction: row;
+        align-items: center;
+        font-size: 13px;
+      }
+    }
+
     input[type="date"] {
-      padding: 7px 10px;
+      width: 100%;
+      padding: 8px 10px;
       font-size: 13px;
       border: 1px solid #cbd5e1;
-      border-radius: 6px;
+      border-radius: 8px;
       background: #fff;
       color: var(--text-main);
       outline: none;
-    }
-
-    input[type="date"]:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.2);
+      min-height: 38px;
     }
 
     button {
-      padding: 7px 14px;
+      padding: 9px 14px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid transparent;
       transition: all 0.15s ease-in-out;
+      text-align: center;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
     .btn-preset {
@@ -123,7 +180,7 @@
       border-color: #e2e8f0;
     }
 
-    .btn-preset:hover {
+    .btn-preset:hover, .btn-preset:active {
       background: #e2e8f0;
     }
 
@@ -136,113 +193,164 @@
     .btn-apply {
       background: var(--primary);
       color: #fff;
-      border-color: var(--primary-hover);
+      width: 100%;
     }
 
-    .btn-apply:hover:not(:disabled) {
-      background: var(--primary-hover);
+    @media (min-width: 600px) {
+      .btn-apply {
+        width: auto;
+      }
     }
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    /* Action Bar with the ONE Global Toggle Button */
+    .action-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
-    /* Summary KPI Bar */
+    @media (min-width: 768px) {
+      .action-bar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+
+    .btn-global-toggle {
+      background: #ffffff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      width: 100%;
+      font-size: 13px;
+      padding: 10px 16px;
+    }
+
+    .btn-global-toggle:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+
+    @media (min-width: 768px) {
+      .btn-global-toggle {
+        width: auto;
+      }
+    }
+
+    /* KPI Summary Cards */
     .summary-bar {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 22px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    @media (min-width: 768px) {
+      .summary-bar {
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+      }
     }
 
     .summary-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px 16px;
+      border-radius: 10px;
+      padding: 10px 12px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.02);
     }
 
+    .summary-card.full-span-mobile {
+      grid-column: span 2;
+    }
+
+    @media (min-width: 768px) {
+      .summary-card.full-span-mobile {
+        grid-column: span 1;
+      }
+    }
+
     .summary-label {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-bottom: 4px;
-      font-weight: 600;
+      margin-bottom: 2px;
+      font-weight: 700;
     }
 
     .summary-val {
-      font-size: 1.4rem;
-      font-weight: 700;
+      font-size: 1.25rem;
+      font-weight: 800;
       color: var(--text-main);
     }
 
     .status-alert {
       padding: 12px 16px;
       border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
     }
     .status-loading { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .status-empty { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .status-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
-    /* Day Block Layout */
+    /* Days List */
     .days-list {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .day-block {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
 
     .day-header {
       background: #f8fafc;
       border-bottom: 1px solid var(--border-color);
-      padding: 14px 18px;
+      padding: 12px 14px;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    @media (min-width: 600px) {
+      .day-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+      }
     }
 
     .day-title {
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 800;
       color: #0f172a;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       text-transform: capitalize;
-    }
-
-    .day-header-right {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
     }
 
     .day-metrics {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
       flex-wrap: wrap;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .day-badge {
-      padding: 3px 9px;
-      border-radius: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
       font-weight: 600;
     }
 
@@ -250,22 +358,97 @@
     .day-badge-green { background: var(--green-bg); color: var(--green-text); }
     .day-badge-yellow { background: var(--yellow-bg); color: var(--yellow-text); }
 
-    .btn-toggle-all {
-      font-size: 11px;
-      padding: 4px 10px;
-      background: #fff;
-      border: 1px solid #cbd5e1;
-      color: #475569;
-      border-radius: 5px;
-    }
-    .btn-toggle-all:hover {
-      background: #f1f5f9;
-      color: #0f172a;
+    /* Mobile-First Meeting Cards (Desktop uses table view) */
+    .meetings-list-mobile {
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Meetings Table Inside Day */
+    @media (min-width: 768px) {
+      .meetings-list-mobile {
+        display: none;
+      }
+    }
+
+    .meeting-card-mobile {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .meeting-card-mobile:last-child {
+      border-bottom: none;
+    }
+
+    .meeting-card-mobile:active {
+      background: #f1f5f9;
+    }
+
+    .meeting-card-mobile.is-expanded {
+      background: #f8fafc;
+    }
+
+    .m-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .m-time {
+      font-weight: 700;
+      color: #0284c7;
+      font-size: 13px;
+    }
+
+    .m-topic {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .m-sub-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .m-expand-pill {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .is-expanded .m-expand-pill {
+      background: #dbeafe;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+
+    /* Desktop Table View */
     .meetings-table-container {
+      display: none;
       overflow-x: auto;
+    }
+
+    @media (min-width: 768px) {
+      .meetings-table-container {
+        display: block;
+      }
     }
 
     table {
@@ -285,12 +468,11 @@
       background: #f8fafc;
       color: #475569;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
 
-    /* Clickable Meeting Row */
     tr.meeting-row {
       cursor: pointer;
       transition: background-color 0.15s ease;
@@ -302,7 +484,17 @@
 
     tr.meeting-row.is-expanded {
       background-color: #f0f7ff !important;
-      border-bottom: none;
+    }
+
+    .time-slot {
+      font-weight: 700;
+      color: #0284c7;
+      white-space: nowrap;
+    }
+
+    .topic-name {
+      font-weight: 700;
+      color: #0f172a;
     }
 
     .teacher-name {
@@ -310,19 +502,8 @@
       color: #1e293b;
     }
 
-    .topic-name {
-      font-weight: 600;
-      color: #0f172a;
-    }
-
-    .time-slot {
-      font-weight: 600;
-      color: #0284c7;
-      white-space: nowrap;
-    }
-
     .duration-text {
-      font-weight: 600;
+      font-weight: 700;
       white-space: nowrap;
     }
 
@@ -332,7 +513,7 @@
       padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       white-space: nowrap;
     }
 
@@ -340,12 +521,11 @@
     .badge-only-host { background: var(--yellow-bg); color: var(--yellow-text); }
     .badge-short-call { background: var(--red-bg); color: var(--red-text); }
 
-    /* Expandable Pill / Action */
     .participants-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px 10px;
+      gap: 6px;
+      padding: 4px 8px;
       background: #f1f5f9;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -372,65 +552,70 @@
       color: #1d4ed8;
     }
 
-    /* Expandable Sub-Row (Drawer) */
-    tr.details-row {
-      background-color: #f8fafc;
+    /* Expandable Student Drawer (Both Mobile & Desktop) */
+    .details-drawer-wrapper {
+      padding: 10px 14px 14px 14px;
+      background: #f8fafc;
+      border-top: 1px dashed #cbd5e1;
+      border-bottom: 2px solid #cbd5e1;
     }
 
-    td.details-cell {
-      padding: 0 16px 16px 16px !important;
-      border-bottom: 2px solid #e2e8f0 !important;
-    }
-
-    .details-drawer {
+    .details-drawer-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 14px 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      padding: 12px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
-    .details-header {
+    .details-drawer-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
       border-bottom: 1px solid #f1f5f9;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 700;
       color: #334155;
     }
 
     .students-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 8px;
     }
 
-    .student-card {
+    @media (min-width: 600px) {
+      .students-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 10px;
+      }
+    }
+
+    .student-item {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .student-card.is-host {
+    .student-item.is-host {
       background: #fffbeb;
       border-color: #fef3c7;
     }
 
-    .student-header {
+    .st-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 6px;
     }
 
-    .student-name {
+    .st-name {
       font-size: 13px;
       font-weight: 700;
       color: #0f172a;
@@ -438,7 +623,7 @@
 
     .tag-role {
       font-size: 10px;
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-weight: 700;
       text-transform: uppercase;
@@ -447,30 +632,30 @@
     .tag-student { background: #dbeafe; color: #1e40af; }
     .tag-host { background: #fef3c7; color: #92400e; }
 
-    .student-meta {
-      font-size: 12px;
+    .st-id-line {
+      font-size: 11px;
       color: #475569;
       display: flex;
       align-items: center;
       gap: 4px;
+      flex-wrap: wrap;
     }
 
-    .id-badge {
-      display: inline-block;
-      padding: 1px 6px;
-      border-radius: 4px;
+    .id-bubble {
       background: #e2e8f0;
       color: #334155;
+      padding: 1px 5px;
+      border-radius: 4px;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 600;
       word-break: break-all;
     }
 
-    .student-duration {
+    .st-time {
       margin-top: 4px;
       font-size: 12px;
       color: #0f172a;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .muted {
@@ -484,10 +669,10 @@
   <div class="container">
     <header>
       <h1>Zoom Attendance Telemetry PoC</h1>
-      <div class="subtitle">Моніторинг проведених Zoom-уроків викладачів з деталізацією за днями (Europe/Kyiv)</div>
+      <div class="subtitle">Моніторинг проведених уроків мовної школи за днями (Europe/Kyiv)</div>
     </header>
 
-    <!-- Controls & Quick Presets -->
+    <!-- Filter & Presets Panel -->
     <div class="filter-panel">
       <div class="quick-presets">
         <button type="button" class="btn-preset" id="btnYesterday">Вчора</button>
@@ -497,19 +682,29 @@
       </div>
 
       <div class="custom-range">
-        <div class="input-group">
-          <span>Від:</span>
-          <input type="date" id="inputFrom">
-        </div>
-        <div class="input-group">
-          <span>До:</span>
-          <input type="date" id="inputTo">
+        <div class="date-inputs">
+          <div class="input-group">
+            <span>Від:</span>
+            <input type="date" id="inputFrom">
+          </div>
+          <div class="input-group">
+            <span>До:</span>
+            <input type="date" id="inputTo">
+          </div>
         </div>
         <button type="button" class="btn-apply" id="btnApply">Показати</button>
       </div>
     </div>
 
-    <!-- Overall KPI Summary Bar -->
+    <!-- Action Bar with Single Global Toggle Button -->
+    <div class="action-bar" id="actionBar" style="display: none;">
+      <button type="button" class="btn-global-toggle" id="btnGlobalToggle">
+        <span>👥 Розгорнути всіх студентів на сторінці ▼</span>
+      </button>
+      <div class="muted" id="periodInfo"></div>
+    </div>
+
+    <!-- Summary KPI Cards -->
     <div class="summary-bar" id="summaryBar" style="display: none;">
       <div class="summary-card">
         <div class="summary-label">Днів з уроками</div>
@@ -527,7 +722,7 @@
         <div class="summary-label">Тільки викладач</div>
         <div class="summary-val" style="color: var(--yellow-text);" id="kpiOnlyHost">0</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card full-span-mobile">
         <div class="summary-label">Загальний час занять</div>
         <div class="summary-val" id="kpiDuration">0 хв</div>
       </div>
@@ -548,6 +743,9 @@
     const inputFrom = document.getElementById('inputFrom');
     const inputTo = document.getElementById('inputTo');
     const btnApply = document.getElementById('btnApply');
+    const btnGlobalToggle = document.getElementById('btnGlobalToggle');
+    const actionBar = document.getElementById('actionBar');
+    const periodInfo = document.getElementById('periodInfo');
 
     const statusAlert = document.getElementById('statusAlert');
     const summaryBar = document.getElementById('summaryBar');
@@ -557,6 +755,8 @@
     const kpiOnlyHost = document.getElementById('kpiOnlyHost');
     const kpiDuration = document.getElementById('kpiDuration');
     const daysContainer = document.getElementById('daysContainer');
+
+    let allDrawersExpanded = false;
 
     function formatKyivYMD(d) {
       return new Intl.DateTimeFormat('en-CA', {
@@ -600,8 +800,12 @@
       statusAlert.textContent = `Отримання уроків за період ${from} – ${to}...`;
 
       summaryBar.style.display = 'none';
+      actionBar.style.display = 'none';
       daysContainer.innerHTML = '';
       btnApply.disabled = true;
+
+      allDrawersExpanded = false;
+      updateGlobalButtonText();
 
       try {
         const res = await fetch(`/api/report?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
@@ -622,7 +826,7 @@
 
         statusAlert.style.display = 'none';
 
-        // Render KPI summary
+        // Render KPI
         kpiDays.textContent = data.totalDays || days.length;
         kpiTotalMeetings.textContent = summary.totalMeetings || 0;
         kpiVerified.textContent = summary.verifiedMeetings || 0;
@@ -630,13 +834,16 @@
         kpiDuration.textContent = summary.totalDurationFormatted || '0 хв';
         summaryBar.style.display = 'grid';
 
-        // Render Day Blocks
-        days.forEach((day, dayIndex) => {
+        periodInfo.textContent = `Період: ${from} – ${to} (${data.totalDays || days.length} дн.)`;
+        actionBar.style.display = 'flex';
+
+        // Render Days
+        days.forEach((day, dIdx) => {
           const dayCard = document.createElement('div');
           dayCard.className = 'day-block';
 
           const formattedDateText = formatUkrainianDay(day.date);
-          const dayDomId = `day_${dayIndex}`;
+          const dayId = `day_${dIdx}`;
 
           dayCard.innerHTML = `
             <div class="day-header">
@@ -644,21 +851,25 @@
                 <span>📅</span>
                 <span>${escapeHtml(formattedDateText)}</span>
               </div>
-              <div class="day-header-right">
-                <div class="day-metrics">
-                  <span class="day-badge day-badge-neutral">Уроків: ${day.totalMeetings}</span>
-                  <span class="day-badge day-badge-neutral">Час: ${escapeHtml(day.totalDurationFormatted || '0 хв')}</span>
-                  <span class="day-badge day-badge-green">Верифіковано: ${day.verifiedCount}</span>
-                  ${day.onlyHostCount > 0 ? `<span class="day-badge day-badge-yellow">Тільки викладач: ${day.onlyHostCount}</span>` : ''}
-                </div>
-                <button type="button" class="btn-toggle-all" onclick="toggleAllDayMeetings('${dayDomId}')">Розгорнути всіх учнів ▼</button>
+              <div class="day-metrics">
+                <span class="day-badge day-badge-neutral">Уроків: ${day.totalMeetings}</span>
+                <span class="day-badge day-badge-neutral">${escapeHtml(day.totalDurationFormatted || '0 хв')}</span>
+                <span class="day-badge day-badge-green">Верифіковано: ${day.verifiedCount}</span>
+                ${day.onlyHostCount > 0 ? `<span class="day-badge day-badge-yellow">Тільки викладач: ${day.onlyHostCount}</span>` : ''}
               </div>
             </div>
+
+            <!-- Mobile Card View -->
+            <div class="meetings-list-mobile">
+              ${day.meetings.map((m, mIdx) => renderMobileMeeting(m, `${dayId}_m${mIdx}`)).join('')}
+            </div>
+
+            <!-- Desktop Table View -->
             <div class="meetings-table-container">
-              <table id="${dayDomId}">
+              <table>
                 <thead>
                   <tr>
-                    <th style="width: 120px;">Час (Київ)</th>
+                    <th style="width: 110px;">Час (Київ)</th>
                     <th>Тема уроку та ID</th>
                     <th>Викладач</th>
                     <th style="width: 90px;">Тривалість</th>
@@ -667,7 +878,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  ${day.meetings.map((m, mIdx) => renderMeetingPair(m, `${dayDomId}_m${mIdx}`)).join('')}
+                  ${day.meetings.map((m, mIdx) => renderDesktopMeetingRow(m, `${dayId}_m${mIdx}`)).join('')}
                 </tbody>
               </table>
             </div>
@@ -685,7 +896,48 @@
       }
     }
 
-    function renderMeetingPair(m, rowId) {
+    // Render Student Cards inside drawer
+    function renderStudentsGrid(parts, count) {
+      if (!parts || parts.length === 0) {
+        return `<div class="muted">Дані окремих учасників недоступні для цієї зустрічі. Кількість учасників: ${count}.</div>`;
+      }
+
+      return `
+        <div class="students-grid">
+          ${parts.map(p => {
+            const isHost = p.isHost;
+            const roleTag = isHost
+              ? '<span class="tag-role tag-host">Викладач</span>'
+              : '<span class="tag-role tag-student">Учень</span>';
+
+            const idLabel = p.email ? p.email : (p.identifier || 'Гість (без пошти)');
+            const sessionText = p.sessionId ? `<span class="muted">• ID сесії: ${escapeHtml(String(p.sessionId))}</span>` : '';
+            const zoomIdText = p.zoomUserId ? `<span class="muted">• Zoom ID: ${escapeHtml(String(p.zoomUserId))}</span>` : '';
+            const timeRange = (p.joinTime && p.leaveTime) ? ` (${p.joinTime} – ${p.leaveTime})` : '';
+
+            return `
+              <div class="student-item ${isHost ? 'is-host' : ''}">
+                <div class="st-header">
+                  <span class="st-name">${escapeHtml(p.name || 'Учасник')}</span>
+                  ${roleTag}
+                </div>
+                <div class="st-id-line">
+                  <span class="id-bubble">${escapeHtml(idLabel)}</span>
+                  ${sessionText}
+                  ${zoomIdText}
+                </div>
+                <div class="st-time">
+                  ⏱️ Був на уроці: <strong>${escapeHtml(p.durationFormatted || (p.durationMinutes + ' хв'))}</strong><span class="muted">${timeRange}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // Render Mobile Card representation
+    function renderMobileMeeting(m, uid) {
       let badgeClass = 'badge-short-call';
       if (m.status === 'VERIFIED') badgeClass = 'badge-verified';
       else if (m.status === 'ONLY_HOST') badgeClass = 'badge-only-host';
@@ -693,44 +945,45 @@
       const count = m.participantsCount || 0;
       const parts = m.participants || [];
 
-      // Render participants cards in drawer
-      let participantsDrawerContent = '';
-      if (parts.length > 0) {
-        participantsDrawerContent = `
-          <div class="students-grid">
-            ${parts.map(p => {
-              const isHost = p.isHost;
-              const roleTag = isHost
-                ? '<span class="tag-role tag-host">Викладач</span>'
-                : '<span class="tag-role tag-student">Учень</span>';
-              
-              const idText = p.identifier ? escapeHtml(p.identifier) : 'Гість';
-              const timeWindow = (p.joinTime && p.leaveTime) ? ` (${p.joinTime} – ${p.leaveTime})` : '';
-
-              return `
-                <div class="student-card ${isHost ? 'is-host' : ''}">
-                  <div class="student-header">
-                    <span class="student-name">${escapeHtml(p.name || 'Учасник')}</span>
-                    ${roleTag}
-                  </div>
-                  <div class="student-meta">
-                    <span>Пошта / ID:</span>
-                    <span class="id-badge">${idText}</span>
-                  </div>
-                  <div class="student-duration">
-                    ⏱️ Був(ла) на уроці: <strong>${escapeHtml(p.durationFormatted || (p.durationMinutes + ' хв'))}</strong><span class="muted">${timeWindow}</span>
-                  </div>
-                </div>
-              `;
-            }).join('')}
+      return `
+        <div class="meeting-card-mobile" id="mcard_${uid}" onclick="toggleMeeting('${uid}')">
+          <div class="m-top-row">
+            <span class="m-time">⏰ ${escapeHtml(m.timeRangeKyiv || m.startTimeKyiv || '—')}</span>
+            <span class="badge ${badgeClass}">${escapeHtml(m.statusLabel || m.status)}</span>
           </div>
-        `;
-      } else {
-        participantsDrawerContent = `<div class="muted">Дані окремих учасників недоступні для цієї зустрічі. Зафіксовано ${count} учасник(ів).</div>`;
-      }
+          <div class="m-topic">${escapeHtml(m.topic || 'Без назви')}</div>
+          <div class="m-sub-info">
+            <span>👤 ${escapeHtml(m.teacher || '—')}</span>
+            <span>⏱️ ${escapeHtml(m.durationFormatted || (m.durationMinutes + ' хв'))}</span>
+          </div>
+          <div class="m-expand-pill">
+            <span>👥 ${count} учасник(ів)</span>
+            <span class="toggle-arrow" id="m_arrow_${uid}">▼</span>
+          </div>
+        </div>
+        <div class="details-drawer-wrapper drawer-item" id="drawer_m_${uid}" style="display: none;">
+          <div class="details-drawer-card">
+            <div class="details-drawer-header">
+              <span>📋 Деталі підключення учасників:</span>
+              <span class="muted">${count} осіб</span>
+            </div>
+            ${renderStudentsGrid(parts, count)}
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Desktop Table Row representation
+    function renderDesktopMeetingRow(m, uid) {
+      let badgeClass = 'badge-short-call';
+      if (m.status === 'VERIFIED') badgeClass = 'badge-verified';
+      else if (m.status === 'ONLY_HOST') badgeClass = 'badge-only-host';
+
+      const count = m.participantsCount || 0;
+      const parts = m.participants || [];
 
       return `
-        <tr class="meeting-row" id="row_${rowId}" onclick="toggleMeetingRow('${rowId}')" title="Клікніть, щоб розгорнути дані студентів">
+        <tr class="meeting-row" id="row_${uid}" onclick="toggleMeeting('${uid}')">
           <td>
             <div class="time-slot">${escapeHtml(m.timeRangeKyiv || m.startTimeKyiv || '—')}</div>
           </td>
@@ -751,64 +1004,84 @@
           <td>
             <div class="participants-pill">
               <span>👥 ${count} учасник(ів)</span>
-              <span class="toggle-arrow" id="arrow_${rowId}">▼</span>
+              <span class="toggle-arrow" id="d_arrow_${uid}">▼</span>
             </div>
           </td>
         </tr>
-        <tr class="details-row" id="drawer_${rowId}" style="display: none;">
-          <td colspan="6" class="details-cell">
-            <div class="details-drawer">
-              <div class="details-header">
-                <span>📋 Деталі підключення учасників до уроку: «${escapeHtml(m.topic || '')}» (${count} осіб)</span>
-                <span class="muted">Час проведення: ${escapeHtml(m.timeRangeKyiv || '')} (${escapeHtml(m.durationFormatted || '')})</span>
+        <tr class="details-row drawer-item" id="drawer_d_${uid}" style="display: none;">
+          <td colspan="6" style="padding: 0; border-bottom: none;">
+            <div class="details-drawer-wrapper">
+              <div class="details-drawer-card">
+                <div class="details-drawer-header">
+                  <span>📋 Деталі підключення учасників до уроку «${escapeHtml(m.topic || '')}»</span>
+                  <span class="muted">${count} осіб • ${escapeHtml(m.timeRangeKyiv || '')} (${escapeHtml(m.durationFormatted || '')})</span>
+                </div>
+                ${renderStudentsGrid(parts, count)}
               </div>
-              ${participantsDrawerContent}
             </div>
           </td>
         </tr>
       `;
     }
 
-    // Toggle single meeting row
-    window.toggleMeetingRow = function(rowId) {
-      const row = document.getElementById(`row_${rowId}`);
-      const drawer = document.getElementById(`drawer_${rowId}`);
-      if (!row || !drawer) return;
+    // Toggle a single meeting (both mobile and desktop sync)
+    window.toggleMeeting = function(uid) {
+      const drawerM = document.getElementById(`drawer_m_${uid}`);
+      const drawerD = document.getElementById(`drawer_d_${uid}`);
+      const cardM = document.getElementById(`mcard_${uid}`);
+      const rowD = document.getElementById(`row_${uid}`);
 
-      const isExpanded = drawer.style.display !== 'none';
-      if (isExpanded) {
-        drawer.style.display = 'none';
-        row.classList.remove('is-expanded');
-      } else {
-        drawer.style.display = 'table-row';
-        row.classList.add('is-expanded');
+      const currentlyVisible = (drawerM && drawerM.style.display !== 'none') || 
+                               (drawerD && drawerD.style.display !== 'none');
+
+      const newDisplay = currentlyVisible ? 'none' : 'block';
+      const newTableDisplay = currentlyVisible ? 'none' : 'table-row';
+
+      if (drawerM) drawerM.style.display = newDisplay;
+      if (drawerD) drawerD.style.display = newTableDisplay;
+
+      if (cardM) {
+        if (currentlyVisible) cardM.classList.remove('is-expanded');
+        else cardM.classList.add('is-expanded');
+      }
+      if (rowD) {
+        if (currentlyVisible) rowD.classList.remove('is-expanded');
+        else rowD.classList.add('is-expanded');
       }
     };
 
-    // Toggle all meetings in a day
-    window.toggleAllDayMeetings = function(tableId) {
-      const table = document.getElementById(tableId);
-      if (!table) return;
+    // The ONE Global Toggle Button Handler
+    btnGlobalToggle.addEventListener('click', () => {
+      allDrawersExpanded = !allDrawersExpanded;
 
-      const drawers = table.querySelectorAll('tr.details-row');
-      const rows = table.querySelectorAll('tr.meeting-row');
-      const btn = event?.currentTarget;
+      const mobileDrawers = document.querySelectorAll('.details-drawer-wrapper.drawer-item');
+      const desktopDrawers = document.querySelectorAll('tr.details-row.drawer-item');
+      const mobileCards = document.querySelectorAll('.meeting-card-mobile');
+      const desktopRows = document.querySelectorAll('tr.meeting-row');
 
-      const hasHidden = Array.from(drawers).some(d => d.style.display === 'none');
+      mobileDrawers.forEach(d => d.style.display = allDrawersExpanded ? 'block' : 'none');
+      desktopDrawers.forEach(d => d.style.display = allDrawersExpanded ? 'table-row' : 'none');
 
-      drawers.forEach(d => {
-        d.style.display = hasHidden ? 'table-row' : 'none';
+      mobileCards.forEach(c => {
+        if (allDrawersExpanded) c.classList.add('is-expanded');
+        else c.classList.remove('is-expanded');
       });
 
-      rows.forEach(r => {
-        if (hasHidden) r.classList.add('is-expanded');
+      desktopRows.forEach(r => {
+        if (allDrawersExpanded) r.classList.add('is-expanded');
         else r.classList.remove('is-expanded');
       });
 
-      if (btn) {
-        btn.textContent = hasHidden ? 'Згорнути всіх учнів ▲' : 'Розгорнути всіх учнів ▼';
+      updateGlobalButtonText();
+    });
+
+    function updateGlobalButtonText() {
+      if (allDrawersExpanded) {
+        btnGlobalToggle.innerHTML = '<span>👥 Згорнути всіх студентів на сторінці ▲</span>';
+      } else {
+        btnGlobalToggle.innerHTML = '<span>👥 Розгорнути всіх студентів на сторінці ▼</span>';
       }
-    };
+    }
 
     function escapeHtml(str) {
       if (!str) return '';

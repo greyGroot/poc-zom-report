@@ -258,6 +258,8 @@ export default async function handler(req, res) {
                 email: p.user_email || '',
                 identifier: identifier,
                 zoomUserId: p.id || '',
+                sessionId: p.user_id || '',
+                customerKey: p.customer_key || '',
                 durationSeconds: duration,
                 joinTime: formatKyivTime(p.join_time),
                 leaveTime: formatKyivTime(p.leave_time),
