@@ -1310,10 +1310,27 @@
             <span>Авто</span>
             <span class="countdown-chip" id="monCountdownLabel">3с</span>
           </label>
+          <button type="button" class="btn-preset" id="btnMonPrint" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
+            <span>🖨️ Друк подій</span>
+          </button>
+          <button type="button" class="btn-preset" id="btnMonDownloadJson" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
+            <span>💾 Завантажити JSON</span>
+          </button>
+          <button type="button" class="btn-preset" id="btnMonCopyAll" style="min-height: 36px; padding: 6px 12px; background: #fff; border-color: #cbd5e1;">
+            <span>📋 Скопіювати все</span>
+          </button>
+          <a href="/events.html" target="_blank" class="btn-preset" style="min-height: 36px; padding: 6px 12px; text-decoration: none; color: #0284c7; border-color: #bae6fd; display: inline-flex; align-items: center; gap: 4px;">
+            <span>↗️ Окрема сторінка подій</span>
+          </a>
           <button type="button" class="btn-preset" id="btnMonClearLogs" style="min-height: 36px; padding: 6px 12px; color: #dc2626; border-color: #fca5a5;">
             <span>🧹 Очистити події</span>
           </button>
         </div>
+      </div>
+
+      <!-- Zoom Lifecycle Tip -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 14px; margin-bottom: 12px; font-size: 12px; color: #334155; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span>💡 <strong>Підказка Zoom:</strong> Закриття вкладки без натискання «Завершити для всіх» викликає таймаут серійних серверів Zoom (від 60 до 120 секунд), перш ніж Zoom надішле подію <code>meeting.ended</code>. Натискайте червону кнопку «Завершити для всіх» у Zoom для миттєвого виклику вебхука.</span>
       </div>
 
       <!-- Filter Chips -->
@@ -1321,6 +1338,7 @@
         <button type="button" class="mon-chip active" data-filter="all">Всі події (<span id="countFilterAll">0</span>)</button>
         <button type="button" class="mon-chip" data-filter="meeting.started">🟢 Started (<span id="countFilterStarted">0</span>)</button>
         <button type="button" class="mon-chip" data-filter="participant_joined">🔵 Joined / Admitted (<span id="countFilterJoined">0</span>)</button>
+        <button type="button" class="mon-chip" data-filter="meeting.participant_data_connection_established">📶 Data Connected (<span id="countFilterConnected">0</span>)</button>
         <button type="button" class="mon-chip" data-filter="meeting.participant_left">🟠 Left (<span id="countFilterLeft">0</span>)</button>
         <button type="button" class="mon-chip" data-filter="meeting.ended">🔴 Ended (<span id="countFilterEnded">0</span>)</button>
         <button type="button" class="mon-chip" data-filter="endpoint.url_validation">🟣 CRC Validation (<span id="countFilterCRC">0</span>)</button>
@@ -2081,6 +2099,10 @@
     const meetingsSummaryContainer = document.getElementById('meetingsSummaryContainer');
     const monMeetingsCount = document.getElementById('monMeetingsCount');
 
+    const btnMonPrint = document.getElementById('btnMonPrint');
+    const btnMonDownloadJson = document.getElementById('btnMonDownloadJson');
+    const btnMonCopyAll = document.getElementById('btnMonCopyAll');
+
     let currentMonFilter = 'all';
     let monCountdown = 3;
     let monEventsData = [];
@@ -2098,6 +2120,15 @@
       if (diffMin < 60) return `${diffMin}хв тому`;
       const diffHours = Math.floor(diffMin / 60);
       return `${diffHours}год тому`;
+    }
+
+    function formatDurationHuman(seconds) {
+      const s = Math.max(0, Math.round(Number(seconds) || 0));
+      if (s === 0) return '0 сек';
+      if (s < 60) return `${s} сек`;
+      const m = Math.floor(s / 60);
+      const remS = s % 60;
+      return remS > 0 ? `${m} хв ${remS} сек` : `${m} хв`;
     }
 
     async function fetchTelemetryData() {
@@ -2146,6 +2177,7 @@
     function updateFilterCounts() {
       const startedCount = monEventsData.filter(e => e.event === 'meeting.started').length;
       const joinedCount = monEventsData.filter(e => e.event === 'meeting.participant_joined' || e.event === 'meeting.participant_admitted').length;
+      const connectedCount = monEventsData.filter(e => e.event === 'meeting.participant_data_connection_established' || e.event === 'meeting.participant_connection_established').length;
       const leftCount = monEventsData.filter(e => e.event === 'meeting.participant_left').length;
       const endedCount = monEventsData.filter(e => e.event === 'meeting.ended').length;
       const crcCount = monEventsData.filter(e => e.event === 'endpoint.url_validation').length;
@@ -2154,6 +2186,7 @@
       const elAll = document.getElementById('countFilterAll');
       const elStarted = document.getElementById('countFilterStarted');
       const elJoined = document.getElementById('countFilterJoined');
+      const elConnected = document.getElementById('countFilterConnected');
       const elLeft = document.getElementById('countFilterLeft');
       const elEnded = document.getElementById('countFilterEnded');
       const elCRC = document.getElementById('countFilterCRC');
@@ -2162,6 +2195,7 @@
       if (elAll) elAll.textContent = monEventsData.length;
       if (elStarted) elStarted.textContent = startedCount;
       if (elJoined) elJoined.textContent = joinedCount;
+      if (elConnected) elConnected.textContent = connectedCount;
       if (elLeft) elLeft.textContent = leftCount;
       if (elEnded) elEnded.textContent = endedCount;
       if (elCRC) elCRC.textContent = crcCount;
@@ -2201,6 +2235,9 @@
       if (eventStr === 'meeting.participant_admitted') {
         return { label: 'Допущено з зали очікування', icon: '🔵', cardClass: 'event-joined', badgeColor: '#2563eb' };
       }
+      if (eventStr === 'meeting.participant_data_connection_established' || eventStr === 'meeting.participant_connection_established') {
+        return { label: 'З\'єднання встановлено (Audio/Video Data)', icon: '📶', cardClass: 'event-joined', badgeColor: '#0284c7' };
+      }
       if (eventStr === 'meeting.participant_left') {
         return { label: 'Учасник вийшов', icon: '🟠', cardClass: 'event-left', badgeColor: '#f97316' };
       }
@@ -2224,6 +2261,8 @@
         filtered = monEventsData.filter(e => e.event === 'meeting.started');
       } else if (currentMonFilter === 'participant_joined') {
         filtered = monEventsData.filter(e => e.event === 'meeting.participant_joined' || e.event === 'meeting.participant_admitted');
+      } else if (currentMonFilter === 'meeting.participant_data_connection_established') {
+        filtered = monEventsData.filter(e => e.event === 'meeting.participant_data_connection_established' || e.event === 'meeting.participant_connection_established');
       } else if (currentMonFilter === 'meeting.participant_left') {
         filtered = monEventsData.filter(e => e.event === 'meeting.participant_left');
       } else if (currentMonFilter === 'meeting.ended') {
@@ -2267,9 +2306,15 @@
 
         const detailsList = [];
         if (item.details) {
-          if (item.details.duration !== undefined) detailsList.push(`Тривалість Zoom: ${item.details.duration} хв`);
+          if (item.details.join_time && item.details.leave_time) {
+            const diffSec = Math.round((Date.parse(item.details.leave_time) - Date.parse(item.details.join_time)) / 1000);
+            if (diffSec > 0) detailsList.push(`Час участі: <strong>${formatDurationHuman(diffSec)}</strong>`);
+          } else if (item.details.duration !== undefined && Number(item.details.duration) > 0) {
+            detailsList.push(`Тривалість Zoom: <strong>${formatDurationHuman(Number(item.details.duration) * 60)}</strong>`);
+          }
           if (item.details.join_time) detailsList.push(`Вхід: ${formatKyivTimeOnly(item.details.join_time)}`);
           if (item.details.leave_time) detailsList.push(`Вихід: ${formatKyivTimeOnly(item.details.leave_time)}`);
+          if (item.details.connections) detailsList.push(`Канали зв'язку: ${escapeHtml(item.details.connections)}`);
         }
         if (item.status === 'error' && item.error) {
           detailsList.push(`Помилка: ${item.error}`);
@@ -2304,7 +2349,7 @@
               <div class="mon-item-group">
                 <span class="mon-item-label">Учасник / Дія</span>
                 <span class="mon-item-value">${whoText}</span>
-                <div style="font-size: 11px; color: #64748b; font-weight: normal;">${escapeHtml(detailsStr)}</div>
+                <div style="font-size: 11px; color: #64748b; font-weight: normal;">${detailsStr}</div>
               </div>
 
               <div style="display: flex; justify-content: flex-end; align-items: center;">
@@ -2362,7 +2407,8 @@
       let html = '<div style="display: grid; gap: 8px;">';
       monMeetingsData.forEach(m => {
         const parts = m.participants || [];
-        const durFormatted = `${m.duration || 0} хв`;
+        const durSec = m.duration_seconds !== undefined ? m.duration_seconds : (m.duration ? m.duration * 60 : 0);
+        const durFormatted = formatDurationHuman(durSec);
         const isLive = m.status === 'live';
         const badge = isLive
           ? '<span class="badge badge-live-meeting"><span class="live-dot"></span> В ефірі</span>'
@@ -2383,8 +2429,12 @@
               <span>👥 Учасників: ${parts.length}</span>
             </div>
             ${parts.length > 0 ? `
-              <div style="margin-top: 6px; font-size: 11px; background: #f8fafc; padding: 6px 10px; border-radius: 6px;">
-                ${parts.map(p => `<strong>${escapeHtml(p.name || p.user_name || 'Гість')}</strong> (${escapeHtml(p.email || p.user_id || 'ID')})`).join('; ')}
+              <div style="margin-top: 6px; font-size: 11px; background: #f8fafc; padding: 8px 10px; border-radius: 6px; display: grid; gap: 4px;">
+                ${parts.map(p => {
+                  const pSec = p.duration_seconds !== undefined ? p.duration_seconds : (p.duration ? p.duration * 60 : 0);
+                  const pDur = formatDurationHuman(pSec);
+                  return `<div>• <strong>${escapeHtml(p.name || p.user_name || 'Гість')}</strong> (${escapeHtml(p.email || p.user_id || 'ID')}) — <strong>⏱️ ${pDur}</strong></div>`;
+                }).join('')}
               </div>
             ` : ''}
           </div>
@@ -2392,6 +2442,41 @@
       });
       html += '</div>';
       meetingsSummaryContainer.innerHTML = html;
+    }
+
+    // Print Button
+    if (btnMonPrint) {
+      btnMonPrint.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    // Download JSON Button
+    if (btnMonDownloadJson) {
+      btnMonDownloadJson.addEventListener('click', () => {
+        const jsonStr = JSON.stringify(monEventsData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zoom_webhook_events_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // Copy All JSON Button
+    if (btnMonCopyAll) {
+      btnMonCopyAll.addEventListener('click', () => {
+        const jsonStr = JSON.stringify(monEventsData, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          alert(`Скопійовано всі події (${monEventsData.length} шт.) у форматі JSON!`);
+        }).catch(() => {
+          alert('Не вдалося скопіювати.');
+        });
+      });
     }
 
     // Toggle Meetings Summary

@@ -301,7 +301,11 @@ export default async function handler(reqOrRequest, optionalRes) {
         'meeting.participant_left',
         'meeting.participant_admitted',
         'meeting.participant_joined_waiting_room',
-        'meeting.participant_left_waiting_room'
+        'meeting.participant_left_waiting_room',
+        'meeting.participant_data_connection_established',
+        'meeting.participant_connection_established',
+        'meeting.participant_jbh_waiting',
+        'meeting.participant_jbh_joined'
       ].includes(event);
 
       await recordWebhookLog({
@@ -320,7 +324,10 @@ export default async function handler(reqOrRequest, optionalRes) {
           leave_time: object.participant?.leave_time || undefined,
           duration: object.duration !== undefined ? object.duration : undefined,
           start_time: object.start_time || undefined,
-          end_time: object.end_time || undefined
+          end_time: object.end_time || undefined,
+          connections: Array.isArray(object.data_connections)
+            ? object.data_connections.map(c => `${c.connection_type || 'media'} (${c.total_time_cost_ms || 0}ms)`).join(', ')
+            : undefined
         },
         payload_raw: JSON.stringify(body, null, 2)
       });
@@ -363,9 +370,13 @@ export default async function handler(reqOrRequest, optionalRes) {
     }
 
     // ------------------------------------------------------------------------
-    // 3. Event: meeting.participant_joined (or participant_admitted from waiting room)
+    // 3. Event: meeting.participant_joined (or admitted / data_connection_established)
     // ------------------------------------------------------------------------
-    if (event === 'meeting.participant_joined' || event === 'meeting.participant_admitted') {
+    if (
+      event === 'meeting.participant_joined' ||
+      event === 'meeting.participant_admitted' ||
+      event === 'meeting.participant_data_connection_established'
+    ) {
       if (!meetingId) {
         return responder.send(200, { success: true, message: 'participant_joined missing meeting id' });
       }

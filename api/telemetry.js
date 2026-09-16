@@ -263,6 +263,20 @@ export function formatMeeting(meeting) {
 
   const businessStatus = calculateBusinessStatus(durationMinutes, studentCount);
 
+  let durationSeconds = 0;
+  if (startTime && endTime) {
+    const s = Date.parse(startTime);
+    const e = Date.parse(endTime);
+    if (!Number.isNaN(s) && !Number.isNaN(e) && e >= s) {
+      durationSeconds = Math.round((e - s) / 1000);
+    }
+  } else if (startTime) {
+    const s = Date.parse(startTime);
+    if (!Number.isNaN(s) && Date.now() >= s) {
+      durationSeconds = Math.round((Date.now() - s) / 1000);
+    }
+  }
+
   return {
     ...meeting,
     meeting_id: meetingId,
@@ -276,6 +290,7 @@ export function formatMeeting(meeting) {
     timezone: meeting.timezone || 'Europe/Kyiv',
     status,
     duration: durationMinutes,
+    duration_seconds: durationSeconds,
     business_status: businessStatus,
     participants_count: normalizedParticipants.length,
     participants: normalizedParticipants
@@ -339,6 +354,12 @@ export default async function handler(reqOrRequest, optionalRes) {
   if (query.action === 'clear_logs' || method === 'DELETE') {
     await clearWebhookLogs();
     return responder.send(200, { success: true, message: 'Logs cleared successfully' });
+  }
+
+  // Handle raw event logs export
+  if (query.format === 'raw') {
+    const events = await getWebhookLogs(200);
+    return responder.send(200, events);
   }
 
   try {

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom Webhook Raw Events Explorer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .title-group h1 {
+      font-size: 20px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-group p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button, .link-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    button:hover, .link-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      color: #fff;
+    }
+
+    .btn-danger {
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+
+    .btn-danger:hover {
+      background: #fef2f2;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .badge-started { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-joined { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .badge-connected { background: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; }
+    .badge-left { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+    .badge-ended { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-validation { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+    .badge-error { background: #dc2626; color: #fff; }
+
+    .view-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .table-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      padding: 12px 14px;
+      font-weight: 700;
+      color: #475569;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .raw-json-view {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 18px;
+      border-radius: 12px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 80vh;
+    }
+
+    .auto-refresh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .countdown-chip {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* Print Stylesheet */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      header button, header .link-btn, .view-tabs, .auto-refresh-pill, #btnClear {
+        display: none !important;
+      }
+      .table-box {
+        border: none;
+        box-shadow: none;
+      }
+      th, td {
+        padding: 8px;
+        font-size: 11px;
+      }
+      .raw-json-view {
+        background: #fff;
+        color: #000;
+        border: 1px solid #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="title-group">
+        <h1>📡 Zoom Webhook Raw Events Explorer</h1>
+        <p>Журнал сирих подій Zoom Webhooks для детального аналізу структури payload та хронології</p>
+      </div>
+
+      <div class="btn-group">
+        <a href="/#telemetry" class="link-btn">⬅️ До моніторингу</a>
+        <button type="button" class="btn-primary" id="btnRefresh">🔄 Оновити</button>
+        <button type="button" id="btnPrint">🖨️ Друк</button>
+        <button type="button" id="btnDownload">💾 Завантажити JSON</button>
+        <button type="button" id="btnCopy">📋 Скопіювати JSON</button>
+        <button type="button" class="btn-danger" id="btnClear">🧹 Очистити</button>
+      </div>
+    </header>
+
+    <div class="status-bar">
+      <div>
+        <span>Зафіксовано подій: <strong id="totalCount">0</strong></span>
+        <span style="margin: 0 8px;">•</span>
+        <span>Оновлено: <strong id="lastUpdated">—</strong></span>
+      </div>
+
+      <label class="auto-refresh-pill">
+        <input type="checkbox" id="chkAuto" checked>
+        <span>Автооновлення</span>
+        <span class="countdown-chip" id="lblCountdown">3с</span>
+      </label>
+    </div>
+
+    <div class="view-tabs">
+      <button type="button" class="tab-btn active" id="tabTable" onclick="switchView('table')">📋 Таблиця подій</button>
+      <button type="button" class="tab-btn" id="tabRaw" onclick="switchView('raw')">💻 Сирий JSON (Array)</button>
+    </div>
+
+    <!-- View 1: Table -->
+    <div id="viewTable" class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 14%;">Час (Kyiv)</th>
+            <th style="width: 22%;">Подія (Event)</th>
+            <th style="width: 20%;">Meeting ID & Тема</th>
+            <th style="width: 24%;">Учасник / Організатор</th>
+            <th style="width: 20%;">Деталі / Параметри</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Завантаження подій...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- View 2: Pure Raw JSON -->
+    <div id="viewRaw" style="display: none;">
+      <pre class="raw-json-view" id="rawContent">Завантаження JSON...</pre>
+    </div>
+  </div>
+
+  <script>
+    let eventsData = [];
+    let currentView = 'table';
+    let countdown = 3;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDurationHuman(seconds) {
+      const s = Math.max(0, Math.round(Number(seconds) || 0));
+      if (s === 0) return '0 сек';
+      if (s < 60) return `${s} сек`;
+      const m = Math.floor(s / 60);
+      const remS = s % 60;
+      return remS > 0 ? `${m} хв ${remS} сек` : `${m} хв`;
+    }
+
+    function getEventBadge(eventStr) {
+      if (!eventStr) return '<span class="badge">Невідомо</span>';
+      if (eventStr === 'meeting.started') return '<span class="badge badge-started">🟢 meeting.started</span>';
+      if (eventStr === 'meeting.participant_joined') return '<span class="badge badge-joined">🔵 participant_joined</span>';
+      if (eventStr === 'meeting.participant_admitted') return '<span class="badge badge-joined">🔵 participant_admitted</span>';
+      if (eventStr === 'meeting.participant_data_connection_established') return '<span class="badge badge-connected">📶 data_connection</span>';
+      if (eventStr === 'meeting.participant_left') return '<span class="badge badge-left">🟠 participant_left</span>';
+      if (eventStr === 'meeting.ended') return '<span class="badge badge-ended">🔴 meeting.ended</span>';
+      if (eventStr === 'endpoint.url_validation') return '<span class="badge badge-validation">🟣 url_validation</span>';
+      if (eventStr.startsWith('error')) return '<span class="badge badge-error">⚠️ ' + escapeHtml(eventStr) + '</span>';
+      return '<span class="badge">' + escapeHtml(eventStr) + '</span>';
+    }
+
+    async function fetchEvents() {
+      try {
+        const res = await fetch('/api/telemetry?format=raw');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        eventsData = await res.json();
+        if (!Array.isArray(eventsData)) eventsData = [];
+
+        document.getElementById('totalCount').textContent = eventsData.length;
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('uk-UA');
+
+        renderTable();
+        renderRaw();
+      } catch (err) {
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #dc2626; padding: 20px;">Помилка завантаження: ' + escapeHtml(err.message) + '</td></tr>';
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      if (eventsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">📡 Поки що немає зафіксованих подій вебхуків від Zoom.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = eventsData.map(item => {
+        const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleString('uk-UA') : '—';
+        const badge = getEventBadge(item.event);
+
+        let who = '—';
+        if (item.participant_name) {
+          who = '<strong>' + escapeHtml(item.participant_name) + '</strong>';
+          if (item.participant_email) who += '<br><span style="color: #64748b; font-size: 11px;">✉️ ' + escapeHtml(item.participant_email) + '</span>';
+          if (item.participant_user_id) who += '<br><span style="color: #64748b; font-size: 11px;">ID: <code>' + escapeHtml(item.participant_user_id) + '</code></span>';
+        } else if (item.host_email) {
+          who = 'Організатор: <strong>' + escapeHtml(item.host_email) + '</strong>';
+        } else if (item.message) {
+          who = escapeHtml(item.message);
+        }
+
+        const detailsList = [];
+        if (item.details) {
+          if (item.details.join_time && item.details.leave_time) {
+            const diff = Math.round((Date.parse(item.details.leave_time) - Date.parse(item.details.join_time)) / 1000);
+            if (diff > 0) detailsList.push('Час участі: <strong>' + formatDurationHuman(diff) + '</strong>');
+          } else if (item.details.duration !== undefined && Number(item.details.duration) > 0) {
+            detailsList.push('Тривалість Zoom: <strong>' + formatDurationHuman(Number(item.details.duration) * 60) + '</strong>');
+          }
+          if (item.details.join_time) detailsList.push('Вхід: ' + item.details.join_time.slice(11, 19));
+          if (item.details.leave_time) detailsList.push('Вихід: ' + item.details.leave_time.slice(11, 19));
+          if (item.details.connections) detailsList.push('Канали: ' + escapeHtml(item.details.connections));
+        }
+        if (item.status === 'error' && item.error) {
+          detailsList.push('<span style="color: #dc2626;">Помилка: ' + escapeHtml(item.error) + '</span>');
+        }
+
+        return '<tr>' +
+          '<td><code>' + escapeHtml(timeStr) + '</code></td>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + (item.meeting_id ? '<code>' + escapeHtml(String(item.meeting_id)) + '</code>' : '—') +
+          '<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">' + escapeHtml(item.topic || '') + '</div></td>' +
+          '<td>' + who + '</td>' +
+          '<td style="font-size: 12px;">' + (detailsList.join('<br>') || '—') + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderRaw() {
+      const el = document.getElementById('rawContent');
+      el.textContent = JSON.stringify(eventsData, null, 2);
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.getElementById('tabTable').classList.toggle('active', view === 'table');
+      document.getElementById('tabRaw').classList.toggle('active', view === 'raw');
+      document.getElementById('viewTable').style.display = view === 'table' ? 'block' : 'none';
+      document.getElementById('viewRaw').style.display = view === 'raw' ? 'block' : 'none';
+    }
+
+    // Print
+    document.getElementById('btnPrint').addEventListener('click', () => {
+      window.print();
+    });
+
+    // Refresh
+    document.getElementById('btnRefresh').addEventListener('click', () => {
+      countdown = 3;
+      document.getElementById('lblCountdown').textContent = '3с';
+      fetchEvents();
+    });
+
+    // Copy All
+    document.getElementById('btnCopy').addEventListener('click', () => {
+      navigator.clipboard.writeText(JSON.stringify(eventsData, null, 2)).then(() => {
+        alert('Скопійовано ' + eventsData.length + ' подій у форматі JSON!');
+      }).catch(() => {
+        alert('Не вдалося скопіювати.');
+      });
+    });
+
+    // Download JSON
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const jsonStr = JSON.stringify(eventsData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'zoom_raw_events_' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Clear
+    document.getElementById('btnClear').addEventListener('click', async () => {
+      if (!confirm('Ви дійсно бажаєте очистити всі події?')) return;
+      try {
+        await fetch('/api/telemetry?action=clear_logs');
+        await fetchEvents();
+      } catch (err) {
+        alert('Помилка: ' + err.message);
+      }
+    });
+
+    // Auto-refresh timer
+    setInterval(() => {
+      const chk = document.getElementById('chkAuto');
+      if (!chk || !chk.checked) {
+        countdown = 3;
+        document.getElementById('lblCountdown').textContent = '3с';
+        return;
+      }
+      countdown--;
+      if (countdown <= 0) {
+        countdown = 3;
+        document.getElementById('lblCountdown').textContent = '3с';
+        fetchEvents();
+      } else {
+        document.getElementById('lblCountdown').textContent = countdown + 'с';
+      }
+    }, 1000);
+
+    // Initial fetch
+    fetchEvents();
+  </script>
+</body>
+</html>
