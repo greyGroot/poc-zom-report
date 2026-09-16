@@ -18,7 +18,7 @@ if (fs.existsSync(envPath)) {
 }
 
 console.log('========================================');
-console.log('   Zoom API & Extended Telemetry Test');
+console.log('   Zoom API & Day-by-Day Telemetry Test');
 console.log('========================================');
 
 const accountId = process.env.ZOOM_ACCOUNT_ID;
@@ -34,16 +34,17 @@ import handler from './api/report.js';
 
 async function runTests() {
   try {
-    const testDate = '2026-09-10';
-    console.log(`\nTesting api/report handler for date: ${testDate}...`);
+    const fromDate = '2026-09-08';
+    const toDate = '2026-09-15';
+    console.log(`\nTesting api/report handler for range: ${fromDate} – ${toDate}...`);
 
     let statusCode = 200;
     let jsonResult = null;
 
     const mockReq = {
       method: 'GET',
-      url: `/api/report?date=${testDate}`,
-      query: { date: testDate }
+      url: `/api/report?from=${fromDate}&to=${toDate}`,
+      query: { from: fromDate, to: toDate }
     };
     const mockRes = {
       status(code) {
@@ -58,27 +59,35 @@ async function runTests() {
 
     await handler(mockReq, mockRes);
 
-    if (statusCode !== 200 || !jsonResult || !jsonResult.meetings) {
+    if (statusCode !== 200 || !jsonResult || !Array.isArray(jsonResult.days)) {
       throw new Error(`Handler failed: HTTP ${statusCode}: ${JSON.stringify(jsonResult)}`);
     }
 
     console.log(`✅ Handler responded HTTP ${statusCode} OK.`);
-    console.log(`   Total meetings found: ${jsonResult.totalMeetings}`);
-    console.log(`   Participants scope enabled: ${jsonResult.participantsScopeEnabled}`);
+    console.log(`   Period: ${jsonResult.from} – ${jsonResult.to}`);
+    console.log(`   Total Days with meetings: ${jsonResult.totalDays}`);
+    console.log(`   Total Meetings: ${jsonResult.totalMeetings}`);
+    console.log(`   Summary:`, jsonResult.summary);
 
-    if (jsonResult.meetings.length > 0) {
-      console.log('\nSample Extended Telemetry:');
-      const sample = jsonResult.meetings[0];
-      console.log(`• Викладач: ${sample.teacher} (${sample.teacherEmail})`);
-      console.log(`• Тема: ${sample.topic} (ID: ${sample.meetingId})`);
-      console.log(`• КОЛИ (Київ): ${sample.timeRangeKyiv}`);
-      console.log(`• ЯК ДОВГО: ${sample.durationFormatted} (${sample.durationMinutes} хв)`);
-      console.log(`• З КИМ (к-сть): ${sample.participantsCount} учасник(ів)`);
-      console.log(`• СТАТУС: [${sample.status}] ${sample.statusLabel}`);
+    if (jsonResult.days.length > 0) {
+      const firstDay = jsonResult.days[0];
+      console.log(`\nSample Day Block (${firstDay.date}):`);
+      console.log(`• Meetings on this day: ${firstDay.totalMeetings}`);
+      console.log(`• Day duration: ${firstDay.totalDurationFormatted}`);
+      if (firstDay.meetings.length > 0) {
+        const m = firstDay.meetings[0];
+        console.log(`• Sample Meeting: ${m.topic} (${m.timeRangeKyiv})`);
+        console.log(`• Teacher: ${m.teacher}`);
+        console.log(`• Participants: ${m.participants.length}`);
+        if (m.participants.length > 0) {
+          const p = m.participants[0];
+          console.log(`• Sample Participant: ${p.name} | ID/Email: ${p.identifier} | Duration: ${p.durationFormatted}`);
+        }
+      }
     }
 
     console.log('\n========================================');
-    console.log('🎉 ALL TESTS PASSED! TELEMETRY READY.');
+    console.log('🎉 ALL TESTS PASSED! DAY-BY-DAY TELEMETRY READY.');
     console.log('========================================');
 
   } catch (err) {

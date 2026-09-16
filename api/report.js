@@ -1,5 +1,5 @@
 // Vercel Serverless Function: api/report.js
-// Enhanced Zoom telemetry report: When, How Long, With Whom
+// Enhanced Zoom telemetry report: Range filter (from/to), Day-by-Day grouping, When, How Long, With Whom & Student IDs
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
@@ -49,13 +49,31 @@ async function getZoomAccessToken() {
 /**
  * Get current date in Europe/Kyiv timezone (YYYY-MM-DD)
  */
-function getKyivDateString() {
+function getKyivDateString(d = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Kyiv',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
-  }).format(new Date());
+  }).format(d);
+}
+
+/**
+ * Format ISO datetime string to Kyiv date YYYY-MM-DD
+ */
+function formatKyivDate(isoString) {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Kyiv',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(d);
+  } catch {
+    return (isoString || '').split('T')[0];
+  }
 }
 
 /**
@@ -104,6 +122,26 @@ function formatSecondsDuration(totalSeconds) {
   return mins > 0 ? `${hours} год ${mins} хв` : `${hours} год`;
 }
 
+/**
+ * Helper to run async tasks with concurrency limit
+ */
+async function mapConcurrent(items, limit, asyncFn) {
+  const results = [];
+  const executing = [];
+  for (const item of items) {
+    const p = Promise.resolve().then(() => asyncFn(item));
+    results.push(p);
+    if (limit <= items.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+      executing.push(e);
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+      }
+    }
+  }
+  return Promise.all(results);
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     if (res?.status) return res.status(200).end();
@@ -111,17 +149,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Resolve date parameter
-    let date;
-    if (req.query && req.query.date) {
-      date = req.query.date;
-    } else if (req.url) {
+    // 1. Resolve date range parameters (supports ?from=...&to=... or ?date=...)
+    let fromDate, toDate;
+    if (req.query) {
+      fromDate = req.query.from || req.query.date;
+      toDate = req.query.to || req.query.date;
+    }
+    if (!fromDate && req.url) {
       const parsedUrl = new URL(req.url, 'http://localhost');
-      date = parsedUrl.searchParams.get('date');
+      fromDate = parsedUrl.searchParams.get('from') || parsedUrl.searchParams.get('date');
+      toDate = parsedUrl.searchParams.get('to') || parsedUrl.searchParams.get('date');
     }
 
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      date = getKyivDateString();
+    const todayKyiv = getKyivDateString();
+    if (!fromDate || !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+      fromDate = todayKyiv;
+    }
+    if (!toDate || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+      toDate = fromDate;
+    }
+
+    // Ensure fromDate <= toDate
+    if (fromDate > toDate) {
+      const temp = fromDate;
+      fromDate = toDate;
+      toDate = temp;
     }
 
     // 2. Authenticate with Zoom
@@ -140,12 +192,12 @@ export default async function handler(req, res) {
     const usersData = await usersRes.json();
     const teachers = usersData.users || [];
 
-    // 4. For each teacher, fetch past meetings for specified date
-    const allMeetings = [];
+    // 4. For each teacher, fetch past meetings for specified date range
+    const rawMeetingsToProcess = [];
     let participantsScopeEnabled = true;
 
     for (const teacher of teachers) {
-      const meetingsUrl = `https://api.zoom.us/v2/report/users/${encodeURIComponent(teacher.id)}/meetings?from=${date}&to=${date}&type=past&page_size=100`;
+      const meetingsUrl = `https://api.zoom.us/v2/report/users/${encodeURIComponent(teacher.id)}/meetings?from=${fromDate}&to=${toDate}&type=past&page_size=100`;
       
       let teacherMeetings = [];
       try {
@@ -162,109 +214,171 @@ export default async function handler(req, res) {
         console.warn(`Failed to fetch meetings for teacher ${teacher.id}:`, err.message);
       }
 
-      const teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.email;
-
-      // 5. For each meeting, fetch participant telemetry (With Whom & How Long)
-      for (const meeting of teacherMeetings) {
-        let participantsDetails = [];
-        const meetingKey = meeting.uuid ? encodeURIComponent(encodeURIComponent(meeting.uuid)) : meeting.id;
-
-        try {
-          const pRes = await fetch(`https://api.zoom.us/v2/report/meetings/${meetingKey}/participants?page_size=100`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (pRes.ok) {
-            const pData = await pRes.json();
-            const rawParts = pData.participants || [];
-
-            // Aggregate multiple connections for the same person (reconnects)
-            const aggregated = new Map();
-            for (const p of rawParts) {
-              const name = (p.name || p.user_email || 'Учасник').trim();
-              const key = (p.user_email || name).toLowerCase();
-              const duration = p.duration || 0;
-              const isHost = (p.user_email && p.user_email.toLowerCase() === teacher.email.toLowerCase()) ||
-                             (name.toLowerCase() === teacherName.toLowerCase());
-
-              if (aggregated.has(key)) {
-                const existing = aggregated.get(key);
-                existing.durationSeconds += duration;
-                if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
-                if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
-              } else {
-                aggregated.set(key, {
-                  name: name,
-                  email: p.user_email || '',
-                  durationSeconds: duration,
-                  joinTime: formatKyivTime(p.join_time),
-                  leaveTime: formatKyivTime(p.leave_time),
-                  isHost: isHost
-                });
-              }
-            }
-
-            participantsDetails = Array.from(aggregated.values()).map(p => ({
-              ...p,
-              durationMinutes: Math.round(p.durationSeconds / 60),
-              durationFormatted: formatSecondsDuration(p.durationSeconds)
-            }));
-          } else {
-            participantsScopeEnabled = false;
-          }
-        } catch (err) {
-          console.warn(`Failed to fetch participants for meeting ${meeting.id}:`, err.message);
-        }
-
-        const count = participantsDetails.length > 0 ? participantsDetails.length : (meeting.participants_count || 0);
-        const durationMin = meeting.duration || 0;
-        const startTimeKyiv = formatKyivTime(meeting.start_time);
-        const endTimeKyiv = formatKyivTime(meeting.end_time);
-
-        // Separate students from host
-        const students = participantsDetails.filter(p => !p.isHost);
-
-        // Calculate lesson validation status
-        let status = 'SHORT_CALL';
-        let statusLabel = 'Короткий дзвінок (< 15 хв)';
-        if (durationMin >= 30 && count >= 2) {
-          status = 'VERIFIED';
-          statusLabel = 'Верифікований урок (≥ 30 хв)';
-        } else if (durationMin >= 15 && count <= 1) {
-          status = 'ONLY_HOST';
-          statusLabel = 'Тільки викладач (No-Show)';
-        }
-
-        allMeetings.push({
-          teacher: teacherName,
-          teacherEmail: teacher.email,
-          topic: meeting.topic || 'Без назви',
-          meetingId: meeting.id,
-          // 1. КОЛИ:
-          date: date,
-          startTime: meeting.start_time,
-          endTime: meeting.end_time,
-          timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
-          // 2. ЯК ДОВГО:
-          durationMinutes: durationMin,
-          durationFormatted: formatMinutesDuration(durationMin),
-          totalMinutes: meeting.total_minutes || 0,
-          // 3. З КИМ:
-          participantsCount: count,
-          participants: participantsDetails,
-          students: students,
-          // Статус
-          status: status,
-          statusLabel: statusLabel
-        });
+      for (const m of teacherMeetings) {
+        rawMeetingsToProcess.push({ meeting: m, teacher });
       }
     }
 
+    // 5. Concurrently fetch participants telemetry for all meetings (limit concurrency to 5 to protect rate limits)
+    const processedMeetings = await mapConcurrent(rawMeetingsToProcess, 5, async ({ meeting, teacher }) => {
+      let participantsDetails = [];
+      const meetingKey = meeting.uuid ? encodeURIComponent(encodeURIComponent(meeting.uuid)) : meeting.id;
+      const teacherName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.email;
+
+      try {
+        const pRes = await fetch(`https://api.zoom.us/v2/report/meetings/${meetingKey}/participants?page_size=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const rawParts = pData.participants || [];
+
+          // Aggregate multiple connections for the same person (reconnects)
+          const aggregated = new Map();
+          for (const p of rawParts) {
+            const name = (p.name || p.user_email || 'Учасник').trim();
+            const email = (p.user_email || '').trim().toLowerCase();
+            const key = email || name.toLowerCase();
+            const duration = Number(p.duration) || 0;
+            const isHost = (email && email === teacher.email.toLowerCase()) ||
+                           (name.toLowerCase() === teacherName.toLowerCase());
+
+            // Identifier: email, phone, or Zoom user ID
+            const identifier = email || (p.id ? `ID: ${p.id}` : (p.customer_key || 'Гість (без пошти)'));
+
+            if (aggregated.has(key)) {
+              const existing = aggregated.get(key);
+              existing.durationSeconds += duration;
+              if (!existing.joinTime && p.join_time) existing.joinTime = formatKyivTime(p.join_time);
+              if (p.leave_time) existing.leaveTime = formatKyivTime(p.leave_time);
+            } else {
+              aggregated.set(key, {
+                name: name,
+                email: p.user_email || '',
+                identifier: identifier,
+                zoomUserId: p.id || '',
+                durationSeconds: duration,
+                joinTime: formatKyivTime(p.join_time),
+                leaveTime: formatKyivTime(p.leave_time),
+                isHost: isHost
+              });
+            }
+          }
+
+          participantsDetails = Array.from(aggregated.values()).map(p => ({
+            ...p,
+            durationMinutes: Math.round(p.durationSeconds / 60),
+            durationFormatted: formatSecondsDuration(p.durationSeconds)
+          }));
+        } else {
+          participantsScopeEnabled = false;
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch participants for meeting ${meeting.id}:`, err.message);
+      }
+
+      const count = participantsDetails.length > 0 ? participantsDetails.length : (meeting.participants_count || 0);
+      const durationMin = meeting.duration || 0;
+      const startTimeKyiv = formatKyivTime(meeting.start_time);
+      const endTimeKyiv = formatKyivTime(meeting.end_time);
+      const meetingDateKyiv = formatKyivDate(meeting.start_time);
+
+      // Separate students from host
+      const students = participantsDetails.filter(p => !p.isHost);
+
+      // Validation status
+      let status = 'SHORT_CALL';
+      let statusLabel = 'Короткий дзвінок (< 15 хв)';
+      if (durationMin >= 30 && count >= 2) {
+        status = 'VERIFIED';
+        statusLabel = 'Верифікований урок (≥ 30 хв)';
+      } else if (durationMin >= 15 && count <= 1) {
+        status = 'ONLY_HOST';
+        statusLabel = 'Тільки викладач (No-Show)';
+      }
+
+      return {
+        teacher: teacherName,
+        teacherEmail: teacher.email,
+        topic: meeting.topic || 'Без назви',
+        meetingId: meeting.id,
+        // КОЛИ:
+        date: meetingDateKyiv,
+        startTime: meeting.start_time,
+        endTime: meeting.end_time,
+        startTimeKyiv: startTimeKyiv,
+        endTimeKyiv: endTimeKyiv,
+        timeRangeKyiv: startTimeKyiv && endTimeKyiv ? `${startTimeKyiv} – ${endTimeKyiv}` : startTimeKyiv,
+        // ЯК ДОВГО:
+        durationMinutes: durationMin,
+        durationFormatted: formatMinutesDuration(durationMin),
+        totalMinutes: meeting.total_minutes || 0,
+        // З КИМ:
+        participantsCount: count,
+        participants: participantsDetails,
+        students: students,
+        // СТАТУС:
+        status: status,
+        statusLabel: statusLabel
+      };
+    });
+
+    // Sort meetings descending by start time
+    processedMeetings.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+    // Group by Date for day-by-day presentation
+    const groupedDaysMap = new Map();
+    for (const m of processedMeetings) {
+      const d = m.date;
+      if (!groupedDaysMap.has(d)) {
+        groupedDaysMap.set(d, {
+          date: d,
+          meetings: [],
+          totalMeetings: 0,
+          verifiedCount: 0,
+          onlyHostCount: 0,
+          shortCallCount: 0,
+          totalDurationMinutes: 0
+        });
+      }
+      const dayObj = groupedDaysMap.get(d);
+      dayObj.meetings.push(m);
+      dayObj.totalMeetings += 1;
+      dayObj.totalDurationMinutes += m.durationMinutes;
+      if (m.status === 'VERIFIED') dayObj.verifiedCount += 1;
+      else if (m.status === 'ONLY_HOST') dayObj.onlyHostCount += 1;
+      else dayObj.shortCallCount += 1;
+    }
+
+    const days = Array.from(groupedDaysMap.values()).map(d => ({
+      ...d,
+      totalDurationFormatted: formatMinutesDuration(d.totalDurationMinutes)
+    }));
+
+    // Overall summary
+    const totalMeetings = processedMeetings.length;
+    const verifiedMeetings = processedMeetings.filter(m => m.status === 'VERIFIED').length;
+    const onlyHostMeetings = processedMeetings.filter(m => m.status === 'ONLY_HOST').length;
+    const shortCallMeetings = processedMeetings.filter(m => m.status === 'SHORT_CALL').length;
+    const totalDurationMinutes = processedMeetings.reduce((sum, m) => sum + (m.durationMinutes || 0), 0);
+
     const responsePayload = {
-      date: date,
-      totalMeetings: allMeetings.length,
+      from: fromDate,
+      to: toDate,
+      totalMeetings: totalMeetings,
+      totalDays: days.length,
+      summary: {
+        totalMeetings,
+        verifiedMeetings,
+        onlyHostMeetings,
+        shortCallMeetings,
+        totalDurationMinutes,
+        totalDurationFormatted: formatMinutesDuration(totalDurationMinutes)
+      },
       participantsScopeEnabled: participantsScopeEnabled,
-      meetings: allMeetings
+      days: days,
+      meetings: processedMeetings
     };
 
     if (res && typeof res.status === 'function') {
