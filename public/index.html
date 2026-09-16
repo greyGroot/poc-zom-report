@@ -733,6 +733,239 @@
       align-items: center;
       gap: 8px;
     }
+
+    /* Tab Navigation Styles */
+    .main-tabs-nav {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .main-tab-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      min-height: 42px;
+    }
+
+    @media (min-width: 600px) {
+      .main-tab-btn {
+        font-size: 14px;
+        padding: 12px 20px;
+      }
+    }
+
+    .main-tab-btn:hover {
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .main-tab-btn.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      background: #22c55e;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Telemetry View Styles */
+    .telemetry-header-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .telemetry-filter-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 860px) {
+      .telemetry-filter-bar {
+        padding: 16px 20px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .telemetry-controls-left {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+    }
+
+    @media (min-width: 860px) {
+      .telemetry-controls-left {
+        width: auto;
+      }
+    }
+
+    .telemetry-controls-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    @media (min-width: 860px) {
+      .telemetry-controls-right {
+        width: auto;
+        justify-content: flex-end;
+      }
+    }
+
+    .filter-input-text {
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text-main);
+      outline: none;
+      min-height: 38px;
+      min-width: 200px;
+    }
+
+    .btn-quick-filter {
+      background: #f1f5f9;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-quick-filter:hover {
+      background: #e0f2fe;
+    }
+
+    .auto-refresh-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .auto-refresh-wrapper input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .countdown-chip {
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .badge-live-meeting {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge-ended-meeting {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .qos-badge {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ip-badge {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .session-interval-tag {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: #334155;
+      display: inline-block;
+      margin-right: 4px;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
@@ -743,81 +976,171 @@
       <div class="subtitle">Моніторинг проведених уроків мовної школи за днями (Europe/Kyiv)</div>
     </header>
 
-    <!-- Filter & Presets Panel -->
-    <div class="filter-panel">
-      <div class="quick-presets">
-        <button type="button" class="btn-preset" id="btnYesterday">Вчора</button>
-        <button type="button" class="btn-preset" id="btnToday">Сьогодні</button>
-        <button type="button" class="btn-preset" id="btnThisWeek">Цей тиждень</button>
-        <button type="button" class="btn-preset active" id="btnThisMonth">Цей місяць</button>
-      </div>
-
-      <div class="custom-range">
-        <div class="date-inputs">
-          <div class="input-group">
-            <span>Від:</span>
-            <input type="date" id="inputFrom">
-          </div>
-          <div class="input-group">
-            <span>До:</span>
-            <input type="date" id="inputTo">
-          </div>
-        </div>
-        <button type="button" class="btn-apply" id="btnApply">Показати</button>
-      </div>
-    </div>
-
-    <!-- Action Bar with Single Global Toggle Button -->
-    <div class="action-bar" id="actionBar" style="display: none;">
-      <button type="button" class="btn-global-toggle" id="btnGlobalToggle">
-        <span>👥 Розгорнути всіх студентів на сторінці ▼</span>
+    <!-- Main Mode Navigation Tabs -->
+    <nav class="main-tabs-nav" role="tablist">
+      <button type="button" class="main-tab-btn active" id="tabBtnReports" role="tab" aria-selected="true" onclick="switchTab('reports')">
+        <span>📊 Reports API (Класичний звіт)</span>
       </button>
-      <div class="muted" id="periodInfo"></div>
-    </div>
+      <button type="button" class="main-tab-btn" id="tabBtnTelemetry" role="tab" aria-selected="false" onclick="switchTab('telemetry')">
+        <span>⚡ Live Webhooks Telemetry (Потокові дані)</span>
+        <span class="live-dot" title="Real-time Redis Telemetry"></span>
+      </button>
+    </nav>
 
-    <!-- Progressive Loading Box / Loader -->
-    <div id="progressBox" class="progress-box" style="display: none;">
-      <div class="progress-header">
-        <div class="progress-text" id="progressText">
-          <span class="spinner-dot"></span>
-          <span id="progressStatusLabel">Отримання розкладу уроків...</span>
+    <!-- View 1: Reports API (Classic PoC Report) -->
+    <div id="viewReports" class="tab-view">
+      <!-- Filter & Presets Panel -->
+      <div class="filter-panel">
+        <div class="quick-presets">
+          <button type="button" class="btn-preset" id="btnYesterday">Вчора</button>
+          <button type="button" class="btn-preset" id="btnToday">Сьогодні</button>
+          <button type="button" class="btn-preset" id="btnThisWeek">Цей тиждень</button>
+          <button type="button" class="btn-preset active" id="btnThisMonth">Цей місяць</button>
         </div>
-        <div class="progress-percent" id="progressPercent">0%</div>
+
+        <div class="custom-range">
+          <div class="date-inputs">
+            <div class="input-group">
+              <span>Від:</span>
+              <input type="date" id="inputFrom">
+            </div>
+            <div class="input-group">
+              <span>До:</span>
+              <input type="date" id="inputTo">
+            </div>
+          </div>
+          <button type="button" class="btn-apply" id="btnApply">Показати</button>
+        </div>
       </div>
-      <div class="progress-track">
-        <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+
+      <!-- Action Bar with Single Global Toggle Button -->
+      <div class="action-bar" id="actionBar" style="display: none;">
+        <button type="button" class="btn-global-toggle" id="btnGlobalToggle">
+          <span>👥 Розгорнути всіх студентів на сторінці ▼</span>
+        </button>
+        <div class="muted" id="periodInfo"></div>
       </div>
+
+      <!-- Progressive Loading Box / Loader -->
+      <div id="progressBox" class="progress-box" style="display: none;">
+        <div class="progress-header">
+          <div class="progress-text" id="progressText">
+            <span class="spinner-dot"></span>
+            <span id="progressStatusLabel">Отримання розкладу уроків...</span>
+          </div>
+          <div class="progress-percent" id="progressPercent">0%</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Summary KPI Cards -->
+      <div class="summary-bar" id="summaryBar" style="display: none;">
+        <div class="summary-card">
+          <div class="summary-label">Днів з уроками</div>
+          <div class="summary-val" id="kpiDays">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Всього проведено</div>
+          <div class="summary-val" id="kpiTotalMeetings">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Верифіковано (≥30хв)</div>
+          <div class="summary-val" style="color: var(--green-text);" id="kpiVerified">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Тільки викладач</div>
+          <div class="summary-val" style="color: var(--yellow-text);" id="kpiOnlyHost">0</div>
+        </div>
+        <div class="summary-card full-span-mobile">
+          <div class="summary-label">Загальний час занять</div>
+          <div class="summary-val" id="kpiDuration">0 хв</div>
+        </div>
+      </div>
+
+      <!-- Status Alert -->
+      <div id="statusAlert" class="status-alert status-loading" style="display: none;">Завантаження даних...</div>
+
+      <!-- Days Container -->
+      <div class="days-list" id="daysContainer"></div>
     </div>
 
-    <!-- Summary KPI Cards -->
-    <div class="summary-bar" id="summaryBar" style="display: none;">
-      <div class="summary-card">
-        <div class="summary-label">Днів з уроками</div>
-        <div class="summary-val" id="kpiDays">0</div>
+    <!-- View 2: Live Webhooks Telemetry (Real-time Redis Stream) -->
+    <div id="viewTelemetry" class="tab-view" style="display: none;">
+      <div class="telemetry-header-row">
+        <div class="subtitle" style="font-weight: 600; color: #334155;">
+          Потокова телеметрія сесій з Zoom Webhooks у реальному часі через Upstash Redis
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Всього проведено</div>
-        <div class="summary-val" id="kpiTotalMeetings">0</div>
+
+      <!-- Telemetry Filters & Actions Bar -->
+      <div class="telemetry-filter-bar">
+        <div class="telemetry-controls-left">
+          <div class="input-group" style="width: auto;">
+            <span>Дата:</span>
+            <input type="date" id="telInputDate" style="min-height: 38px; padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          </div>
+          <button type="button" class="btn-preset" id="btnTelToday" style="min-height: 38px;">Сьогодні</button>
+          <button type="button" class="btn-preset" id="btnTelAllDates" style="min-height: 38px;">Всі дати</button>
+          <div class="input-group" style="width: auto;">
+            <span>Викладач:</span>
+            <input type="text" id="telInputHost" class="filter-input-text" placeholder="Email (напр. gray.rsm@gmail.com)">
+          </div>
+          <button type="button" class="btn-quick-filter" id="btnTelHostPreset">gray.rsm@gmail.com</button>
+          <button type="button" class="btn-apply" id="btnTelApply" style="min-height: 38px;">Показати</button>
+        </div>
+
+        <div class="telemetry-controls-right">
+          <button type="button" class="btn-apply" id="btnTelRefresh" style="min-height: 38px; background: #0284c7;">
+            <span>🔄 Оновити з Redis</span>
+          </button>
+          <label class="auto-refresh-wrapper" title="Автоматичне опитування кожні 10 секунд">
+            <input type="checkbox" id="telAutoRefreshCheck" checked>
+            <span>Авто (10с)</span>
+            <span class="countdown-chip" id="telCountdownLabel">10с</span>
+          </label>
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Верифіковано (≥30хв)</div>
-        <div class="summary-val" style="color: var(--green-text);" id="kpiVerified">0</div>
+
+      <!-- Telemetry KPI Summary Cards -->
+      <div class="summary-bar" id="telSummaryBar" style="display: none;">
+        <div class="summary-card">
+          <div class="summary-label">Всього в Redis</div>
+          <div class="summary-val" id="kpiTelTotal">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">В ефірі (Live)</div>
+          <div class="summary-val" style="color: #16a34a;" id="kpiTelLive">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Верифіковано (≥30хв)</div>
+          <div class="summary-val" style="color: var(--green-text);" id="kpiTelVerified">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Тільки викладач</div>
+          <div class="summary-val" style="color: var(--yellow-text);" id="kpiTelOnlyHost">0</div>
+        </div>
+        <div class="summary-card full-span-mobile">
+          <div class="summary-label">Короткі дзвінки (&lt;30хв)</div>
+          <div class="summary-val" style="color: var(--red-text);" id="kpiTelShort">0</div>
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Тільки викладач</div>
-        <div class="summary-val" style="color: var(--yellow-text);" id="kpiOnlyHost">0</div>
+
+      <!-- Action Bar with Global Toggle -->
+      <div class="action-bar" id="telActionBar" style="display: none;">
+        <button type="button" class="btn-global-toggle" id="btnTelGlobalToggle">
+          <span>👥 Розгорнути всіх учасників ▼</span>
+        </button>
+        <div class="muted" id="telInfo">Знайдено зустрічей: 0</div>
       </div>
-      <div class="summary-card full-span-mobile">
-        <div class="summary-label">Загальний час занять</div>
-        <div class="summary-val" id="kpiDuration">0 хв</div>
-      </div>
+
+      <!-- Telemetry Status Alert -->
+      <div id="telStatusAlert" class="status-alert status-loading" style="display: none;">Завантаження телеметрії з Redis...</div>
+
+      <!-- Telemetry Table & Cards Container -->
+      <div id="telContainer"></div>
     </div>
-
-    <!-- Status Alert -->
-    <div id="statusAlert" class="status-alert status-loading" style="display: none;">Завантаження даних...</div>
-
-    <!-- Days Container -->
-    <div class="days-list" id="daysContainer"></div>
   </div>
 
   <script>
@@ -1372,6 +1695,459 @@
     const defaultFrom = formatKyivYMD(firstDayOfMonth);
     const defaultTo = formatKyivYMD(now);
     fetchData(defaultFrom, defaultTo);
+
+    /* ==========================================================================
+       TELEMETRY CONTROLLER (Zoom Webhooks + Upstash Redis)
+       ========================================================================== */
+    const tabBtnReports = document.getElementById('tabBtnReports');
+    const tabBtnTelemetry = document.getElementById('tabBtnTelemetry');
+    const viewReports = document.getElementById('viewReports');
+    const viewTelemetry = document.getElementById('viewTelemetry');
+    let currentTab = 'reports';
+
+    window.switchTab = function(targetTab) {
+      currentTab = targetTab;
+      if (targetTab === 'telemetry') {
+        tabBtnReports.classList.remove('active');
+        tabBtnReports.setAttribute('aria-selected', 'false');
+        tabBtnTelemetry.classList.add('active');
+        tabBtnTelemetry.setAttribute('aria-selected', 'true');
+        viewReports.style.display = 'none';
+        viewTelemetry.style.display = 'block';
+        window.location.hash = '#telemetry';
+        if (!telemetryLoadedOnce) {
+          fetchTelemetryData();
+        }
+      } else {
+        tabBtnTelemetry.classList.remove('active');
+        tabBtnTelemetry.setAttribute('aria-selected', 'false');
+        tabBtnReports.classList.add('active');
+        tabBtnReports.setAttribute('aria-selected', 'true');
+        viewTelemetry.style.display = 'none';
+        viewReports.style.display = 'block';
+        window.location.hash = '#reports';
+      }
+    };
+
+    const telInputDate = document.getElementById('telInputDate');
+    const btnTelToday = document.getElementById('btnTelToday');
+    const btnTelAllDates = document.getElementById('btnTelAllDates');
+    const telInputHost = document.getElementById('telInputHost');
+    const btnTelHostPreset = document.getElementById('btnTelHostPreset');
+    const btnTelApply = document.getElementById('btnTelApply');
+    const btnTelRefresh = document.getElementById('btnTelRefresh');
+    const telAutoRefreshCheck = document.getElementById('telAutoRefreshCheck');
+    const telCountdownLabel = document.getElementById('telCountdownLabel');
+
+    const telSummaryBar = document.getElementById('telSummaryBar');
+    const kpiTelTotal = document.getElementById('kpiTelTotal');
+    const kpiTelLive = document.getElementById('kpiTelLive');
+    const kpiTelVerified = document.getElementById('kpiTelVerified');
+    const kpiTelOnlyHost = document.getElementById('kpiTelOnlyHost');
+    const kpiTelShort = document.getElementById('kpiTelShort');
+
+    const telActionBar = document.getElementById('telActionBar');
+    const btnTelGlobalToggle = document.getElementById('btnTelGlobalToggle');
+    const telInfo = document.getElementById('telInfo');
+    const telStatusAlert = document.getElementById('telStatusAlert');
+    const telContainer = document.getElementById('telContainer');
+
+    let telemetryLoadedOnce = false;
+    let allTelDrawersExpanded = false;
+    let countdownRemaining = 10;
+
+    function formatKyivTimeOnly(isoStr) {
+      if (!isoStr) return '';
+      try {
+        const d = new Date(isoStr);
+        return new Intl.DateTimeFormat('uk-UA', {
+          timeZone: 'Europe/Kyiv',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).format(d);
+      } catch {
+        return isoStr;
+      }
+    }
+
+    function formatKyivDateTime(isoStr) {
+      if (!isoStr) return '—';
+      try {
+        const d = new Date(isoStr);
+        return new Intl.DateTimeFormat('uk-UA', {
+          timeZone: 'Europe/Kyiv',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).format(d);
+      } catch {
+        return isoStr;
+      }
+    }
+
+    function formatSecondsToHM(seconds) {
+      const total = Math.max(0, Math.round(Number(seconds) || 0));
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      if (m === 0) return `${s} с`;
+      return s > 0 ? `${m} хв ${s} с` : `${m} хв`;
+    }
+
+    function renderTelParticipant(p) {
+      const isHost = p.is_host === true;
+      const roleTag = isHost
+        ? '<span class="tag-role tag-host">Викладач (Організатор)</span>'
+        : '<span class="tag-role tag-student">Студент</span>';
+
+      const emailText = p.email ? p.email : '—';
+      const phoneText = p.phone ? `<span class="id-bubble">📞 ${escapeHtml(p.phone)}</span>` : '';
+      const userIdText = p.user_id ? `<span class="muted">ID: ${escapeHtml(String(p.user_id))}</span>` : '';
+      const ipText = p.ip_address ? `<span class="ip-badge">🌐 IP: ${escapeHtml(p.ip_address)}</span>` : '';
+      const deviceText = p.device ? `<span class="qos-badge">💻 ${escapeHtml(p.device)}</span>` : '';
+
+      const joinTime = p.join_time ? formatKyivTimeOnly(p.join_time) : '';
+      const leaveTime = p.leave_time ? formatKyivTimeOnly(p.leave_time) : '';
+      const timeRange = (joinTime && leaveTime) ? ` (${joinTime} – ${leaveTime})` : (joinTime ? ` (з ${joinTime})` : '');
+
+      const durStr = p.duration_seconds !== undefined
+        ? formatSecondsToHM(p.duration_seconds)
+        : (p.duration ? `${p.duration} хв` : '—');
+
+      let intervalsHtml = '';
+      if (Array.isArray(p.sessions) && p.sessions.length > 1) {
+        intervalsHtml = `
+          <div style="margin-top: 6px; font-size: 11px; color: #475569;">
+            <strong>Сесії підключень (${p.sessions.length}):</strong>
+            <div style="margin-top: 2px;">
+              ${p.sessions.map((s, idx) => `
+                <span class="session-interval-tag">#${idx + 1}: ${formatKyivTimeOnly(s.join_time)} – ${formatKyivTimeOnly(s.leave_time) || 'в ефірі'}</span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="student-item ${isHost ? 'is-host' : ''}">
+          <div class="st-header">
+            <span class="st-name">${escapeHtml(p.name || p.user_name || 'Учасник')}</span>
+            ${roleTag}
+          </div>
+          <div class="st-id-line">
+            <span class="id-bubble">✉️ ${escapeHtml(emailText)}</span>
+            ${phoneText}
+            ${userIdText}
+            ${ipText}
+            ${deviceText}
+          </div>
+          <div class="st-time">
+            ⏱️ Час на уроці: <strong>${escapeHtml(durStr)}</strong><span class="muted">${timeRange}</span>
+          </div>
+          ${intervalsHtml}
+        </div>
+      `;
+    }
+
+    async function fetchTelemetryData() {
+      telemetryLoadedOnce = true;
+      telStatusAlert.style.display = 'block';
+      telStatusAlert.className = 'status-alert status-loading';
+      telStatusAlert.textContent = 'Отримання потокових даних з Redis...';
+      telSummaryBar.style.display = 'none';
+      telActionBar.style.display = 'none';
+
+      const dateVal = telInputDate.value ? telInputDate.value.trim() : '';
+      const hostVal = telInputHost.value ? telInputHost.value.trim() : '';
+
+      const params = new URLSearchParams();
+      if (dateVal) params.append('date', dateVal);
+      if (hostVal) params.append('host', hostVal);
+
+      const qs = params.toString() ? `?${params.toString()}` : '';
+
+      try {
+        const res = await fetch(`/api/telemetry${qs}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const meetings = data.meetings || [];
+
+        renderTelemetry(meetings, data.date);
+      } catch (err) {
+        telStatusAlert.style.display = 'block';
+        telStatusAlert.className = 'status-alert status-empty';
+        telStatusAlert.textContent = `Помилка читання телеметрії: ${err.message}`;
+      }
+    }
+
+    function renderTelemetry(meetings, queryDate) {
+      if (meetings.length === 0) {
+        telStatusAlert.style.display = 'block';
+        telStatusAlert.className = 'status-alert status-empty';
+        telStatusAlert.textContent = 'У базі даних Upstash Redis не знайдено записів зустрічей за вказаними фільтрами.';
+        telContainer.innerHTML = '';
+        return;
+      }
+
+      telStatusAlert.style.display = 'none';
+
+      // Calculate KPI counters
+      let totalLive = 0;
+      let totalVerified = 0;
+      let totalOnlyHost = 0;
+      let totalShort = 0;
+
+      for (const m of meetings) {
+        if (m.status === 'live') totalLive++;
+        if (m.business_status === 'VERIFIED') totalVerified++;
+        else if (m.business_status === 'ONLY_HOST') totalOnlyHost++;
+        else if (m.business_status === 'SHORT_CALL') totalShort++;
+      }
+
+      kpiTelTotal.textContent = meetings.length;
+      kpiTelLive.textContent = totalLive;
+      kpiTelVerified.textContent = totalVerified;
+      kpiTelOnlyHost.textContent = totalOnlyHost;
+      kpiTelShort.textContent = totalShort;
+      telSummaryBar.style.display = 'grid';
+
+      const nowTime = new Date().toLocaleTimeString('uk-UA');
+      telInfo.textContent = `Знайдено: ${meetings.length} • Оновлено: ${nowTime}`;
+      telActionBar.style.display = 'flex';
+
+      let desktopRows = '';
+      let mobileCards = '';
+
+      meetings.forEach((m, idx) => {
+        const uid = `tel_${m.meeting_id || idx}_${idx}`;
+        const count = m.participants_count || (m.participants ? m.participants.length : 0);
+        const parts = m.participants || [];
+
+        const isLive = m.status === 'live';
+        const statusBadge = isLive
+          ? '<span class="badge badge-live-meeting"><span class="live-dot"></span> В ефірі</span>'
+          : '<span class="badge badge-ended-meeting">Завершено</span>';
+
+        let bStatusClass = 'badge-short-call';
+        let bStatusText = 'КОРОТКИЙ ДЗВІНОК';
+        if (m.business_status === 'VERIFIED') {
+          bStatusClass = 'badge-verified';
+          bStatusText = 'VERIFIED (≥30хв)';
+        } else if (m.business_status === 'ONLY_HOST') {
+          bStatusClass = 'badge-only-host';
+          bStatusText = 'ТІЛЬКИ ВИКЛАДАЧ (≥15хв)';
+        }
+
+        const durFormatted = m.duration !== undefined ? `${m.duration} хв` : '0 хв';
+        const startFormatted = formatKyivDateTime(m.start_time);
+        const endFormatted = m.end_time ? formatKyivDateTime(m.end_time) : (isLive ? 'Триває зараз' : '—');
+
+        // Mobile Card
+        mobileCards += `
+          <div class="meeting-card-mobile tel-card-m" id="tel_mcard_${uid}" onclick="toggleTelMeeting('${uid}')">
+            <div class="m-top-row">
+              <span class="m-time">⏰ ${escapeHtml(startFormatted)}</span>
+              <div>
+                ${statusBadge}
+                <span class="badge ${bStatusClass}" style="margin-left: 4px;">${bStatusText}</span>
+              </div>
+            </div>
+            <div class="m-topic" style="margin-top: 6px;">${escapeHtml(m.topic || 'Zoom Meeting')}</div>
+            <div class="m-sub-info" style="margin-top: 4px;">
+              <span>👤 <strong>${escapeHtml(m.host_name || '—')}</strong> (${escapeHtml(m.host_email || '')})</span>
+              <span>⏱️ ${durFormatted}</span>
+            </div>
+            <div class="m-expand-pill">
+              <span>👥 ${count} учасник(ів)</span>
+              <span class="toggle-arrow" id="tel_m_arrow_${uid}">▼</span>
+            </div>
+          </div>
+          <div class="details-drawer-wrapper drawer-item tel-drawer-item-m" id="tel_drawer_m_${uid}" style="display: none;">
+            <div class="details-drawer-card">
+              <div class="details-drawer-header">
+                <span>📋 Телеметрія учасників (${count} осіб)</span>
+                <span class="muted">ID: ${escapeHtml(String(m.meeting_id || ''))}</span>
+              </div>
+              <div class="students-grid">
+                ${parts.map(renderTelParticipant).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Desktop Row
+        desktopRows += `
+          <tr class="meeting-row tel-row-d" id="tel_row_${uid}" onclick="toggleTelMeeting('${uid}')">
+            <td>
+              <div class="teacher-name">${escapeHtml(m.host_name || 'Організатор')}</div>
+              <div class="muted">${escapeHtml(m.host_email || '')}</div>
+            </td>
+            <td>
+              <div class="topic-name">${escapeHtml(m.topic || 'Zoom Meeting')}</div>
+              <div class="muted" style="display: flex; gap: 6px; align-items: center;">
+                <span>ID: ${escapeHtml(String(m.meeting_id || ''))}</span>
+                ${statusBadge}
+              </div>
+            </td>
+            <td>
+              <div style="font-size: 12px; font-weight: 600;">${escapeHtml(startFormatted)}</div>
+              <div class="muted" style="font-size: 11px;">Кінець: ${escapeHtml(endFormatted)}</div>
+              <div class="duration-text" style="color: #0284c7; font-size: 12px;">Тривалість: ${durFormatted}</div>
+            </td>
+            <td>
+              <div class="participants-pill">
+                <span>👥 ${count} учасник(ів)</span>
+                <span class="toggle-arrow" id="tel_d_arrow_${uid}">▼</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge ${bStatusClass}">${bStatusText}</span>
+            </td>
+          </tr>
+          <tr class="details-row drawer-item tel-drawer-item-d" id="tel_drawer_d_${uid}" style="display: none;">
+            <td colspan="5" style="padding: 0; border-bottom: none;">
+              <div class="details-drawer-wrapper">
+                <div class="details-drawer-card">
+                  <div class="details-drawer-header">
+                    <span>📋 Телеметрія підключень до зустрічі «${escapeHtml(m.topic || '')}» (ID: ${escapeHtml(String(m.meeting_id || ''))})</span>
+                    <span class="muted">${count} осіб • Початок: ${escapeHtml(startFormatted)}</span>
+                  </div>
+                  <div class="students-grid">
+                    ${parts.map(renderTelParticipant).join('')}
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      telContainer.innerHTML = `
+        <div class="day-card" style="margin-top: 10px;">
+          <!-- Mobile View -->
+          <div class="meetings-mobile-container" style="display: block;">
+            ${mobileCards}
+          </div>
+
+          <!-- Desktop View -->
+          <div class="meetings-table-container">
+            <table class="meetings-table">
+              <thead>
+                <tr>
+                  <th style="width: 22%;">Організатор (Викладач)</th>
+                  <th style="width: 28%;">Зустріч (Тема & ID)</th>
+                  <th style="width: 22%;">Час & Тривалість</th>
+                  <th style="width: 14%;">Учасники</th>
+                  <th style="width: 14%;">Статус уроку</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${desktopRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // Toggle single telemetry meeting drawer
+    window.toggleTelMeeting = function(uid) {
+      const drawerM = document.getElementById(`tel_drawer_m_${uid}`);
+      const drawerD = document.getElementById(`tel_drawer_d_${uid}`);
+      const cardM = document.getElementById(`tel_mcard_${uid}`);
+      const rowD = document.getElementById(`tel_row_${uid}`);
+
+      const currentlyVisible = (drawerM && drawerM.style.display !== 'none') || 
+                               (drawerD && drawerD.style.display !== 'none');
+
+      const newDisplay = currentlyVisible ? 'none' : 'block';
+      const newTableDisplay = currentlyVisible ? 'none' : 'table-row';
+
+      if (drawerM) drawerM.style.display = newDisplay;
+      if (drawerD) drawerD.style.display = newTableDisplay;
+
+      if (cardM) {
+        if (currentlyVisible) cardM.classList.remove('is-expanded');
+        else cardM.classList.add('is-expanded');
+      }
+      if (rowD) {
+        if (currentlyVisible) rowD.classList.remove('is-expanded');
+        else rowD.classList.add('is-expanded');
+      }
+    };
+
+    // Global toggle for all telemetry drawers
+    btnTelGlobalToggle.addEventListener('click', () => {
+      allTelDrawersExpanded = !allTelDrawersExpanded;
+      const drawersM = document.querySelectorAll('.tel-drawer-item-m');
+      const drawersD = document.querySelectorAll('.tel-drawer-item-d');
+      const cardsM = document.querySelectorAll('.tel-card-m');
+      const rowsD = document.querySelectorAll('.tel-row-d');
+
+      drawersM.forEach(d => d.style.display = allTelDrawersExpanded ? 'block' : 'none');
+      drawersD.forEach(d => d.style.display = allTelDrawersExpanded ? 'table-row' : 'none');
+      cardsM.forEach(c => allTelDrawersExpanded ? c.classList.add('is-expanded') : c.classList.remove('is-expanded'));
+      rowsD.forEach(r => allTelDrawersExpanded ? r.classList.add('is-expanded') : r.classList.remove('is-expanded'));
+
+      btnTelGlobalToggle.innerHTML = allTelDrawersExpanded
+        ? '<span>👥 Згорнути всіх учасників ▲</span>'
+        : '<span>👥 Розгорнути всіх учасників ▼</span>';
+    });
+
+    // Telemetry Filter Handlers
+    btnTelToday.addEventListener('click', () => {
+      telInputDate.value = formatKyivYMD(getNowKyiv());
+      fetchTelemetryData();
+    });
+
+    btnTelAllDates.addEventListener('click', () => {
+      telInputDate.value = '';
+      fetchTelemetryData();
+    });
+
+    btnTelHostPreset.addEventListener('click', () => {
+      telInputHost.value = 'gray.rsm@gmail.com';
+      fetchTelemetryData();
+    });
+
+    btnTelApply.addEventListener('click', () => {
+      fetchTelemetryData();
+    });
+
+    btnTelRefresh.addEventListener('click', () => {
+      countdownRemaining = 10;
+      telCountdownLabel.textContent = '10с';
+      fetchTelemetryData();
+    });
+
+    // 10-second auto-refresh countdown
+    setInterval(() => {
+      if (currentTab !== 'telemetry' || !telAutoRefreshCheck.checked) {
+        countdownRemaining = 10;
+        telCountdownLabel.textContent = '10с';
+        return;
+      }
+      countdownRemaining--;
+      if (countdownRemaining <= 0) {
+        countdownRemaining = 10;
+        telCountdownLabel.textContent = '10с';
+        fetchTelemetryData();
+      } else {
+        telCountdownLabel.textContent = `${countdownRemaining}с`;
+      }
+    }, 1000);
+
+    // Hash routing on load
+    if (window.location.hash === '#telemetry' || window.location.pathname.includes('webhooks')) {
+      switchTab('telemetry');
+    }
   </script>
 </body>
 </html>

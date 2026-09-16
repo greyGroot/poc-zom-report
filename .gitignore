@@ -17,3 +17,6 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Agent scratch logs
+.agents/
