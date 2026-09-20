@@ -1,13 +1,49 @@
+import './globals.css';
+import Link from 'next/link';
+
 export const metadata = {
   title: 'Empire English CRM',
-  description: 'EE CRM - Teacher Schedule and Zoom Attendance Validation',
+  description: 'EE CRM - Teacher Schedule Sync, PDF Parsing & Zoom Attendance Reconciliation',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: 'system-ui, sans-serif', margin: 0, padding: 0, background: '#f8fafc' }}>
-        {children}
+      <body>
+        <header className="navbar">
+          <div className="nav-inner">
+            <Link href="/" className="nav-brand">
+              <span className="brand-icon">🎓</span>
+              <span>Empire English CRM</span>
+              <span className="brand-badge">EE CRM v1.0</span>
+            </Link>
+
+            <nav className="nav-links">
+              <Link href="/" className="nav-link">
+                <span>👥</span>
+                <span>Teachers</span>
+              </Link>
+              <Link href="/logs" className="nav-link">
+                <span>📋</span>
+                <span>System Logs</span>
+              </Link>
+              <a
+                href="/api/health"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-link"
+                title="View JSON Health Probe"
+              >
+                <span>🩺</span>
+                <span>Health</span>
+              </a>
+            </nav>
+          </div>
+        </header>
+
+        <main className="main-content">
+          {children}
+        </main>
       </body>
     </html>
   );
