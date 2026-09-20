@@ -1,16 +1,7 @@
 // ee-crm/lib/pdf-parser.js
-// High-precision parser for Schoolmate Teacher Weekly Schedule PDFs
+// High-precision serverless-compatible parser for Schoolmate Teacher Weekly Schedule PDFs
 
-import './polyfills.js';
-
-let CachedPDFParse = null;
-async function getPDFParseClass() {
-  if (!CachedPDFParse) {
-    const mod = await import('pdf-parse');
-    CachedPDFParse = mod.PDFParse || mod.default?.PDFParse || mod.default;
-  }
-  return CachedPDFParse;
-}
+import { extractText } from 'unpdf';
 
 /**
  * Converts DD/MM/YYYY to YYYY-MM-DD
@@ -23,9 +14,38 @@ function parseDateToIso(ddmmyyyy) {
   return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
 }
 
+const KNOWN_LANGUAGES = new Set([
+  'English',
+  'Ukrainian',
+  'Russian',
+  'Spanish',
+  'German',
+  'Polish',
+  'French',
+  'Italian'
+]);
+
+function parseGroupAndDetails(rest) {
+  const parts = rest.trim().split(/\s+/);
+  let language = null;
+  let lessonType = 'GE';
+  const groupTokens = [...parts];
+
+  if (groupTokens.length > 1 && KNOWN_LANGUAGES.has(groupTokens[groupTokens.length - 1])) {
+    language = groupTokens.pop();
+  }
+
+  if (groupTokens.length > 1 && /^[A-Z]{2,4}$/.test(groupTokens[groupTokens.length - 1])) {
+    lessonType = groupTokens.pop();
+  }
+
+  const groupOrStudent = groupTokens.join(' ') || 'Individual Lesson';
+  return { groupOrStudent, lessonType, language };
+}
+
 /**
  * Parses a Teacher Weekly Schedule PDF buffer into structured JSON
- * @param {Buffer} pdfBuffer
+ * @param {Buffer|Uint8Array} pdfBuffer
  * @returns {Promise<object>}
  */
 export async function parseTeacherSchedulePdf(pdfBuffer) {
@@ -33,10 +53,8 @@ export async function parseTeacherSchedulePdf(pdfBuffer) {
     throw new Error('Valid PDF Buffer is required for parsing');
   }
 
-  const PDFParse = await getPDFParseClass();
-  const parser = new PDFParse({ data: pdfBuffer });
-  const textResult = await parser.getText();
-  const fullText = textResult?.text || '';
+  const { text } = await extractText(new Uint8Array(pdfBuffer), { mergePages: true });
+  const fullText = text || '';
 
   if (!fullText.trim()) {
     throw new Error('PDF contains no extractable text stream.');
@@ -62,7 +80,7 @@ export async function parseTeacherSchedulePdf(pdfBuffer) {
   }
 
   // 2. Extract Total Minutes footer
-  // Example: "Total Minutes \t 1,200 min."
+  // Example: "Total Minutes 1,200 min." or "Total Minutes \t 1,200 min."
   let totalMinutesReported = null;
   const totalMinutesRegex = /Total Minutes\s*[\t\s]+([\d,]+)\s*min/i;
   for (const line of lines) {
@@ -75,13 +93,14 @@ export async function parseTeacherSchedulePdf(pdfBuffer) {
 
   // 3. Extract Days and Lessons
   // Lessons row format:
-  // 14/09/2026 \t 08:00 - 09:00 \t 60 min. \t Alena Medvedieva Sushi Icons \t GE \t English
+  // 14/09/2026 08:00 - 09:00 60 min. Alena Medvedieva Sushi Icons GE English
   const lessons = [];
   const daysMap = new Map();
   let currentDayHeader = null;
 
   // Day header detector: "Monday 14th September Start - End Duration..."
   const dayHeaderRegex = /^((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d+(?:st|nd|rd|th)?\s+[A-Za-z]+)/i;
+  const lessonPattern = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\s+(\d+)\s*min\.?\s+(.*)$/i;
 
   for (const line of lines) {
     // Check if line is a day header
@@ -91,35 +110,20 @@ export async function parseTeacherSchedulePdf(pdfBuffer) {
       continue;
     }
 
-    // Split line by tab characters (Schoolmate PDF layout is tab-delimited)
-    const tabs = line.split('\t').map(t => t.trim()).filter(Boolean);
-
-    // Look for lines starting with a date: DD/MM/YYYY
-    if (tabs.length >= 3 && /^\d{2}\/\d{2}\/\d{4}$/.test(tabs[0])) {
-      const dateRaw = tabs[0];
+    // Match lesson row
+    const match = line.match(lessonPattern);
+    if (match) {
+      const dateRaw = match[1];
       const isoDate = parseDateToIso(dateRaw);
-      const timeRange = tabs[1] || '';
-      const durationStr = tabs[2] || '';
-      const groupOrStudent = tabs[3] || 'Individual Lesson';
-      const lessonType = tabs[4] || 'GE';
-      const language = tabs[5] || null;
+      const startTime = match[2];
+      const endTime = match[3];
+      const durationMinutes = Number(match[4]);
+      const rest = match[5];
 
-      let startTime = null;
-      let endTime = null;
-      const timeMatch = timeRange.match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
-      if (timeMatch) {
-        startTime = timeMatch[1];
-        endTime = timeMatch[2];
-      }
-
-      let durationMinutes = 0;
-      const durMatch = durationStr.match(/(\d+)\s*min/i);
-      if (durMatch) {
-        durationMinutes = Number(durMatch[1]);
-      }
+      const { groupOrStudent, lessonType, language } = parseGroupAndDetails(rest);
 
       const lessonItem = {
-        id: `lesson_${isoDate}_${startTime?.replace(':', '') || '0000'}_${Math.random().toString(36).substring(2, 6)}`,
+        id: `lesson_${isoDate}_${startTime.replace(':', '')}_${Math.random().toString(36).substring(2, 6)}`,
         date: isoDate,
         dayName: currentDayHeader || '',
         startTime,
