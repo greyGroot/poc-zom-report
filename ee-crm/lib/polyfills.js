@@ -166,3 +166,12 @@ if (typeof globalThis.Path2D === 'undefined') {
     rect() {}
   };
 }
+
+// In serverless / bundled environments (e.g. Vercel), pdfjs-dist attempts to dynamically
+// import pdf.worker.mjs from disk, which fails if the file is not traced.
+// Pre-loading pdf.worker.mjs and attaching it to globalThis.pdfjsWorker prevents any disk lookup.
+import * as pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+if (typeof globalThis.pdfjsWorker === 'undefined') {
+  globalThis.pdfjsWorker = pdfjsWorker;
+}
+
