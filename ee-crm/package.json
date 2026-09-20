@@ -1,0 +1,21 @@
+{
+  "name": "ee-crm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-all.js",
+    "test:parser": "node test-parser.js",
+    "test:schoolmate": "node test-schoolmate.js",
+    "test:db": "node test-db.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@upstash/redis": "^1.38.4",
+    "dotenv": "^18.0.1",
+    "pdf-parse": "^2.4.5"
+  }
+}
