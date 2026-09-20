@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "test": "node test-all.js",
     "test:parser": "node test-parser.js",
     "test:schoolmate": "node test-schoolmate.js",
@@ -16,6 +19,9 @@
   "dependencies": {
     "@upstash/redis": "^1.38.4",
     "dotenv": "^18.0.1",
-    "pdf-parse": "^2.4.5"
+    "next": "^16.3.5",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }
