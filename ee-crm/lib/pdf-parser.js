@@ -1,7 +1,16 @@
 // ee-crm/lib/pdf-parser.js
 // High-precision parser for Schoolmate Teacher Weekly Schedule PDFs
 
-import { PDFParse } from 'pdf-parse';
+import './polyfills.js';
+
+let CachedPDFParse = null;
+async function getPDFParseClass() {
+  if (!CachedPDFParse) {
+    const mod = await import('pdf-parse');
+    CachedPDFParse = mod.PDFParse || mod.default?.PDFParse || mod.default;
+  }
+  return CachedPDFParse;
+}
 
 /**
  * Converts DD/MM/YYYY to YYYY-MM-DD
@@ -24,6 +33,7 @@ export async function parseTeacherSchedulePdf(pdfBuffer) {
     throw new Error('Valid PDF Buffer is required for parsing');
   }
 
+  const PDFParse = await getPDFParseClass();
   const parser = new PDFParse({ data: pdfBuffer });
   const textResult = await parser.getText();
   const fullText = textResult?.text || '';

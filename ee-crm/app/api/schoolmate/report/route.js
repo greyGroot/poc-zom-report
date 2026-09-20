@@ -1,6 +1,7 @@
 // ee-crm/app/api/schoolmate/report/route.js
 // Schoolmate Schedule Report API: Fetch, parse, and cache teacher weekly schedule
 
+import '@/lib/polyfills.js';
 import { NextResponse } from 'next/server';
 import { getCachedReport, saveCachedReport } from '@/lib/db.js';
 import { SchoolmateClient } from '@/lib/schoolmate.js';

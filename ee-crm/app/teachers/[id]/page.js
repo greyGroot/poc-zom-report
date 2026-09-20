@@ -97,9 +97,15 @@ export default function TeacherSchedulePage() {
         })
       });
 
-      const data = await res.json();
+      let data = null;
+      const text = await res.text();
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to fetch schedule report');
+        throw new Error(data?.error || text || `Server error (${res.status} ${res.statusText})`);
       }
 
       setReport(data);

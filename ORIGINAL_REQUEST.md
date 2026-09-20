@@ -72,3 +72,84 @@ Integrity mode: development
 
 ### Automated Tests
 - [ ] `node test-telemetry.js` executes and passes with exit code 0.
+
+## 2026-09-20T19:11:15Z
+
+Execute Phase 1 and Phase 2 of Empire English CRM (EE CRM), implementing teacher management, Schoolmate schedule report fetching and caching, and an interactive frontend schedule viewer with system audit logging.
+
+Working directory: d:/2grow/poc-zoom-report/ee-crm
+Integrity mode: development
+
+Reference specification: `ee-crm/IMPLEMENTATION_PLAN.md`
+
+## Requirements
+
+### R1. Teacher Management API (`app/api/teachers`)
+- Provide a `GET /api/teachers` endpoint returning the list of teachers stored in Upstash Redis via `lib/db.js`.
+- Provide a `POST /api/teachers` endpoint accepting `{ firstName, lastName, email, schoolmateTeacherId, zoomHostEmail, schoolmateLogin }`, validating required fields, persisting the teacher to Redis via `lib/db.js`, logging the action via `lib/logger.js`, and returning the created teacher record.
+- Provide a `DELETE /api/teachers/[id]` endpoint removing the specified teacher from Redis and returning confirmation.
+
+### R2. Schoolmate Schedule Report API (`app/api/schoolmate/report`)
+- Provide a `POST /api/schoolmate/report` endpoint accepting `{ teacherId, fromDate, toDate }`.
+- Check Upstash Redis cache via `getCachedReport(teacherId, periodKey)` first to return cached reports immediately.
+- If not in cache, instantiate `SchoolmateClient` from `lib/schoolmate.js`, invoke `client.getTeacherSchedulePdf({ teacherId, fromDate, toDate })`, parse the PDF buffer using `parseTeacherSchedulePdf(buffer)` from `lib/pdf-parser.js`, save the parsed result in Redis via `saveCachedReport(...)`, record execution in `logger.timed(...)`, and return the structured JSON payload containing teacher summary, days, and lessons.
+
+### R3. Application Audit Logs API (`app/api/logs`)
+- Provide a `GET /api/logs` endpoint returning recent audit and error log entries from Redis via `getAppLogs(100)` from `lib/db.js`.
+
+### R4. Top Navigation & Layout (`app/layout.js`)
+- Provide a global responsive layout with a top navigation header featuring:
+  - Brand identity: "Empire English CRM"
+  - Navigation links to Teachers Directory (`/`), System Logs (`/logs`), and Health check (`/api/health`).
+
+### R5. Teacher Directory Page (`app/page.js`)
+- Provide an "Add Teacher" form supporting manual input (First Name, Last Name, Email, Schoolmate Teacher ID).
+- Include one-click Quick-Add buttons for test teachers:
+  - `Savchuk Yuliia` (ID: `17251`, email: `yuliasavchuk03@gmail.com`)
+  - `Zhuravlova Iryna` (ID: `6568`, email: `zhur.zhur.irene@gmail.com`)
+- Provide a teachers table displaying Full Name, Email, Schoolmate ID, Added Date, and action buttons ("View Schedule" navigating to `/teachers/[id]`, and "Delete").
+- Automatically refresh or optimistically update the table upon teacher addition or deletion.
+
+### R6. Teacher Schedule Viewer (`app/teachers/[id]/page.js`)
+- Display teacher details header (Name, Schoolmate ID, Email) with a link back to the Teachers Directory.
+- Provide Date Range controls (`From Date`, `To Date`) defaulting to `2026-09-14` to `2026-09-20`, along with quick preset buttons ("This Week", "Last Week", "Sep 14-20 (Test)").
+- Provide a primary "Fetch & Parse from Schoolmate" action button with visual loading state.
+- Implement a split-view layout:
+  - **Left Column (Schoolmate Schedule):** Display days in chronological order with day subtotal headers (date, day name, subtotal minutes, lesson count). Each lesson should render as an accordion/collapsible card: summary showing time range (`08:00 - 09:00`), duration (`60 min`), and student/group name; collapsible details revealing Lesson Type badge (`GE`), Language, and internal ID. Provide week summary footer showing total claimed minutes and lesson count.
+  - **Right Column (Zoom Telemetry Placeholder):** Display a dedicated placeholder container indicating where Zoom telemetry, attendance, and no-show reconciliation will be integrated side-by-side.
+
+### R7. System Logs & Error Center Page (`app/logs/page.js`)
+- Render a table of system audit logs showing timestamp, log level (`INFO`, `WARN`, `ERROR`), action, duration in ms, message, and expandable details/error traces.
+- Include a manual "Refresh Logs" button and filter/level indicator.
+
+### R8. Project Boundary & Non-Interference
+- All code modifications and additions must strictly reside inside `ee-crm/`.
+- Do NOT touch or modify root `api/` or root `public/` files, preserving the existing Zoom PoC intact.
+
+## Acceptance Criteria
+
+### Build & Compilation
+- [ ] `npm run build` executed in `ee-crm/` succeeds with exit code 0 and zero compilation or lint errors.
+- [ ] All Next.js routes (`/`, `/logs`, `/teachers/[id]`, `/api/teachers`, `/api/teachers/[id]`, `/api/schoolmate/report`, `/api/logs`) compile cleanly.
+
+### Teacher Management Verification
+- [ ] `POST /api/teachers` creates a teacher in Redis and returns HTTP 200/201 with generated `id`.
+- [ ] `GET /api/teachers` returns the created teacher in the list.
+- [ ] `DELETE /api/teachers/[id]` removes the teacher from Redis and subsequent `GET /api/teachers` does not include them.
+
+### Live Schoolmate Schedule Fetching Verification
+- [ ] Calling `/api/schoolmate/report` with teacher `Savchuk Yuliia` (ID: `17251`) for `2026-09-14` to `2026-09-20` returns parsed JSON containing 20 lessons and total minutes matching reported minutes.
+- [ ] Calling `/api/schoolmate/report` with teacher `Zhuravlova Iryna` (ID: `6568`) for `2026-09-14` to `2026-09-20` returns parsed JSON containing 17 lessons.
+- [ ] Subsequent fetch for the same period returns the cached report without re-downloading from Schoolmate.
+
+### Frontend UI Verification
+- [ ] Navigating to `/` displays the teacher directory with quick-add buttons and teacher list.
+- [ ] Clicking quick-add adds `Savchuk Yuliia` or `Zhuravlova Iryna` and immediately reflects in the table.
+- [ ] Clicking "View Schedule" opens `/teachers/[id]` with teacher information and date pickers.
+- [ ] Triggering "Fetch & Parse from Schoolmate" renders day-grouped collapsible cards with lesson details and totals.
+- [ ] Navigating to `/logs` displays logged operations including the PDF fetch and parse durations.
+
+### Git & Deployment Verification
+- [ ] All changes in `ee-crm/` are committed with a clean commit message.
+- [ ] Changes are pushed to `origin main`.
+- [ ] Verification on live production URL `https://poc-zom-report-2qvs.vercel.app/` succeeds for teacher creation, schedule viewing, and log auditing.
