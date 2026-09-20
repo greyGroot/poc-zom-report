@@ -6,6 +6,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -281,6 +282,25 @@ async function runMilestone2Challenges() {
       assert(html.includes('No Logs Found'), 'Missing No Logs Found empty state in initial SSR');
     });
 
+    await runTest('Verify table header columns defined in frontend component markup', async () => {
+      // Teachers Directory table headers
+      const pageJs = fs.readFileSync(path.join(__dirname, 'app', 'page.js'), 'utf8');
+      assert(pageJs.includes('<th>Teacher Name</th>'), 'Missing Teacher Name table header');
+      assert(pageJs.includes('<th>Email Address</th>'), 'Missing Email Address table header');
+      assert(pageJs.includes('<th>Schoolmate ID</th>'), 'Missing Schoolmate ID table header');
+      assert(pageJs.includes('<th>Added On</th>'), 'Missing Added On table header');
+      assert(pageJs.includes('Actions</th>'), 'Missing Actions table header');
+
+      // Logs table headers
+      const logsJs = fs.readFileSync(path.join(__dirname, 'app', 'logs', 'page.js'), 'utf8');
+      assert(logsJs.includes('<th>Timestamp</th>'), 'Missing Timestamp table header');
+      assert(logsJs.includes('<th>Level</th>'), 'Missing Level table header');
+      assert(logsJs.includes('<th>Action</th>'), 'Missing Action table header');
+      assert(logsJs.includes('<th>Duration</th>'), 'Missing Duration table header');
+      assert(logsJs.includes('<th>Message</th>'), 'Missing Message table header');
+      assert(logsJs.includes('Details</th>'), 'Missing Details table header');
+    });
+
     // =========================================================================
     // SUITE 4: Empty State Handling & Zero-Lesson Resilience
     // =========================================================================
@@ -305,6 +325,31 @@ async function runMilestone2Challenges() {
       const html = await res.text();
       assert(html.includes('No Schedule Data Loaded'), 'Missing "No Schedule Data Loaded" message');
       assert(html.includes('Click &quot;Fetch &amp; Parse from Schoolmate&quot;') || html.includes('Click &quot;Fetch & Parse from Schoolmate&quot;') || html.includes('Fetch &amp; Parse from Schoolmate'), 'Missing action hint');
+    });
+
+    await runTest('Resilience on zero-lesson report (live 2024-01-01 week for teacher 6568)', async () => {
+      // Fetch live schedule for teacher 6568 (Zhuravlova Iryna) during 2024 New Year break
+      const res = await fetch(`${BASE_URL}/api/schoolmate/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId: 6568,
+          fromDate: '2024-01-01',
+          toDate: '2024-01-07'
+        })
+      });
+      assert(res.status === 200, `Expected 200, got ${res.status}`);
+      const data = await res.json();
+      assert(data.teacherName === 'Zhuravlova Iryna', `Expected Zhuravlova Iryna, got: ${data.teacherName}`);
+      assert(data.totalLessonsCount === 0, `Expected 0 lessons, got ${data.totalLessonsCount}`);
+      assert(Array.isArray(data.days) && data.days.length === 0, 'Expected 0 days');
+      assert(data.totalMinutesReported === 0, 'Expected 0 reported minutes');
+      assert(data.isMinutesMatching === true, 'Expected minutes matching true');
+
+      // Verify teacher schedule page handles zero lessons gracefully
+      const schedJs = fs.readFileSync(path.join(__dirname, 'app', 'teachers', '[id]', 'page.js'), 'utf8');
+      assert(schedJs.includes('No Lessons Scheduled'), 'Missing zero-lessons empty state heading in UI');
+      assert(schedJs.includes('Teacher has 0 scheduled lessons for the period'), 'Missing zero-lessons UI explanation');
     });
 
     // =========================================================================
@@ -403,6 +448,29 @@ async function runMilestone2Challenges() {
       assert(res.status === 400, `Expected 400, got ${res.status}`);
       const data = await res.json();
       assert(data.error.includes('Invalid JSON body'), `Unexpected error: ${data.error}`);
+    });
+
+    await runTest('Reject SQL injection attempt in fromDate with HTTP 400', async () => {
+      const res = await fetch(`${BASE_URL}/api/schoolmate/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId: 17251,
+          fromDate: "2026-09-14' OR '1'='1",
+          toDate: '2026-09-20'
+        })
+      });
+      assert(res.status === 400, `Expected 400, got ${res.status}`);
+    });
+
+    await runTest('Verify adversarial query parameters on GET /api/logs do not crash', async () => {
+      const limits = ['0', '-99', 'notanumber', '99999'];
+      for (const lim of limits) {
+        const res = await fetch(`${BASE_URL}/api/logs?limit=${lim}`);
+        assert(res.status === 200, `Expected 200 for limit=${lim}, got ${res.status}`);
+        const data = await res.json();
+        assert(Array.isArray(data.logs), `Expected logs array for limit=${lim}`);
+      }
     });
 
     // =========================================================================
@@ -531,6 +599,10 @@ async function runMilestone2Challenges() {
 
       assert(failed.length === 0, `Detected ${failed.length} server errors (5xx) during concurrency burst: ${statuses.join(', ')}`);
       assert(results.length === 50, 'Not all requests resolved');
+    });
+
+    await runTest('Verify zero uncaught exceptions or React hydration errors in server stderr', async () => {
+      assert(serverErrors.length === 0, `Unexpected server errors logged to stderr: ${serverErrors.join(' | ')}`);
     });
 
     console.log('\n================================================================');
