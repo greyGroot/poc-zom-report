@@ -9,7 +9,7 @@ import AirbnbDatePicker from './AirbnbDatePicker';
 export default function TeacherSchedulePage() {
   const params = useParams();
   const teacherId = params?.id;
-  const { t } = useLanguage();
+  const { t, formatUrl } = useLanguage();
 
   // Teacher State
   const [teacher, setTeacher] = useState(null);
@@ -144,7 +144,7 @@ export default function TeacherSchedulePage() {
     return (
       <div>
         <div style={{ marginBottom: 16 }}>
-          <Link href={`/?lang=${locale}`} className="btn btn-secondary btn-sm">
+          <Link href={formatUrl('/')} className="btn btn-secondary btn-sm">
             <span>{t('schedule.backLink')}</span>
           </Link>
         </div>
@@ -159,7 +159,7 @@ export default function TeacherSchedulePage() {
     <div>
       {/* Back link */}
       <div style={{ marginBottom: 16 }}>
-        <Link href={`/?lang=${locale}`} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex' }}>
+        <Link href={formatUrl('/')} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex' }}>
           <span>{t('schedule.backLink')}</span>
         </Link>
       </div>

@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function TeacherDirectoryPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, formatUrl } = useLanguage();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -393,7 +393,7 @@ export default function TeacherDirectoryPage() {
                     <tr
                       key={teacher.id}
                       className="table-row-clickable"
-                      onClick={() => router.push(`/teachers/${teacher.id}?lang=${locale}`)}
+                      onClick={() => router.push(formatUrl(`/teachers/${teacher.id}`))}
                     >
                       <td>
                         <strong style={{ color: 'var(--text-primary)' }}>
@@ -434,7 +434,7 @@ export default function TeacherDirectoryPage() {
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                           <Link
-                            href={`/teachers/${teacher.id}?lang=${locale}`}
+                            href={formatUrl(`/teachers/${teacher.id}`)}
                             className="btn btn-sm btn-primary"
                             onClick={(e) => e.stopPropagation()}
                           >

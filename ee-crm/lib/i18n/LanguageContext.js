@@ -1,79 +1,66 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { translations, defaultLocale, locales } from './translations';
 
 const LanguageContext = createContext({
   locale: defaultLocale,
   setLocale: () => {},
   t: (keyPath, params = {}) => keyPath,
+  formatUrl: (path) => path,
 });
 
-function LanguageSync({ locale, setLocaleState }) {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
-
-  // 1. Sync from URL param ?lang=xx if present
-  useEffect(() => {
-    const langParam = searchParams.get('lang');
-    if (langParam && locales.includes(langParam)) {
-      if (langParam !== locale) {
-        setLocaleState(langParam);
-        try {
-          localStorage.setItem('eecrm_locale', langParam);
-        } catch (e) {}
-      }
-    } else {
-      // If no ?lang in URL, check localStorage or default
-      try {
-        const saved = localStorage.getItem('eecrm_locale');
-        const targetLocale = (saved && locales.includes(saved)) ? saved : defaultLocale;
-        if (targetLocale !== locale) {
-          setLocaleState(targetLocale);
-        }
-        // Update URL query string to reflect language in route
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('lang', targetLocale);
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-      } catch (e) {}
-    }
-  }, [searchParams, pathname, router, locale, setLocaleState]);
-
-  return null;
-}
-
 export function LanguageProvider({ children }) {
-  const [locale, setLocaleState] = useState(defaultLocale);
+  const pathname = usePathname() || '/';
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  const setLocale = useCallback((newLocale) => {
-    if (locales.includes(newLocale)) {
-      setLocaleState(newLocale);
-      try {
-        localStorage.setItem('eecrm_locale', newLocale);
-      } catch (e) {}
-
-      // Update URL search query ?lang=...
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('lang', newLocale);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  // Detect locale from path: e.g. /uk, /uk/..., /pl, /pl/...
+  const currentLocale = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length > 0 && locales.includes(segments[0])) {
+      return segments[0];
     }
-  }, [pathname, router, searchParams]);
+    return defaultLocale;
+  }, [pathname]);
 
-  // Translation lookup function
+  // Helper to format any URL according to locale:
+  // if locale === 'en' (default) -> /teachers/123
+  // if locale === 'uk' -> /uk/teachers/123
+  // if locale === 'pl' -> /pl/teachers/123
+  const formatUrl = useCallback((path, targetLocale = currentLocale) => {
+    // Strip existing locale prefix if present
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length > 0 && locales.includes(segments[0])) {
+      segments.shift();
+    }
+    const cleanPath = '/' + segments.join('/');
+
+    if (targetLocale === defaultLocale) {
+      return cleanPath === '' ? '/' : cleanPath;
+    }
+    return cleanPath === '/' ? `/${targetLocale}` : `/${targetLocale}${cleanPath}`;
+  }, [currentLocale]);
+
+  // Change locale by navigating to the new route prefix
+  const setLocale = useCallback((newLocale) => {
+    if (!locales.includes(newLocale)) return;
+    if (newLocale === currentLocale) return;
+
+    const newUrl = formatUrl(pathname, newLocale);
+    router.push(newUrl);
+  }, [currentLocale, pathname, router, formatUrl]);
+
+  // Translation function
   const t = useCallback((path, params = {}) => {
     const keys = path.split('.');
-    let val = translations[locale];
+    let val = translations[currentLocale];
 
     for (const k of keys) {
       if (val && typeof val === 'object' && k in val) {
         val = val[k];
       } else {
-        // fallback to defaultLocale
+        // Fallback to defaultLocale
         let fallbackVal = translations[defaultLocale];
         for (const fk of keys) {
           if (fallbackVal && typeof fallbackVal === 'object' && fk in fallbackVal) {
@@ -96,11 +83,10 @@ export function LanguageProvider({ children }) {
     return Object.keys(params).reduce((acc, curr) => {
       return acc.replaceAll(`{${curr}}`, params[curr]);
     }, val);
-  }, [locale]);
+  }, [currentLocale]);
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
-      <LanguageSync locale={locale} setLocaleState={setLocaleState} />
+    <LanguageContext.Provider value={{ locale: currentLocale, setLocale, t, formatUrl }}>
       {children}
     </LanguageContext.Provider>
   );
