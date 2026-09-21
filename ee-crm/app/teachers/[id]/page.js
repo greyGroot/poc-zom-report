@@ -92,6 +92,7 @@ export default function TeacherSchedulePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           teacherId: Number(teacher.schoolmateTeacherId),
+          teacherName: teacher.fullName,
           fromDate,
           toDate
         })

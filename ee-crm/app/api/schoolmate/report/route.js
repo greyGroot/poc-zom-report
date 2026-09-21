@@ -1,8 +1,8 @@
 // ee-crm/app/api/schoolmate/report/route.js
-// Schoolmate Schedule Report API: Fetch, parse, and cache teacher weekly schedule
+// Schoolmate Schedule Report API: Fast native JSON calendar retrieval with fallback to PDF parser
 
 import { NextResponse } from 'next/server';
-import { getCachedReport, saveCachedReport } from '@/lib/db.js';
+import { getTeachers, getCachedReport, saveCachedReport } from '@/lib/db.js';
 import { SchoolmateClient } from '@/lib/schoolmate.js';
 import { parseTeacherSchedulePdf } from '@/lib/pdf-parser.js';
 import { logger } from '@/lib/logger.js';
@@ -16,6 +16,7 @@ export async function POST(req) {
   }
 
   const { teacherId, fromDate, toDate } = body || {};
+  let teacherName = body?.teacherName?.trim() || '';
 
   // Validate teacherId, fromDate, and toDate
   const numericId = Number(teacherId);
@@ -67,13 +68,47 @@ export async function POST(req) {
       });
     }
 
-    // 2. Cache miss: Fetch and parse via Schoolmate client
+    // Resolve teacher name if not provided in body
+    if (!teacherName) {
+      try {
+        const teachers = await getTeachers();
+        const found = teachers.find(
+          t => t.id === teacherId || Number(t.schoolmateTeacherId) === numericTeacherId
+        );
+        if (found?.fullName) {
+          teacherName = found.fullName;
+        }
+      } catch (err) {
+        console.warn('Could not lookup teacher from DB:', err.message);
+      }
+    }
+
+    // 2. Cache miss: Fetch via Schoolmate client
     const overallStart = Date.now();
     const parsedData = await logger.timed(
       'schoolmate:fetch_and_parse',
-      `Fetch and parse schedule for teacher ${numericTeacherId} (${periodKey})`,
+      `Fetch schedule for teacher ${teacherName || numericTeacherId} (${periodKey})`,
       async () => {
         const client = new SchoolmateClient();
+
+        // Preferred fast method: Direct native JSON scheduler API (~350ms)
+        if (teacherName) {
+          try {
+            const schedule = await client.getTeacherWeeklySchedule({
+              teacherName,
+              date: normalizedFromDate
+            });
+
+            if (schedule && schedule.totalLessonsCount > 0) {
+              await saveCachedReport(numericTeacherId, periodKey, schedule);
+              return schedule;
+            }
+          } catch (jsonErr) {
+            console.warn('Native JSON scheduler error, falling back to PDF:', jsonErr.message);
+          }
+        }
+
+        // Secondary fallback: PDF generator and parser (~3.5s)
         const { buffer } = await client.getTeacherSchedulePdf({
           teacherId: numericTeacherId,
           fromDate: normalizedFromDate,
@@ -89,7 +124,7 @@ export async function POST(req) {
     const durationMs = Date.now() - overallStart;
 
     return NextResponse.json({
-      teacherName: parsedData.teacherName,
+      teacherName: parsedData.teacherName || teacherName,
       periodFrom: parsedData.periodFrom,
       periodTo: parsedData.periodTo,
       totalMinutesReported: parsedData.totalMinutesReported,

@@ -171,4 +171,159 @@ export class SchoolmateClient {
       durationMs
     };
   }
+
+  /**
+   * Fetch raw weekly scheduler events directly from Schoolmate calendar.
+   * @param {object} params
+   * @param {string} params.date - Any date within target week (format YYYY-MM-DD)
+   * @returns {Promise<{ calendarDays: Array, events: Array, durationMs: number }>}
+   */
+  async getSchedulerEvents({ date }) {
+    await this.ensureAuthenticated();
+    const startTime = Date.now();
+    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
+
+    const url = `${this.baseUrl}/calendar/getschedulerevents`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'Accept': 'application/json, text/plain, */*'
+      },
+      body: JSON.stringify({
+        serchModel: {
+          GroupId: 0,
+          GroupType: 0,
+          Date: date,
+          IsNext: false,
+          IsPrevious: false
+        }
+      })
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 302) {
+        this.sessionId = null;
+        await this.login();
+        return this.getSchedulerEvents({ date });
+      }
+      throw new Error(`Failed to fetch scheduler events: HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (!json.IsSuccess) {
+      throw new Error(`Schoolmate scheduler error: ${json.Message || 'Unknown error'}`);
+    }
+
+    const durationMs = Date.now() - startTime;
+    return {
+      calendarDays: json.Data?.CalendarDays || [],
+      events: json.Data?.SchedulerEvents || [],
+      durationMs
+    };
+  }
+
+  /**
+   * Fetch and filter teacher lessons for a weekly period via direct JSON API.
+   * Converts into the standardized EE CRM schedule payload (days, lessons, minutes).
+   * @param {object} params
+   * @param {string} params.teacherName - Teacher name to filter (e.g. "Zhuravlova Iryna")
+   * @param {string} params.date - Any date within target week (format YYYY-MM-DD)
+   * @returns {Promise<object>}
+   */
+  async getTeacherWeeklySchedule({ teacherName, date }) {
+    const { calendarDays, events, durationMs } = await this.getSchedulerEvents({ date });
+
+    const dayMap = new Map();
+    for (const d of calendarDays) {
+      let isoDate = d.StrDate;
+      if (d.StrDate && d.StrDate.includes('/')) {
+        const [day, month, year] = d.StrDate.split('/');
+        isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      dayMap.set(d.DayId, {
+        date: isoDate,
+        dayName: `${d.DayName} ${d.StrDate}`,
+        dayNameShort: d.DayName,
+        subtotalMinutes: 0,
+        lessons: []
+      });
+    }
+
+    const normalizedTarget = (teacherName || '').toLowerCase().trim();
+    const nameParts = normalizedTarget.split(/\s+/).filter(Boolean);
+    const lastName = nameParts[0] || '';
+    const firstName = nameParts[1] || '';
+
+    const lessons = [];
+    for (const ev of events) {
+      for (const l of (ev.SchedulerLessons || [])) {
+        const tName = (l.Teacher || '').toLowerCase().trim();
+        const matches = (
+          tName === normalizedTarget ||
+          (lastName.length >= 3 && tName.includes(lastName) && (!firstName || tName.includes(firstName))) ||
+          (lastName.length >= 4 && tName.includes(lastName))
+        );
+        if (matches) {
+          const dayInfo = dayMap.get(l.DayId);
+          const isoDate = dayInfo?.date || date;
+
+          let startTime = '00:00';
+          let endTime = '00:00';
+          if (l.LessonTime && l.LessonTime.includes('-')) {
+            const [s, e] = l.LessonTime.split('-');
+            startTime = s.trim();
+            endTime = e.trim();
+          }
+
+          const durationMinutes = Number(l.DefaultLessonLength) || 60;
+
+          const lessonItem = {
+            id: `lesson_${l.GroupLessonId || Math.random().toString(36).substring(2, 8)}`,
+            groupLessonId: l.GroupLessonId,
+            date: isoDate,
+            dayName: dayInfo?.dayName || '',
+            startTime,
+            endTime,
+            durationMinutes,
+            groupOrStudent: l.GroupName || 'Individual Lesson',
+            lessonType: 'GE',
+            language: 'English',
+            enrolledStudents: l.EnrolledStudents || 1,
+            groupId: l.GroupId
+          };
+
+          lessons.push(lessonItem);
+          if (dayInfo) {
+            dayInfo.lessons.push(lessonItem);
+            dayInfo.subtotalMinutes += durationMinutes;
+          }
+        }
+      }
+    }
+
+    for (const day of dayMap.values()) {
+      day.lessons.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+
+    const days = Array.from(dayMap.values()).filter(d => d.lessons.length > 0);
+    days.sort((a, b) => a.date.localeCompare(b.date));
+
+    const totalMinutesCalculated = lessons.reduce((sum, l) => sum + l.durationMinutes, 0);
+
+    return {
+      teacherName,
+      periodFrom: days[0]?.date || date,
+      periodTo: days[days.length - 1]?.date || date,
+      totalMinutesReported: totalMinutesCalculated,
+      totalMinutesCalculated,
+      totalLessonsCount: lessons.length,
+      isMinutesMatching: true,
+      source: 'schoolmate_json_api',
+      days,
+      lessons,
+      durationMs
+    };
+  }
 }
