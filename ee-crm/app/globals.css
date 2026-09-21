@@ -125,17 +125,13 @@ a:hover {
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-decoration: none !important;
   color: var(--text-primary);
   font-weight: 700;
   font-size: 18px;
   letter-spacing: -0.02em;
-}
-
-.brand-icon {
-  font-size: 22px;
-  line-height: 1;
+  white-space: nowrap;
 }
 
 .brand-badge {
@@ -146,6 +142,7 @@ a:hover {
   background-color: var(--bg-subtle);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .nav-links {
@@ -918,11 +915,31 @@ a:hover {
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    padding: 20px 14px 48px;
+  .navbar {
+    height: 56px;
   }
   .nav-inner {
-    padding: 0 16px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .nav-brand {
+    font-size: 15px;
+    gap: 6px;
+  }
+  .brand-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  .nav-links {
+    gap: 4px;
+  }
+  .nav-link {
+    padding: 6px 8px;
+    font-size: 13px;
+    gap: 4px;
+  }
+  .main-content {
+    padding: 16px 12px 48px;
   }
   .form-grid {
     grid-template-columns: 1fr;
