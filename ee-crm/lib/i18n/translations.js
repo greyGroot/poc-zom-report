@@ -136,8 +136,21 @@ export const translations = {
       colDetails: 'Details',
       noLogsMatch: 'No logs match your filter criteria',
       noLogsFound: 'No system logs recorded yet',
+    },
+    auth: {
+      signInTitle: 'Welcome to Empire English CRM',
+      signInSubtitle: 'Sign in with your authorized Google faculty account to access teacher schedules, logs, and synchronization tools.',
+      signInWithGoogle: 'Sign in with Google',
+      signOut: 'Sign out',
+      signingIn: 'Connecting...',
+      signedInAs: 'Signed in as',
+      accessRestricted: 'Access Restricted',
+      accessRestrictedDesc: 'Only authorized faculty Gmail accounts registered in Google Cloud Console can sign in.',
+      accessDeniedError: 'Access Denied: Your Google account is not on the authorized faculty access list. Please contact the administrator.',
+      sessionExpired: 'Your session has expired. Please sign in again.',
     }
   },
+
 
   uk: {
     common: {
@@ -273,6 +286,18 @@ export const translations = {
       colDetails: 'Деталі',
       noLogsMatch: 'Жодних записів не знайдено за критеріями',
       noLogsFound: 'Системні логи поки відсутні',
+    },
+    auth: {
+      signInTitle: 'Ласкаво просимо до Empire English CRM',
+      signInSubtitle: 'Увійдіть за допомогою авторизованого Google-акаунту для доступу до розкладів викладачів, логів та інструментів синхронізації.',
+      signInWithGoogle: 'Увійти через Google',
+      signOut: 'Вийти',
+      signingIn: 'Підключення...',
+      signedInAs: 'Ви увійшли як',
+      accessRestricted: 'Обмежений доступ',
+      accessRestrictedDesc: 'Лише авторизовані Gmail-акаунти викладачів, додані в Google Cloud Console, мають доступ.',
+      accessDeniedError: 'Доступ заборонено: Ваш Google-акаунт відсутній у списку дозволених. Будь ласка, зверніться до адміністратора.',
+      sessionExpired: 'Час сесії минув. Будь ласка, увійдіть знову.',
     }
   },
 
@@ -410,6 +435,18 @@ export const translations = {
       colDetails: 'Szczegóły',
       noLogsMatch: 'Brak logów spełniających kryteria',
       noLogsFound: 'Brak zapisanych logów systemowych',
+    },
+    auth: {
+      signInTitle: 'Witamy w Empire English CRM',
+      signInSubtitle: 'Zaloguj się za pomocą autoryzowanego konta Google, aby uzyskać dostęp do grafików nauczycieli, logów i narzędzi synchronizacji.',
+      signInWithGoogle: 'Zaloguj się przez Google',
+      signOut: 'Wyloguj się',
+      signingIn: 'Łączenie...',
+      signedInAs: 'Zalogowano jako',
+      accessRestricted: 'Dostęp ograniczony',
+      accessRestrictedDesc: 'Dostęp mają wyłącznie autoryzowane konta Gmail nauczycieli zarejestrowane w Google Cloud Console.',
+      accessDeniedError: 'Odmowa dostępu: Twoje konto Google nie znajduje się na liście uprawnionych. Skontaktuj się z administratorem.',
+      sessionExpired: 'Sesja wygasła. Zaloguj się ponownie.',
     }
   }
 };
