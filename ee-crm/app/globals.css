@@ -1097,15 +1097,18 @@ a:hover {
 
 /* Calendar Popover / Dropdown */
 .airbnb-calendar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 100;
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
   padding: 20px 22px 18px;
   width: 340px;
   user-select: none;
-  z-index: 50;
-  margin-top: 4px;
+  animation: modalScaleUp 0.15s ease-out;
 }
 
 .airbnb-calendar-header {

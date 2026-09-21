@@ -138,6 +138,7 @@ export default function AirbnbDatePicker({
       setSelectionState(null);
       setTempStart(null);
       setHoverDate(null);
+      setIsOpen(false);
     }
   };
 
@@ -184,13 +185,6 @@ export default function AirbnbDatePicker({
     setViewMonth(firstDay.getMonth());
   };
 
-  const handlePresetTestWeek = () => {
-    onChange({ fromDate: '2026-09-14', toDate: '2026-09-20' });
-    if (onPresetSelect) onPresetSelect('test');
-    setViewYear(2026);
-    setViewMonth(8); // September is 8 (0-indexed)
-  };
-
   // Determine effective range for styling
   const effectiveStart = selectionState === 'selecting_end' ? tempStart : fromDate;
   const effectiveEnd = selectionState === 'selecting_end' && hoverDate ? hoverDate : toDate;
@@ -201,7 +195,7 @@ export default function AirbnbDatePicker({
   return (
     <div className="airbnb-picker-container" ref={containerRef}>
       {/* Top Controls Row: Airbnb Date Input Pill + Presets */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {/* Airbnb Dual-Date Trigger Pill */}
         <div
           className={`airbnb-input-bar ${isOpen ? 'is-open' : ''}`}
@@ -247,14 +241,6 @@ export default function AirbnbDatePicker({
             onClick={handlePresetThisMonth}
           >
             This Month
-          </button>
-          <button
-            type="button"
-            className={`btn-preset ${activePreset === 'test' ? 'active' : ''}`}
-            onClick={handlePresetTestWeek}
-            title="September 14 - 20, 2026 Test Week"
-          >
-            Sep 14-20 (Test)
           </button>
         </div>
       </div>

@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
             <Link href="/" className="nav-brand">
               <span className="brand-icon">🎓</span>
               <span>Empire English CRM</span>
-              <span className="brand-badge">EE CRM v1.0</span>
+              <span className="brand-badge">EE CRM v0.0.1</span>
             </Link>
 
             <nav className="nav-links">

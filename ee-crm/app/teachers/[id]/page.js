@@ -17,7 +17,7 @@ export default function TeacherSchedulePage() {
   // Date Range Controls
   const [fromDate, setFromDate] = useState('2026-09-14');
   const [toDate, setToDate] = useState('2026-09-20');
-  const [activePreset, setActivePreset] = useState('test');
+  const [activePreset, setActivePreset] = useState(null);
 
   // Schedule Report State
   const [report, setReport] = useState(null);
@@ -185,9 +185,9 @@ export default function TeacherSchedulePage() {
       </div>
 
       {/* Date Range & Fetch Controls Card */}
-      <div className="card">
-        <div className="card-body">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      <div className="card" style={{ overflow: 'visible' }}>
+        <div className="card-body" style={{ overflow: 'visible' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'flex-start' }}>
             {/* Airbnb Date Range Picker & Fast Selections */}
             <AirbnbDatePicker
               fromDate={fromDate}
@@ -200,38 +200,36 @@ export default function TeacherSchedulePage() {
               }}
             />
 
-            {/* Fetch Action Button & Latency Badge */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', paddingTop: 2 }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleFetchReport}
-                disabled={loadingReport}
-                style={{ padding: '10px 24px', fontSize: 15 }}
-              >
-                {loadingReport ? (
-                  <>
-                    <span className="spinner"></span>
-                    <span>Fetching Schedule...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>⚡</span>
-                    <span>Fetch</span>
-                  </>
-                )}
-              </button>
-
-              {report && (
-                <span className="badge badge-info">
-                  🌐 Live Schoolmate ({report.durationMs}ms)
-                </span>
+            {/* Fetch Action Button & Latency Badge directly on the left */}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleFetchReport}
+              disabled={loadingReport}
+              style={{ padding: '9px 20px', fontSize: 14 }}
+            >
+              {loadingReport ? (
+                <>
+                  <span className="spinner"></span>
+                  <span>Fetching Schedule...</span>
+                </>
+              ) : (
+                <>
+                  <span>⚡</span>
+                  <span>Fetch</span>
+                </>
               )}
-            </div>
+            </button>
+
+            {report && (
+              <span className="badge badge-info" style={{ padding: '6px 12px' }}>
+                🌐 Live Schoolmate ({report.durationMs}ms)
+              </span>
+            )}
           </div>
 
           {reportError && (
-            <div className="alert alert-error" style={{ marginTop: 18, marginBottom: 0 }}>
+            <div className="alert alert-error" style={{ marginTop: 14, marginBottom: 0 }}>
               <span>⚠️ {reportError}</span>
             </div>
           )}
@@ -387,12 +385,6 @@ export default function TeacherSchedulePage() {
                         <span className="stat-label">Calculated Sum</span>
                         <span className="stat-value">{report.totalMinutesCalculated} min</span>
                       </div>
-                    </div>
-
-                    <div>
-                      <span className="badge badge-success" style={{ fontSize: 13, padding: '6px 12px' }}>
-                        Ready for Zoom Telemetry Matching ✅
-                      </span>
                     </div>
                   </div>
                 </div>
