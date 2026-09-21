@@ -29,37 +29,48 @@ export async function POST(req) {
       lastName,
       email,
       schoolmateTeacherId,
+      phone,
+      telegramId,
       zoomHostEmail,
       schoolmateLogin
     } = body || {};
 
-    // Validate required fields: schoolmateTeacherId and (email or firstName/lastName)
+    if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
+      return NextResponse.json({ error: 'First Name is required' }, { status: 400 });
+    }
+
+    if (!lastName || typeof lastName !== 'string' || !lastName.trim()) {
+      return NextResponse.json({ error: 'Last Name is required' }, { status: 400 });
+    }
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return NextResponse.json({ error: 'Email Address is required' }, { status: 400 });
+    }
+
     const numId = Number(schoolmateTeacherId);
     if (schoolmateTeacherId === undefined || schoolmateTeacherId === null || isNaN(numId) || numId <= 0) {
       return NextResponse.json(
-        { error: 'schoolmateTeacherId is required and must be a valid number (must be positive)' },
+        { error: 'Schoolmate Teacher ID is required and must be a positive number' },
         { status: 400 }
       );
     }
 
-    const hasEmail = Boolean(email && typeof email === 'string' && email.trim());
-    const hasName = Boolean(
-      (firstName && typeof firstName === 'string' && firstName.trim()) ||
-      (lastName && typeof lastName === 'string' && lastName.trim())
-    );
-
-    if (!hasEmail && !hasName) {
+    // Optional Telegram ID must start with @ if supplied
+    const cleanTelegram = typeof telegramId === 'string' ? telegramId.trim() : '';
+    if (cleanTelegram && !cleanTelegram.startsWith('@')) {
       return NextResponse.json(
-        { error: 'At least email or name (firstName/lastName) is required' },
+        { error: 'Telegram ID must start with @ (e.g. @username)' },
         { status: 400 }
       );
     }
 
     const teacher = await createTeacher({
-      firstName,
-      lastName,
-      email,
-      schoolmateTeacherId: Number(schoolmateTeacherId),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      schoolmateTeacherId: numId,
+      phone: typeof phone === 'string' ? phone.trim() : '',
+      telegramId: cleanTelegram,
       zoomHostEmail,
       schoolmateLogin
     });

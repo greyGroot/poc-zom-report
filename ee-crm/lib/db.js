@@ -68,7 +68,16 @@ export async function getTeacherById(id) {
   return memoryStore.teachers.get(String(id)) || null;
 }
 
-export async function createTeacher({ firstName, lastName, email, schoolmateTeacherId, zoomHostEmail, schoolmateLogin }) {
+export async function createTeacher({
+  firstName,
+  lastName,
+  email,
+  schoolmateTeacherId,
+  phone,
+  telegramId,
+  zoomHostEmail,
+  schoolmateLogin
+}) {
   const id = `t_${crypto.randomUUID().substring(0, 8)}`;
   const teacher = {
     id,
@@ -77,6 +86,8 @@ export async function createTeacher({ firstName, lastName, email, schoolmateTeac
     fullName: `${lastName?.trim() || ''} ${firstName?.trim() || ''}`.trim() || 'Teacher',
     email: email?.trim() || '',
     schoolmateTeacherId: Number(schoolmateTeacherId),
+    phone: phone?.trim() || '',
+    telegramId: telegramId?.trim() || '',
     schoolmateLogin: schoolmateLogin?.trim() || '',
     zoomHostEmail: zoomHostEmail?.trim() || email?.trim() || '',
     createdAt: new Date().toISOString()

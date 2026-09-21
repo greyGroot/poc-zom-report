@@ -1265,3 +1265,42 @@ a:hover {
   background-color: #ffffff;
 }
 
+/* ==========================================================================
+   Paper Sheet Form Style
+   ========================================================================== */
+.paper-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  position: relative;
+  animation: paperSlideDown 0.2s ease-out;
+}
+
+.paper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--border-color);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+
+.paper-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+@keyframes paperSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+

@@ -15,10 +15,13 @@ export default function TeacherDirectoryPage() {
   const [successMessage, setSuccessMessage] = useState(null);
 
   // Form fields
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [schoolmateId, setSchoolmateId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [telegramId, setTelegramId] = useState('');
   const [zoomHostEmail, setZoomHostEmail] = useState('');
 
   // Fetch teachers from backend
@@ -53,17 +56,27 @@ export default function TeacherDirectoryPage() {
     const lName = lastName.trim();
     const mail = email.trim();
     const sId = parseInt(schoolmateId.trim(), 10);
+    const tel = telegramId.trim();
+    const ph = phone.trim();
 
-    if (!mail) {
-      setErrorMessage('Teacher email is required.');
+    if (!fName) {
+      setErrorMessage('First Name is required.');
       return;
     }
-    if (!fName && !lName) {
-      setErrorMessage('At least first name or last name is required.');
+    if (!lName) {
+      setErrorMessage('Last Name is required.');
+      return;
+    }
+    if (!mail) {
+      setErrorMessage('Email Address is required.');
       return;
     }
     if (isNaN(sId) || sId <= 0) {
       setErrorMessage('Schoolmate Teacher ID must be a positive integer.');
+      return;
+    }
+    if (tel && !tel.startsWith('@')) {
+      setErrorMessage('Telegram ID must start with @ (e.g. @username)');
       return;
     }
 
@@ -77,6 +90,8 @@ export default function TeacherDirectoryPage() {
           lastName: lName,
           email: mail,
           schoolmateTeacherId: sId,
+          phone: ph,
+          telegramId: tel,
           zoomHostEmail: zoomHostEmail.trim() || mail
         })
       });
@@ -98,7 +113,10 @@ export default function TeacherDirectoryPage() {
       setLastName('');
       setEmail('');
       setSchoolmateId('');
+      setPhone('');
+      setTelegramId('');
       setZoomHostEmail('');
+      setIsAddFormOpen(false);
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -178,15 +196,37 @@ export default function TeacherDirectoryPage() {
         </div>
       )}
 
-      {/* Add Teacher Card */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">
-            <span>➕</span>
-            <span>Add New Teacher</span>
-          </h2>
-        </div>
-        <div className="card-body">
+      {/* Action Bar: Secondary Add Teacher Button */}
+      <div style={{ marginBottom: 20 }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setIsAddFormOpen(!isAddFormOpen)}
+          style={{ padding: '9px 18px', fontSize: 14 }}
+        >
+          <span>{isAddFormOpen ? '✕ Close Form' : '➕ Add New Teacher'}</span>
+        </button>
+      </div>
+
+      {/* Expandable Paper-Like Add Teacher Block */}
+      {isAddFormOpen && (
+        <div className="paper-card">
+          <div className="paper-header">
+            <h2 className="paper-title">
+              <span>📝</span>
+              <span>Register New Teacher</span>
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsAddFormOpen(false)}
+              className="btn btn-sm btn-secondary"
+              style={{ padding: '2px 8px' }}
+              title="Close"
+            >
+              ✕
+            </button>
+          </div>
+
           <form onSubmit={handleAddTeacher}>
             <div className="form-grid">
               <div className="form-group">
@@ -236,9 +276,35 @@ export default function TeacherDirectoryPage() {
                   required
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Mobile Phone <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. +380 50 123 4567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Telegram ID <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional, starts with @)</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. @yuliasavchuk"
+                  value={telegramId}
+                  onChange={(e) => setTelegramId(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="form-actions">
+            <div className="form-actions" style={{ marginTop: 12 }}>
               <button
                 type="submit"
                 className="btn btn-primary"
@@ -247,16 +313,25 @@ export default function TeacherDirectoryPage() {
                 {submitting ? (
                   <>
                     <span className="spinner"></span>
-                    <span>Adding Teacher...</span>
+                    <span>Saving Teacher...</span>
                   </>
                 ) : (
-                  <span>Add Teacher</span>
+                  <span>Save Teacher</span>
                 )}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsAddFormOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
               </button>
             </div>
           </form>
         </div>
-      </div>
+      )}
 
       {/* Teachers Directory Table Card */}
       <div className="card">
@@ -298,7 +373,7 @@ export default function TeacherDirectoryPage() {
                 No Teachers Registered Yet
               </div>
               <p style={{ margin: '0 0 16px', fontSize: 14 }}>
-                Use the form above or click one of the quick-add buttons to register a teacher.
+                Click &quot;Add New Teacher&quot; above to register a teacher.
               </p>
             </div>
           ) : (
@@ -324,6 +399,20 @@ export default function TeacherDirectoryPage() {
                         <strong style={{ color: 'var(--text-primary)' }}>
                           {teacher.fullName || `${teacher.lastName} ${teacher.firstName}`.trim()}
                         </strong>
+                        {(teacher.phone || teacher.telegramId) && (
+                          <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                            {teacher.phone && (
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                📞 {teacher.phone}
+                              </span>
+                            )}
+                            {teacher.telegramId && (
+                              <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
+                                ✈️ {teacher.telegramId}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <span style={{ color: 'var(--text-secondary)' }}>{teacher.email}</span>
