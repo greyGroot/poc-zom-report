@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Empire English CRM',
-  description: 'EE CRM - Teacher Schedule Sync, PDF Parsing & Zoom Attendance Reconciliation',
+  description: 'EE CRM - Teacher Schedule Sync & Zoom Attendance Reconciliation',
 };
 
 export default function RootLayout({ children }) {

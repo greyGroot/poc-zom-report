@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import AirbnbDatePicker from './AirbnbDatePicker';
 
 export default function TeacherSchedulePage() {
   const params = useParams();
@@ -25,28 +26,6 @@ export default function TeacherSchedulePage() {
 
   // Accordion State: Set of open lesson IDs
   const [expandedLessons, setExpandedLessons] = useState(new Set());
-
-  // Calculate week ranges helper
-  const getWeekRange = (offsetWeeks = 0) => {
-    const now = new Date();
-    const day = now.getDay(); // 0 is Sun, 1 is Mon...
-    const diffToMonday = (day === 0 ? -6 : 1) - day + offsetWeeks * 7;
-
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const format = (d) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-
-    return { from: format(monday), to: format(sunday) };
-  };
 
   // Load Teacher details
   const fetchTeacher = useCallback(async () => {
@@ -78,8 +57,13 @@ export default function TeacherSchedulePage() {
       return;
     }
 
+    if (!fromDate || !toDate) {
+      setReportError('Please select both From Date and To Date.');
+      return;
+    }
+
     if (fromDate > toDate) {
-      setReportError('From Date cannot be later than To Date.');
+      setReportError('To Date cannot be earlier than From Date.');
       return;
     }
 
@@ -126,27 +110,6 @@ export default function TeacherSchedulePage() {
     } finally {
       setLoadingReport(false);
     }
-  };
-
-  // Presets Handlers
-  const handlePresetTest = () => {
-    setFromDate('2026-09-14');
-    setToDate('2026-09-20');
-    setActivePreset('test');
-  };
-
-  const handlePresetThisWeek = () => {
-    const range = getWeekRange(0);
-    setFromDate(range.from);
-    setToDate(range.to);
-    setActivePreset('thisWeek');
-  };
-
-  const handlePresetLastWeek = () => {
-    const range = getWeekRange(-1);
-    setFromDate(range.from);
-    setToDate(range.to);
-    setActivePreset('lastWeek');
   };
 
   // Toggle single lesson accordion
@@ -224,82 +187,37 @@ export default function TeacherSchedulePage() {
       {/* Date Range & Fetch Controls Card */}
       <div className="card">
         <div className="card-body">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            {/* Date Inputs */}
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="form-group">
-                <label className="form-label">From Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={fromDate}
-                  onChange={(e) => {
-                    setFromDate(e.target.value);
-                    setActivePreset(null);
-                  }}
-                />
-              </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            {/* Airbnb Date Range Picker & Fast Selections */}
+            <AirbnbDatePicker
+              fromDate={fromDate}
+              toDate={toDate}
+              activePreset={activePreset}
+              onPresetSelect={(preset) => setActivePreset(preset)}
+              onChange={({ fromDate: newFrom, toDate: newTo }) => {
+                setFromDate(newFrom);
+                setToDate(newTo);
+              }}
+            />
 
-              <div className="form-group">
-                <label className="form-label">To Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={toDate}
-                  onChange={(e) => {
-                    setToDate(e.target.value);
-                    setActivePreset(null);
-                  }}
-                />
-              </div>
-
-              {/* Quick Presets */}
-              <div className="form-group">
-                <label className="form-label">Quick Presets</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className={`btn-preset ${activePreset === 'test' ? 'active' : ''}`}
-                    onClick={handlePresetTest}
-                  >
-                    Sep 14-20 (Test)
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn-preset ${activePreset === 'thisWeek' ? 'active' : ''}`}
-                    onClick={handlePresetThisWeek}
-                  >
-                    This Week
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn-preset ${activePreset === 'lastWeek' ? 'active' : ''}`}
-                    onClick={handlePresetLastWeek}
-                  >
-                    Last Week
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Fetch Action Button & Cache Badge */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            {/* Fetch Action Button & Latency Badge */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', paddingTop: 2 }}>
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleFetchReport}
                 disabled={loadingReport}
-                style={{ padding: '10px 20px', fontSize: 15 }}
+                style={{ padding: '10px 24px', fontSize: 15 }}
               >
                 {loadingReport ? (
                   <>
                     <span className="spinner"></span>
-                    <span>Parsing Schoolmate PDF...</span>
+                    <span>Fetching Schedule...</span>
                   </>
                 ) : (
                   <>
                     <span>⚡</span>
-                    <span>Fetch & Parse from Schoolmate</span>
+                    <span>Fetch</span>
                   </>
                 )}
               </button>
@@ -354,7 +272,7 @@ export default function TeacherSchedulePage() {
                     No Schedule Data Loaded
                   </div>
                   <p style={{ margin: 0, fontSize: 13 }}>
-                    Click &quot;Fetch & Parse from Schoolmate&quot; to download and extract the weekly schedule PDF.
+                    Click &quot;Fetch&quot; to load the teacher&apos;s schedule from Schoolmate.
                   </p>
                 </div>
               ) : report.days.length === 0 ? (

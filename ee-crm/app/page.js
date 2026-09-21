@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function TeacherDirectoryPage() {
+  const router = useRouter();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [quickAdding, setQuickAdding] = useState(null);
+  const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -104,47 +106,10 @@ export default function TeacherDirectoryPage() {
     }
   };
 
-  // Quick-Add handler
-  const handleQuickAdd = async (preset) => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setQuickAdding(preset.schoolmateTeacherId);
-
-    // Check if teacher already in local list
-    const existing = teachers.find(t => t.schoolmateTeacherId === preset.schoolmateTeacherId);
-    if (existing) {
-      setSuccessMessage(`Teacher ${existing.fullName} (ID: ${existing.schoolmateTeacherId}) is already in the directory.`);
-      setQuickAdding(null);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/teachers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(preset)
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to register test teacher');
-      }
-
-      setTeachers(prev => [data.teacher, ...prev]);
-      setSuccessMessage(`Quick-added ${data.teacher.fullName} (ID: ${data.teacher.schoolmateTeacherId})!`);
-    } catch (err) {
-      setErrorMessage(err.message);
-    } finally {
-      setQuickAdding(null);
-    }
-  };
-
-  // Delete Teacher with Optimistic Update & Confirmation
-  const handleDeleteTeacher = async (teacher) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete teacher "${teacher.fullName}" (#${teacher.schoolmateTeacherId})?`
-    );
-    if (!confirmed) return;
+  // Confirm Delete Teacher from Modal
+  const confirmDeleteTeacher = async () => {
+    if (!teacherToDelete) return;
+    const teacher = teacherToDelete;
 
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -166,6 +131,7 @@ export default function TeacherDirectoryPage() {
       }
 
       setSuccessMessage(`Deleted ${teacher.fullName} successfully.`);
+      setTeacherToDelete(null);
     } catch (err) {
       // Rollback optimistic removal
       setTeachers(previousTeachers);
@@ -289,77 +255,6 @@ export default function TeacherDirectoryPage() {
               </button>
             </div>
           </form>
-
-          {/* Quick-Add 1-Click Test Teachers */}
-          <div className="quick-add-container">
-            <span className="quick-add-title">⚡ Quick-Add Verified Teachers:</span>
-            <button
-              type="button"
-              className="quick-add-btn"
-              disabled={quickAdding === 17251}
-              onClick={() =>
-                handleQuickAdd({
-                  firstName: 'Yuliia',
-                  lastName: 'Savchuk',
-                  email: 'yuliasavchuk03@gmail.com',
-                  schoolmateTeacherId: 17251,
-                  zoomHostEmail: 'yuliasavchuk03@gmail.com'
-                })
-              }
-            >
-              {quickAdding === 17251 ? (
-                <span className="spinner spinner-dark"></span>
-              ) : (
-                <span>+</span>
-              )}
-              <span>Savchuk Yuliia (ID: 17251)</span>
-            </button>
-
-            <button
-              type="button"
-              className="quick-add-btn"
-              disabled={quickAdding === 6568}
-              onClick={() =>
-                handleQuickAdd({
-                  firstName: 'Iryna',
-                  lastName: 'Zhuravlova',
-                  email: 'zhur.zhur.irene@gmail.com',
-                  schoolmateTeacherId: 6568,
-                  zoomHostEmail: 'zhur.zhur.irene@gmail.com'
-                })
-              }
-            >
-              {quickAdding === 6568 ? (
-                <span className="spinner spinner-dark"></span>
-              ) : (
-                <span>+</span>
-              )}
-              <span>Zhuravlova Iryna (ID: 6568)</span>
-            </button>
-
-            <button
-              type="button"
-              className="quick-add-btn"
-              disabled={quickAdding === 18448}
-              onClick={() =>
-                handleQuickAdd({
-                  firstName: 'David',
-                  lastName: 'Brymer',
-                  email: 'david.brymer@empireenglish.com',
-                  schoolmateTeacherId: 18448,
-                  schoolmateLogin: 't18438',
-                  zoomHostEmail: 'david.brymer@empireenglish.com'
-                })
-              }
-            >
-              {quickAdding === 18448 ? (
-                <span className="spinner spinner-dark"></span>
-              ) : (
-                <span>+</span>
-              )}
-              <span>Brymer David (ID: 18448)</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -420,7 +315,11 @@ export default function TeacherDirectoryPage() {
                 </thead>
                 <tbody>
                   {teachers.map((teacher) => (
-                    <tr key={teacher.id}>
+                    <tr
+                      key={teacher.id}
+                      className="table-row-clickable"
+                      onClick={() => router.push(`/teachers/${teacher.id}`)}
+                    >
                       <td>
                         <strong style={{ color: 'var(--text-primary)' }}>
                           {teacher.fullName || `${teacher.lastName} ${teacher.firstName}`.trim()}
@@ -443,19 +342,23 @@ export default function TeacherDirectoryPage() {
                             })
                           : '—'}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                           <Link
                             href={`/teachers/${teacher.id}`}
                             className="btn btn-sm btn-primary"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <span>📅 View Schedule</span>
                           </Link>
                           <button
-                            onClick={() => handleDeleteTeacher(teacher)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTeacherToDelete(teacher);
+                            }}
                             disabled={deletingId === teacher.id}
                             className="btn btn-sm btn-danger"
-                            title="Delete teacher from Redis"
+                            title="Delete teacher"
                           >
                             {deletingId === teacher.id ? (
                               <span className="spinner spinner-dark"></span>
@@ -473,6 +376,52 @@ export default function TeacherDirectoryPage() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {teacherToDelete && (
+        <div className="modal-backdrop" onClick={() => setTeacherToDelete(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon-danger">🗑️</div>
+              <h3 className="modal-title">Delete Teacher</h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ margin: 0 }}>
+                Are you sure you want to delete teacher <strong>{teacherToDelete.fullName}</strong> (#{teacherToDelete.schoolmateTeacherId})?
+              </p>
+              <p className="modal-subtext">
+                This will remove the teacher from Empire English CRM.
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setTeacherToDelete(null)}
+                disabled={deletingId === teacherToDelete.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ backgroundColor: 'var(--danger-text)', color: '#ffffff', borderColor: 'var(--danger-text)' }}
+                onClick={confirmDeleteTeacher}
+                disabled={deletingId === teacherToDelete.id}
+              >
+                {deletingId === teacherToDelete.id ? (
+                  <>
+                    <span className="spinner"></span>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
