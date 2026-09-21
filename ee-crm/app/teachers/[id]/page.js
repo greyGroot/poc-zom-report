@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import AirbnbDatePicker from './AirbnbDatePicker';
 
 export default function TeacherSchedulePage() {
   const params = useParams();
   const teacherId = params?.id;
+  const { t } = useLanguage();
 
   // Teacher State
   const [teacher, setTeacher] = useState(null);
@@ -53,17 +55,17 @@ export default function TeacherSchedulePage() {
   // Fetch & Parse Report from Schoolmate
   const handleFetchReport = async () => {
     if (!teacher?.schoolmateTeacherId) {
-      setReportError('Teacher Schoolmate ID is missing.');
+      setReportError(t('schedule.errMissingId'));
       return;
     }
 
     if (!fromDate || !toDate) {
-      setReportError('Please select both From Date and To Date.');
+      setReportError(t('schedule.errDateRange'));
       return;
     }
 
     if (fromDate > toDate) {
-      setReportError('To Date cannot be earlier than From Date.');
+      setReportError(t('schedule.errDateOrder'));
       return;
     }
 
@@ -143,7 +145,7 @@ export default function TeacherSchedulePage() {
       <div>
         <div style={{ marginBottom: 16 }}>
           <Link href="/" className="btn btn-secondary btn-sm">
-            <span>← Back to Teachers</span>
+            <span>{t('schedule.backLink')}</span>
           </Link>
         </div>
         <div className="alert alert-error">
@@ -158,7 +160,7 @@ export default function TeacherSchedulePage() {
       {/* Back link */}
       <div style={{ marginBottom: 16 }}>
         <Link href="/" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex' }}>
-          <span>← Back to Teachers</span>
+          <span>{t('schedule.backLink')}</span>
         </Link>
       </div>
 
@@ -167,18 +169,28 @@ export default function TeacherSchedulePage() {
         <div className="card-header" style={{ padding: '20px 24px' }}>
           <div>
             <h1 className="page-title" style={{ fontSize: 24, marginBottom: 6 }}>
-              {teacher ? teacher.fullName : 'Teacher Schedule'}
+              {teacher ? teacher.fullName : t('common.loading')}
             </h1>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="badge badge-primary">
-                🆔 Schoolmate ID: {teacher?.schoolmateTeacherId || '...'}
+                🆔 {t('schedule.schoolmateId')}: {teacher?.schoolmateTeacherId || '...'}
               </span>
               <span className="badge badge-neutral">
                 ✉️ {teacher?.email || '...'}
               </span>
               <span className="badge badge-purple">
-                🎥 Zoom Host: {teacher?.zoomHostEmail || teacher?.email || '...'}
+                🎥 {t('schedule.zoomHost')}: {teacher?.zoomHostEmail || teacher?.email || '...'}
               </span>
+              {teacher?.phone && (
+                <span className="badge badge-neutral">
+                  📞 {t('schedule.phone')}: {teacher.phone}
+                </span>
+              )}
+              {teacher?.telegramId && (
+                <span className="badge badge-info">
+                  ✈️ {t('schedule.telegram')}: {teacher.telegramId}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -211,12 +223,12 @@ export default function TeacherSchedulePage() {
               {loadingReport ? (
                 <>
                   <span className="spinner"></span>
-                  <span>Fetching Schedule...</span>
+                  <span>{t('schedule.fetchingBtn')}</span>
                 </>
               ) : (
                 <>
                   <span>⚡</span>
-                  <span>Fetch</span>
+                  <span>{t('schedule.fetchBtn')}</span>
                 </>
               )}
             </button>
@@ -246,7 +258,7 @@ export default function TeacherSchedulePage() {
             <div className="card-header">
               <h2 className="card-title">
                 <span>📚</span>
-                <span>Schoolmate Schedule</span>
+                <span>{t('schedule.scheduleTitle')}</span>
               </h2>
 
               {report && (
@@ -267,17 +279,17 @@ export default function TeacherSchedulePage() {
                 <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>🗓️</div>
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    No Schedule Data Loaded
+                    {t('schedule.noScheduleLoaded')}
                   </div>
                   <p style={{ margin: 0, fontSize: 13 }}>
-                    Click &quot;Fetch&quot; to load the teacher&apos;s schedule from Schoolmate.
+                    {t('schedule.noSchedulePrompt')}
                   </p>
                 </div>
               ) : report.days.length === 0 ? (
                 <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>🏖️</div>
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    No Lessons Scheduled
+                    0 {t('schedule.lessonsCount')}
                   </div>
                   <p style={{ margin: 0, fontSize: 13 }}>
                     Teacher has 0 scheduled lessons for the period {report.periodFrom} to {report.periodTo}.
@@ -293,7 +305,7 @@ export default function TeacherSchedulePage() {
                           📅 {dayGroup.dayName || dayGroup.date} ({dayGroup.date})
                         </span>
                         <span className="day-subtotal">
-                          Subtotal: {dayGroup.subtotalMinutes} min ({dayGroup.lessons.length} lesson{dayGroup.lessons.length === 1 ? '' : 's'})
+                          Subtotal: {dayGroup.subtotalMinutes} min ({dayGroup.lessons.length} {t('schedule.lessonsCount').toLowerCase()})
                         </span>
                       </div>
 
@@ -337,14 +349,14 @@ export default function TeacherSchedulePage() {
                               {isExpanded && (
                                 <div className="lesson-details-drawer">
                                   <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">Lesson Type</span>
+                                    <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
                                     <span className="lesson-detail-val">
                                       <span className="badge badge-info">{lesson.lessonType || 'GE (General English)'}</span>
                                     </span>
                                   </div>
 
                                   <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">Language</span>
+                                    <span className="lesson-detail-label">{t('schedule.language')}</span>
                                     <span className="lesson-detail-val">{lesson.language || 'English'}</span>
                                   </div>
 
@@ -374,15 +386,15 @@ export default function TeacherSchedulePage() {
                   <div className="week-totals-banner">
                     <div className="totals-group">
                       <div className="total-stat">
-                        <span className="stat-label">Total Claimed Minutes</span>
+                        <span className="stat-label">{t('schedule.totalClaimedMinutes')}</span>
                         <span className="stat-value">{report.totalMinutesReported} min</span>
                       </div>
                       <div className="total-stat">
-                        <span className="stat-label">Total Lessons</span>
+                        <span className="stat-label">{t('schedule.lessonsCount')}</span>
                         <span className="stat-value">{report.totalLessonsCount}</span>
                       </div>
                       <div className="total-stat">
-                        <span className="stat-label">Calculated Sum</span>
+                        <span className="stat-label">{t('schedule.totalClaimedLabel')}</span>
                         <span className="stat-value">{report.totalMinutesCalculated} min</span>
                       </div>
                     </div>
@@ -401,11 +413,11 @@ export default function TeacherSchedulePage() {
             <div className="telemetry-header">
               <h2 className="telemetry-title">
                 <span>🎥</span>
-                <span>Zoom Telemetry Reconciliation</span>
+                <span>{t('schedule.zoomTelemetryTitle')}</span>
                 <span className="badge badge-purple" style={{ fontSize: 11 }}>Phase 2</span>
               </h2>
               <p className="telemetry-subtitle">
-                Side-by-side reconciliation of Schoolmate claimed lessons against real-time Zoom webhook telemetry.
+                {t('schedule.zoomNoticeBody')}
               </p>
             </div>
 
@@ -413,25 +425,20 @@ export default function TeacherSchedulePage() {
               {/* Informational Callout */}
               <div style={{ backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', padding: 14, border: '1px solid #bfdbfe' }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: '#1e40af', marginBottom: 4 }}>
-                  📡 Live Ingestion Pipeline Active
+                  📡 {t('schedule.zoomNoticeTitle')}
                 </div>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Meeting events (<code style={{ color: '#2563eb' }}>meeting.started</code>,{' '}
-                  <code style={{ color: '#2563eb' }}>participant_joined</code>,{' '}
-                  <code style={{ color: '#2563eb' }}>meeting.ended</code>) are continuously captured in Redis.
-                  Phase 2 cross-references teacher host email (<strong>{teacher?.zoomHostEmail || teacher?.email || 'configured email'}</strong>)
-                  and matching time windows.
+                  {t('schedule.zoomStep1', { host: teacher?.zoomHostEmail || teacher?.email || 'configured host' })}
                 </p>
               </div>
 
-              {/* Mock Reconciliation Preview */}
+              {/* Status Preview */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Telemetry Matching Preview:</span>
-                  <span className="badge badge-info" style={{ fontSize: 11 }}>Automated Rules</span>
+                  <span>{t('schedule.matchingStatusLabel')}:</span>
+                  <span className="badge badge-info" style={{ fontSize: 11 }}>{t('schedule.readyToReconcile')}</span>
                 </div>
 
-                {/* Example 1: Full Attendance Match */}
                 <div className="mock-reconciliation-card">
                   <div className="mock-rec-row">
                     <span style={{ fontWeight: 600 }}>Lesson Match (08:00 - 09:00)</span>
@@ -442,11 +449,10 @@ export default function TeacherSchedulePage() {
                     <span>Zoom Call: 56 min</span>
                   </div>
                   <div className="mock-meta">
-                    Zoom Meeting ID: 894 1120 4451 • QoS: Good (0.2% jitter) • Host + Student present
+                    Zoom Meeting ID: 894 1120 4451 • QoS: Good • Host + Student present
                   </div>
                 </div>
 
-                {/* Example 2: Student No-Show */}
                 <div className="mock-reconciliation-card">
                   <div className="mock-rec-row">
                     <span style={{ fontWeight: 600 }}>Lesson Match (11:00 - 12:00)</span>
@@ -457,36 +463,9 @@ export default function TeacherSchedulePage() {
                     <span>Host Online: 18 min</span>
                   </div>
                   <div className="mock-meta">
-                    Student No-Show detected (Host waited 18m). Eligible for standard no-show compensation.
+                    Student No-Show detected (Host waited 18m).
                   </div>
                 </div>
-
-                {/* Example 3: Short Call / Disconnect */}
-                <div className="mock-reconciliation-card">
-                  <div className="mock-rec-row">
-                    <span style={{ fontWeight: 600 }}>Lesson Match (16:00 - 17:00)</span>
-                    <span className="badge badge-danger">SHORT_CALL ❌</span>
-                  </div>
-                  <div className="mock-rec-row" style={{ color: 'var(--text-secondary)' }}>
-                    <span>Claimed: 60 min</span>
-                    <span>Actual Duration: 12 min</span>
-                  </div>
-                  <div className="mock-meta">
-                    Call terminated prematurely (&lt; 30 min). Flagged for supervisor manual review.
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Legend */}
-              <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 'var(--radius-sm)', padding: 12, border: '1px solid #e2e8f0', fontSize: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>
-                  Reconciliation Classification Rules:
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  <li><strong style={{ color: '#15803d' }}>VERIFIED</strong>: Duration &ge; 30 min, host & student both present.</li>
-                  <li><strong style={{ color: '#854d0e' }}>ONLY_HOST</strong>: Duration &ge; 15 min, student absent (No-Show).</li>
-                  <li><strong style={{ color: '#b91c1c' }}>SHORT_CALL</strong>: Duration &lt; 30 min (&lt; 15 min solo), flagged for review.</li>
-                </ul>
               </div>
             </div>
           </div>

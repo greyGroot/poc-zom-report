@@ -1,13 +1,23 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+const MONTH_NAMES = {
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  uk: ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'],
+  pl: ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'],
+};
+
+const WEEKDAY_KEYS = [
+  'datePicker.weekdayMo',
+  'datePicker.weekdayTu',
+  'datePicker.weekdayWe',
+  'datePicker.weekdayTh',
+  'datePicker.weekdayFr',
+  'datePicker.weekdaySa',
+  'datePicker.weekdaySu'
 ];
-
-const WEEKDAY_NAMES = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 function formatIso(d) {
   const y = d.getFullYear();
@@ -30,6 +40,7 @@ export default function AirbnbDatePicker({
   onPresetSelect,
   activePreset
 }) {
+  const { t, locale } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -192,6 +203,8 @@ export default function AirbnbDatePicker({
   const minSelected = effectiveStart && effectiveEnd ? (effectiveStart <= effectiveEnd ? effectiveStart : effectiveEnd) : effectiveStart;
   const maxSelected = effectiveStart && effectiveEnd ? (effectiveStart <= effectiveEnd ? effectiveEnd : effectiveStart) : effectiveStart;
 
+  const currentMonthNames = MONTH_NAMES[locale] || MONTH_NAMES.en;
+
   return (
     <div className="airbnb-picker-container" ref={containerRef}>
       {/* Top Controls Row: Airbnb Date Input Pill + Presets */}
@@ -200,18 +213,18 @@ export default function AirbnbDatePicker({
         <div
           className={`airbnb-input-bar ${isOpen ? 'is-open' : ''}`}
           onClick={() => setIsOpen(!isOpen)}
-          title="Click to open Airbnb-style Date Range Picker"
+          title="Click to open Date Range Picker"
         >
           <div className={`airbnb-input-pill ${isOpen && !selectionState ? 'active' : ''}`}>
-            <span className="airbnb-pill-label">From Date</span>
-            <span className="airbnb-pill-val">{fromDate || 'Select date'}</span>
+            <span className="airbnb-pill-label">{t('schedule.fromLabel')}</span>
+            <span className="airbnb-pill-val">{fromDate || t('datePicker.selectStart')}</span>
           </div>
 
           <div className="airbnb-pill-divider" />
 
           <div className={`airbnb-input-pill ${isOpen && selectionState ? 'active' : ''}`}>
-            <span className="airbnb-pill-label">To Date</span>
-            <span className="airbnb-pill-val">{toDate || 'Select date'}</span>
+            <span className="airbnb-pill-label">{t('schedule.toLabel')}</span>
+            <span className="airbnb-pill-val">{toDate || t('datePicker.selectEnd')}</span>
           </div>
 
           <div style={{ padding: '0 10px', color: 'var(--text-muted)', fontSize: 14 }}>
@@ -226,21 +239,21 @@ export default function AirbnbDatePicker({
             className={`btn-preset ${activePreset === 'yesterday' ? 'active' : ''}`}
             onClick={handlePresetYesterday}
           >
-            Yesterday
+            {t('schedule.yesterday')}
           </button>
           <button
             type="button"
             className={`btn-preset ${activePreset === 'thisWeek' ? 'active' : ''}`}
             onClick={handlePresetThisWeek}
           >
-            This Week
+            {t('schedule.thisWeek')}
           </button>
           <button
             type="button"
             className={`btn-preset ${activePreset === 'thisMonth' ? 'active' : ''}`}
             onClick={handlePresetThisMonth}
           >
-            This Month
+            {t('schedule.thisMonth')}
           </button>
         </div>
       </div>
@@ -259,7 +272,7 @@ export default function AirbnbDatePicker({
               ‹
             </button>
             <h3 className="airbnb-month-heading">
-              {MONTH_NAMES[viewMonth]} {viewYear}
+              {currentMonthNames[viewMonth]} {viewYear}
             </h3>
             <button
               type="button"
@@ -273,9 +286,9 @@ export default function AirbnbDatePicker({
 
           {/* Weekday Row */}
           <div className="airbnb-weekdays">
-            {WEEKDAY_NAMES.map(w => (
-              <div key={w} className="airbnb-weekday-cell">
-                {w}
+            {WEEKDAY_KEYS.map((k) => (
+              <div key={k} className="airbnb-weekday-cell">
+                {t(k)}
               </div>
             ))}
           </div>

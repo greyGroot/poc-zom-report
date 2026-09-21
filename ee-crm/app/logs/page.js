@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function SystemLogsPage() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -112,10 +114,8 @@ export default function SystemLogsPage() {
     <div>
       {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">System Audit Logs & Error Center</h1>
-        <p className="page-subtitle">
-          Real-time audit trail of Schoolmate PDF downloads, vector parsing execution, Upstash Redis operations, and error traces.
-        </p>
+        <h1 className="page-title">{t('logs.title')}</h1>
+        <p className="page-subtitle">{t('logs.subtitle')}</p>
       </div>
 
       {/* Error alert */}
@@ -138,16 +138,21 @@ export default function SystemLogsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             {/* Level Filter Pills */}
             <div className="filter-pills">
-              {['ALL', 'INFO', 'WARN', 'ERROR'].map(lvl => (
+              {[
+                { id: 'ALL', label: t('logs.filterAll') },
+                { id: 'INFO', label: t('logs.filterInfo') },
+                { id: 'WARN', label: t('logs.filterWarn') },
+                { id: 'ERROR', label: t('logs.filterError') }
+              ].map(item => (
                 <button
-                  key={lvl}
+                  key={item.id}
                   type="button"
-                  className={`filter-pill ${selectedLevel === lvl ? 'active' : ''}`}
-                  onClick={() => setSelectedLevel(lvl)}
+                  className={`filter-pill ${selectedLevel === item.id ? 'active' : ''}`}
+                  onClick={() => setSelectedLevel(item.id)}
                 >
-                  <span>{lvl}</span>
+                  <span>{item.label}</span>
                   <span style={{ opacity: 0.7, fontSize: 11, marginLeft: 4 }}>
-                    ({counts[lvl] || 0})
+                    ({counts[item.id] || 0})
                   </span>
                 </button>
               ))}
@@ -158,7 +163,7 @@ export default function SystemLogsPage() {
               <input
                 type="text"
                 className="form-input"
-                placeholder="Search action, message, JSON..."
+                placeholder={t('logs.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ width: 240, padding: '7px 12px' }}
@@ -174,12 +179,12 @@ export default function SystemLogsPage() {
                 {loading ? (
                   <>
                     <span className="spinner spinner-dark"></span>
-                    <span>Refreshing...</span>
+                    <span>{t('common.loading')}</span>
                   </>
                 ) : (
                   <>
                     <span>🔄</span>
-                    <span>Refresh Logs</span>
+                    <span>{t('logs.refreshBtn')}</span>
                   </>
                 )}
               </button>
@@ -193,7 +198,7 @@ export default function SystemLogsPage() {
         <div className="card-header">
           <h2 className="card-title">
             <span>📋</span>
-            <span>Audit Trail</span>
+            <span>{t('logs.title')}</span>
           </h2>
           <span className="badge badge-neutral">
             Showing {filteredLogs.length} of {logs.length} entries
@@ -204,18 +209,18 @@ export default function SystemLogsPage() {
           {loading && logs.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <div className="spinner spinner-dark" style={{ width: 24, height: 24, marginBottom: 10 }}></div>
-              <div>Loading audit logs from Upstash Redis...</div>
+              <div>{t('common.loading')}</div>
             </div>
           ) : filteredLogs.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                No Logs Found
+                {t('logs.noLogsMatch')}
               </div>
               <p style={{ margin: 0, fontSize: 13 }}>
                 {logs.length === 0
-                  ? 'The system log store is currently empty.'
-                  : 'No logs match your filter criteria.'}
+                  ? t('logs.noLogsFound')
+                  : t('logs.noLogsMatch')}
               </p>
             </div>
           ) : (
@@ -223,12 +228,12 @@ export default function SystemLogsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Timestamp</th>
-                    <th>Level</th>
-                    <th>Action</th>
-                    <th>Duration</th>
-                    <th>Message</th>
-                    <th style={{ textAlign: 'right' }}>Details</th>
+                    <th>{t('logs.colTimestamp')}</th>
+                    <th>{t('logs.colLevel')}</th>
+                    <th>{t('logs.colAction')}</th>
+                    <th>{t('logs.colDuration')}</th>
+                    <th>{t('logs.colMessage')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('logs.colDetails')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -283,7 +288,7 @@ export default function SystemLogsPage() {
                                   className="btn btn-sm btn-secondary"
                                   style={{ padding: '2px 8px', fontSize: 11 }}
                                 >
-                                  {copiedId === log.id ? '✓ Copied' : '📋 Copy JSON'}
+                                  {copiedId === log.id ? '✓ ' + t('common.copied') : '📋 ' + t('common.copy') + ' JSON'}
                                 </button>
                               </div>
                               <pre style={{ margin: 0 }}>
@@ -299,7 +304,7 @@ export default function SystemLogsPage() {
                               onClick={() => toggleDetails(log.id)}
                               className="btn btn-sm btn-secondary"
                             >
-                              <span>{isExpanded ? 'Hide' : 'Details'}</span>
+                              <span>{isExpanded ? 'Hide' : t('logs.colDetails')}</span>
                               <span>{isExpanded ? '▲' : '▼'}</span>
                             </button>
                           ) : (

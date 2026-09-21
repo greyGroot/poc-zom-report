@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function TeacherDirectoryPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -60,23 +62,23 @@ export default function TeacherDirectoryPage() {
     const ph = phone.trim();
 
     if (!fName) {
-      setErrorMessage('First Name is required.');
+      setErrorMessage(t('directory.errFirstNameReq'));
       return;
     }
     if (!lName) {
-      setErrorMessage('Last Name is required.');
+      setErrorMessage(t('directory.errLastNameReq'));
       return;
     }
     if (!mail) {
-      setErrorMessage('Email Address is required.');
+      setErrorMessage(t('directory.errEmailReq'));
       return;
     }
     if (isNaN(sId) || sId <= 0) {
-      setErrorMessage('Schoolmate Teacher ID must be a positive integer.');
+      setErrorMessage(t('directory.errIdReq'));
       return;
     }
     if (tel && !tel.startsWith('@')) {
-      setErrorMessage('Telegram ID must start with @ (e.g. @username)');
+      setErrorMessage(t('directory.errTelegramReq'));
       return;
     }
 
@@ -107,7 +109,7 @@ export default function TeacherDirectoryPage() {
         return [data.teacher, ...filtered];
       });
 
-      setSuccessMessage(`Teacher "${data.teacher.fullName}" added successfully!`);
+      setSuccessMessage(t('directory.teacherAddedSuccess', { name: data.teacher.fullName }));
       // Reset form
       setFirstName('');
       setLastName('');
@@ -163,10 +165,8 @@ export default function TeacherDirectoryPage() {
     <div>
       {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">Teacher Directory</h1>
-        <p className="page-subtitle">
-          Manage teachers, synchronize weekly Schoolmate ERP schedules, and inspect live Zoom telemetry reconciliation.
-        </p>
+        <h1 className="page-title">{t('directory.title')}</h1>
+        <p className="page-subtitle">{t('directory.subtitle')}</p>
       </div>
 
       {/* Alerts */}
@@ -204,7 +204,7 @@ export default function TeacherDirectoryPage() {
           onClick={() => setIsAddFormOpen(!isAddFormOpen)}
           style={{ padding: '9px 18px', fontSize: 14 }}
         >
-          <span>{isAddFormOpen ? '✕ Close Form' : '➕ Add New Teacher'}</span>
+          <span>{isAddFormOpen ? t('directory.closeFormBtn') : t('directory.addTeacherBtn')}</span>
         </button>
       </div>
 
@@ -214,14 +214,14 @@ export default function TeacherDirectoryPage() {
           <div className="paper-header">
             <h2 className="paper-title">
               <span>📝</span>
-              <span>Register New Teacher</span>
+              <span>{t('directory.formTitle')}</span>
             </h2>
             <button
               type="button"
               onClick={() => setIsAddFormOpen(false)}
               className="btn btn-sm btn-secondary"
               style={{ padding: '2px 8px' }}
-              title="Close"
+              title={t('common.close')}
             >
               ✕
             </button>
@@ -230,11 +230,11 @@ export default function TeacherDirectoryPage() {
           <form onSubmit={handleAddTeacher}>
             <div className="form-grid">
               <div className="form-group">
-                <label className="form-label">First Name *</label>
+                <label className="form-label">{t('directory.firstName')} *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Yuliia"
+                  placeholder={t('directory.firstNamePlaceholder')}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -242,11 +242,11 @@ export default function TeacherDirectoryPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Last Name *</label>
+                <label className="form-label">{t('directory.lastName')} *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Savchuk"
+                  placeholder={t('directory.lastNamePlaceholder')}
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
@@ -254,11 +254,11 @@ export default function TeacherDirectoryPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email Address *</label>
+                <label className="form-label">{t('directory.email')} *</label>
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="e.g. yuliasavchuk03@gmail.com"
+                  placeholder={t('directory.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -266,11 +266,11 @@ export default function TeacherDirectoryPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Schoolmate Teacher ID *</label>
+                <label className="form-label">{t('directory.schoolmateId')} *</label>
                 <input
                   type="number"
                   className="form-input"
-                  placeholder="e.g. 17251"
+                  placeholder={t('directory.schoolmateIdPlaceholder')}
                   value={schoolmateId}
                   onChange={(e) => setSchoolmateId(e.target.value)}
                   required
@@ -279,12 +279,12 @@ export default function TeacherDirectoryPage() {
 
               <div className="form-group">
                 <label className="form-label">
-                  Mobile Phone <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional)</span>
+                  {t('directory.phone')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional)</span>
                 </label>
                 <input
                   type="tel"
                   className="form-input"
-                  placeholder="e.g. +380 50 123 4567"
+                  placeholder={t('directory.phonePlaceholder')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
@@ -292,12 +292,12 @@ export default function TeacherDirectoryPage() {
 
               <div className="form-group">
                 <label className="form-label">
-                  Telegram ID <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional, starts with @)</span>
+                  {t('directory.telegramId')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional, @)</span>
                 </label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. @yuliasavchuk"
+                  placeholder={t('directory.telegramIdPlaceholder')}
                   value={telegramId}
                   onChange={(e) => setTelegramId(e.target.value)}
                 />
@@ -313,10 +313,10 @@ export default function TeacherDirectoryPage() {
                 {submitting ? (
                   <>
                     <span className="spinner"></span>
-                    <span>Saving Teacher...</span>
+                    <span>{t('directory.creatingBtn')}</span>
                   </>
                 ) : (
-                  <span>Save Teacher</span>
+                  <span>{t('directory.createBtn')}</span>
                 )}
               </button>
 
@@ -326,7 +326,7 @@ export default function TeacherDirectoryPage() {
                 onClick={() => setIsAddFormOpen(false)}
                 disabled={submitting}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -338,23 +338,23 @@ export default function TeacherDirectoryPage() {
         <div className="card-header">
           <h2 className="card-title">
             <span>👥</span>
-            <span>Registered Teachers ({teachers.length})</span>
+            <span>{t('common.teachers')} ({teachers.length})</span>
           </h2>
           <button
             onClick={fetchTeachers}
             className="btn btn-sm btn-secondary"
             disabled={loading}
-            title="Reload teachers from Upstash Redis"
+            title={t('common.refresh')}
           >
             {loading ? (
               <>
                 <span className="spinner spinner-dark"></span>
-                <span>Refreshing...</span>
+                <span>{t('common.loading')}</span>
               </>
             ) : (
               <>
                 <span>🔄</span>
-                <span>Refresh List</span>
+                <span>{t('common.refresh')}</span>
               </>
             )}
           </button>
@@ -364,16 +364,16 @@ export default function TeacherDirectoryPage() {
           {loading && teachers.length === 0 ? (
             <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <div className="spinner spinner-dark" style={{ width: 24, height: 24, marginBottom: 10 }}></div>
-              <div>Loading teachers from Redis...</div>
+              <div>{t('common.loading')}</div>
             </div>
           ) : teachers.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>👨‍🏫</div>
               <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)', marginBottom: 4 }}>
-                No Teachers Registered Yet
+                {t('directory.noTeachersRegistered')}
               </div>
               <p style={{ margin: '0 0 16px', fontSize: 14 }}>
-                Click &quot;Add New Teacher&quot; above to register a teacher.
+                {t('directory.noTeachersPrompt')}
               </p>
             </div>
           ) : (
@@ -381,11 +381,11 @@ export default function TeacherDirectoryPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Teacher Name</th>
-                    <th>Email Address</th>
-                    <th>Schoolmate ID</th>
-                    <th>Added On</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('directory.tableColTeacher')}</th>
+                    <th>{t('directory.email')}</th>
+                    <th>{t('directory.tableColSchoolmateId')}</th>
+                    <th>{t('directory.tableColAdded')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('directory.tableColActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -438,7 +438,7 @@ export default function TeacherDirectoryPage() {
                             className="btn btn-sm btn-primary"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <span>📅 View Schedule</span>
+                            <span>📅 {t('directory.viewScheduleBtn')}</span>
                           </Link>
                           <button
                             onClick={(e) => {
@@ -447,12 +447,12 @@ export default function TeacherDirectoryPage() {
                             }}
                             disabled={deletingId === teacher.id}
                             className="btn btn-sm btn-danger"
-                            title="Delete teacher"
+                            title={t('common.delete')}
                           >
                             {deletingId === teacher.id ? (
                               <span className="spinner spinner-dark"></span>
                             ) : (
-                              <span>🗑️ Delete</span>
+                              <span>🗑️ {t('common.delete')}</span>
                             )}
                           </button>
                         </div>
@@ -472,14 +472,11 @@ export default function TeacherDirectoryPage() {
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-icon-danger">🗑️</div>
-              <h3 className="modal-title">Delete Teacher</h3>
+              <h3 className="modal-title">{t('directory.deleteModalTitle')}</h3>
             </div>
             <div className="modal-body">
               <p style={{ margin: 0 }}>
-                Are you sure you want to delete teacher <strong>{teacherToDelete.fullName}</strong> (#{teacherToDelete.schoolmateTeacherId})?
-              </p>
-              <p className="modal-subtext">
-                This will remove the teacher from Empire English CRM.
+                {t('directory.deleteModalBody', { name: teacherToDelete.fullName })}
               </p>
             </div>
             <div className="modal-actions">
@@ -489,7 +486,7 @@ export default function TeacherDirectoryPage() {
                 onClick={() => setTeacherToDelete(null)}
                 disabled={deletingId === teacherToDelete.id}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -501,10 +498,10 @@ export default function TeacherDirectoryPage() {
                 {deletingId === teacherToDelete.id ? (
                   <>
                     <span className="spinner"></span>
-                    <span>Deleting...</span>
+                    <span>{t('directory.deletingBtn')}</span>
                   </>
                 ) : (
-                  <span>Yes, Delete</span>
+                  <span>{t('common.delete')}</span>
                 )}
               </button>
             </div>
