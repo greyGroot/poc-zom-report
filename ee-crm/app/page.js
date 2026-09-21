@@ -393,7 +393,7 @@ export default function TeacherDirectoryPage() {
                     <tr
                       key={teacher.id}
                       className="table-row-clickable"
-                      onClick={() => router.push(`/teachers/${teacher.id}`)}
+                      onClick={() => router.push(`/teachers/${teacher.id}?lang=${locale}`)}
                     >
                       <td>
                         <strong style={{ color: 'var(--text-primary)' }}>
@@ -434,7 +434,7 @@ export default function TeacherDirectoryPage() {
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                           <Link
-                            href={`/teachers/${teacher.id}`}
+                            href={`/teachers/${teacher.id}?lang=${locale}`}
                             className="btn btn-sm btn-primary"
                             onClick={(e) => e.stopPropagation()}
                           >

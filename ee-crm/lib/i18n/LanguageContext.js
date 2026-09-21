@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { translations, defaultLocale, locales } from './translations';
 
 const LanguageContext = createContext({
@@ -9,34 +10,62 @@ const LanguageContext = createContext({
   t: (keyPath, params = {}) => keyPath,
 });
 
+function LanguageSync({ locale, setLocaleState }) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // 1. Sync from URL param ?lang=xx if present
+  useEffect(() => {
+    const langParam = searchParams.get('lang');
+    if (langParam && locales.includes(langParam)) {
+      if (langParam !== locale) {
+        setLocaleState(langParam);
+        try {
+          localStorage.setItem('eecrm_locale', langParam);
+        } catch (e) {}
+      }
+    } else {
+      // If no ?lang in URL, check localStorage or default
+      try {
+        const saved = localStorage.getItem('eecrm_locale');
+        const targetLocale = (saved && locales.includes(saved)) ? saved : defaultLocale;
+        if (targetLocale !== locale) {
+          setLocaleState(targetLocale);
+        }
+        // Update URL query string to reflect language in route
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('lang', targetLocale);
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      } catch (e) {}
+    }
+  }, [searchParams, pathname, router, locale, setLocaleState]);
+
+  return null;
+}
+
 export function LanguageProvider({ children }) {
   const [locale, setLocaleState] = useState(defaultLocale);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Initialize from localStorage if available
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('eecrm_locale');
-      if (saved && locales.includes(saved)) {
-        setLocaleState(saved);
-      }
-    } catch (e) {
-      // localStorage may be unavailable
-    }
-  }, []);
-
-  const setLocale = (newLocale) => {
+  const setLocale = useCallback((newLocale) => {
     if (locales.includes(newLocale)) {
       setLocaleState(newLocale);
       try {
         localStorage.setItem('eecrm_locale', newLocale);
-      } catch (e) {
-        // ignore
-      }
-    }
-  };
+      } catch (e) {}
 
-  // Translation function: t('directory.title') or t('directory.deleteModalBody', { name: 'John' })
-  const t = (path, params = {}) => {
+      // Update URL search query ?lang=...
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('lang', newLocale);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [pathname, router, searchParams]);
+
+  // Translation lookup function
+  const t = useCallback((path, params = {}) => {
     const keys = path.split('.');
     let val = translations[locale];
 
@@ -67,10 +96,11 @@ export function LanguageProvider({ children }) {
     return Object.keys(params).reduce((acc, curr) => {
       return acc.replaceAll(`{${curr}}`, params[curr]);
     }, val);
-  };
+  }, [locale]);
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale, t }}>
+      <LanguageSync locale={locale} setLocaleState={setLocaleState} />
       {children}
     </LanguageContext.Provider>
   );

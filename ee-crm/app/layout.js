@@ -1,4 +1,5 @@
 import './globals.css';
+import { Suspense } from 'react';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
 import Header from './components/Header';
 
@@ -11,12 +12,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <LanguageProvider>
-          <Header />
-          <main className="main-content">
-            {children}
-          </main>
-        </LanguageProvider>
+        <Suspense fallback={null}>
+          <LanguageProvider>
+            <Header />
+            <main className="main-content">
+              {children}
+            </main>
+          </LanguageProvider>
+        </Suspense>
       </body>
     </html>
   );
