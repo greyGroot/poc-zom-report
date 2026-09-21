@@ -26,16 +26,6 @@ export default function RootLayout({ children }) {
                 <span>📋</span>
                 <span>System Logs</span>
               </Link>
-              <a
-                href="/api/health"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nav-link"
-                title="View JSON Health Probe"
-              >
-                <span>🩺</span>
-                <span>Health</span>
-              </a>
             </nav>
           </div>
         </header>
