@@ -336,6 +336,29 @@ export default function TeacherDirectoryPage() {
               )}
               <span>Zhuravlova Iryna (ID: 6568)</span>
             </button>
+
+            <button
+              type="button"
+              className="quick-add-btn"
+              disabled={quickAdding === 18448}
+              onClick={() =>
+                handleQuickAdd({
+                  firstName: 'David',
+                  lastName: 'Brymer',
+                  email: 'david.brymer@empireenglish.com',
+                  schoolmateTeacherId: 18448,
+                  schoolmateLogin: 't18438',
+                  zoomHostEmail: 'david.brymer@empireenglish.com'
+                })
+              }
+            >
+              {quickAdding === 18448 ? (
+                <span className="spinner spinner-dark"></span>
+              ) : (
+                <span>+</span>
+              )}
+              <span>Brymer David (ID: 18448)</span>
+            </button>
           </div>
         </div>
       </div>

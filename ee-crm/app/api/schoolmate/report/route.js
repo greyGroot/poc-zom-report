@@ -48,25 +48,8 @@ export async function POST(req) {
   const periodKey = `${normalizedFromDate}_${normalizedToDate}`;
 
   try {
-    // 1. Check cache first
-    const cacheStart = Date.now();
-    const cachedData = await getCachedReport(numericTeacherId, periodKey);
-    if (cachedData) {
-      const durationMs = Date.now() - cacheStart;
-      return NextResponse.json({
-        teacherName: cachedData.teacherName,
-        periodFrom: cachedData.periodFrom,
-        periodTo: cachedData.periodTo,
-        totalMinutesReported: cachedData.totalMinutesReported,
-        totalMinutesCalculated: cachedData.totalMinutesCalculated,
-        totalLessonsCount: cachedData.totalLessonsCount,
-        isMinutesMatching: cachedData.isMinutesMatching,
-        days: cachedData.days,
-        lessons: cachedData.lessons,
-        cached: true,
-        durationMs
-      });
-    }
+    // Cache reading is bypassed during testing so requests always proxy live to Schoolmate.
+    // Responses are still saved to Redis with a 5-minute TTL for future activation.
 
     // Resolve teacher name if not provided in body
     if (!teacherName) {

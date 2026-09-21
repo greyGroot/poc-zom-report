@@ -305,8 +305,8 @@ export default function TeacherSchedulePage() {
               </button>
 
               {report && (
-                <span className={`badge ${report.cached ? 'badge-success' : 'badge-info'}`}>
-                  {report.cached ? '⚡ Served from Redis Cache' : '🌐 Live Schoolmate'} ({report.durationMs}ms)
+                <span className="badge badge-info">
+                  🌐 Live Schoolmate ({report.durationMs}ms)
                 </span>
               )}
             </div>
@@ -335,11 +335,6 @@ export default function TeacherSchedulePage() {
 
               {report && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span className={`badge ${report.isMinutesMatching ? 'badge-success' : 'badge-warning'}`}>
-                    {report.isMinutesMatching
-                      ? `Minutes Match: YES ✅ (${report.totalMinutesReported} min)`
-                      : `⚠️ Mismatch: ${report.totalMinutesReported}m vs ${report.totalMinutesCalculated}m`}
-                  </span>
                   <button
                     type="button"
                     onClick={toggleAllLessons}

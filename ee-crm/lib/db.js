@@ -123,8 +123,8 @@ export async function saveCachedReport(teacherId, periodKey, parsedData) {
   const redis = getRedisClient();
   if (redis) {
     try {
-      // Cache for 24 hours
-      await redis.set(key, JSON.stringify(record), { ex: 86400 });
+      // Cache for 5 minutes (300 seconds)
+      await redis.set(key, JSON.stringify(record), { ex: 300 });
       return;
     } catch (err) {
       console.warn('[DB] Redis saveCachedReport error:', err.message);
