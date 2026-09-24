@@ -4,11 +4,28 @@
 import { NextResponse } from 'next/server';
 import { getTeachers, createTeacher } from '@/lib/db.js';
 import { logger } from '@/lib/logger.js';
+import { getZoomUsersStatusMap } from '@/lib/zoom.js';
 
 export async function GET() {
   try {
     const teachers = await getTeachers();
-    return NextResponse.json({ teachers });
+    let zoomMap = new Map();
+    try {
+      zoomMap = await getZoomUsersStatusMap();
+    } catch (zoomErr) {
+      console.warn('[API/TEACHERS] Could not fetch Zoom statuses:', zoomErr.message);
+    }
+
+    const enrichedTeachers = teachers.map(t => {
+      const emailToCheck = (t.zoomHostEmail || t.email || '').trim().toLowerCase();
+      const zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
+      return {
+        ...t,
+        zoomStatus
+      };
+    });
+
+    return NextResponse.json({ teachers: enrichedTeachers });
   } catch (err) {
     await logger.error('TEACHERS_FETCH_ERROR', 'Failed to retrieve teachers list', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -81,7 +98,21 @@ export async function POST(req) {
       email: teacher.email
     });
 
-    return NextResponse.json({ teacher }, { status: 201 });
+    const emailToCheck = (teacher.zoomHostEmail || teacher.email || '').trim().toLowerCase();
+    let zoomStatus = 'not_invited';
+    try {
+      const zoomMap = await getZoomUsersStatusMap();
+      zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
+    } catch {
+      // ignore
+    }
+
+    const teacherWithZoom = {
+      ...teacher,
+      zoomStatus
+    };
+
+    return NextResponse.json({ teacher: teacherWithZoom }, { status: 201 });
   } catch (err) {
     await logger.error('TEACHER_CREATE_ERROR', 'Failed to create teacher', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
