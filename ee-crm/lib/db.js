@@ -162,8 +162,59 @@ export async function getCachedReport(teacherId, periodKey) {
 }
 
 // -------------------------------------------------------------
-// Application Logs
+// Application Logs (Retention: 14 days)
 // -------------------------------------------------------------
+
+const LOG_RETENTION_DAYS = 14;
+const LOG_RETENTION_MS = LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+/**
+ * Remove logs older than maxAgeDays (default: 14 days)
+ * @param {number} [maxAgeDays=14]
+ * @returns {Promise<number>} Number of logs removed
+ */
+export async function cleanOldAppLogs(maxAgeDays = LOG_RETENTION_DAYS) {
+  const cutoffTime = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
+  const redis = getRedisClient();
+
+  if (redis) {
+    try {
+      const rawList = await redis.lrange(LOGS_KEY, 0, -1);
+      if (!rawList || rawList.length === 0) return 0;
+
+      const validLogs = [];
+      let removedCount = 0;
+
+      for (const item of rawList) {
+        const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+        const itemTime = new Date(parsed.timestamp).getTime();
+        if (itemTime >= cutoffTime) {
+          validLogs.push(typeof item === 'string' ? item : JSON.stringify(item));
+        } else {
+          removedCount++;
+        }
+      }
+
+      if (removedCount > 0) {
+        await redis.del(LOGS_KEY);
+        if (validLogs.length > 0) {
+          await redis.rpush(LOGS_KEY, ...validLogs);
+        }
+      }
+
+      return removedCount;
+    } catch (err) {
+      console.warn('[DB] Redis cleanOldAppLogs error:', err.message);
+    }
+  }
+
+  // In-memory fallback
+  const initialCount = memoryStore.logs.length;
+  memoryStore.logs = memoryStore.logs.filter(
+    l => new Date(l.timestamp).getTime() >= cutoffTime
+  );
+  return initialCount - memoryStore.logs.length;
+}
 
 export async function addAppLog(entry) {
   const logItem = {
@@ -180,7 +231,7 @@ export async function addAppLog(entry) {
   if (redis) {
     try {
       await redis.lpush(LOGS_KEY, JSON.stringify(logItem));
-      await redis.ltrim(LOGS_KEY, 0, 499); // Keep latest 500 logs
+      await redis.ltrim(LOGS_KEY, 0, 499); // Keep latest 500 logs max
       return logItem;
     } catch (err) {
       console.warn('[DB] Redis addAppLog error:', err.message);
@@ -193,15 +244,22 @@ export async function addAppLog(entry) {
 }
 
 export async function getAppLogs(limit = 100) {
+  const cutoffTime = Date.now() - LOG_RETENTION_MS;
   const redis = getRedisClient();
+
   if (redis) {
     try {
       const list = await redis.lrange(LOGS_KEY, 0, limit - 1);
       if (!list) return [];
-      return list.map(item => (typeof item === 'string' ? JSON.parse(item) : item));
+      return list
+        .map(item => (typeof item === 'string' ? JSON.parse(item) : item))
+        .filter(item => new Date(item.timestamp).getTime() >= cutoffTime);
     } catch (err) {
       console.warn('[DB] Redis getAppLogs error:', err.message);
     }
   }
-  return memoryStore.logs.slice(0, limit);
+
+  return memoryStore.logs
+    .slice(0, limit)
+    .filter(item => new Date(item.timestamp).getTime() >= cutoffTime);
 }

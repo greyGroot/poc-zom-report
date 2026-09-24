@@ -2,7 +2,7 @@
 // Audit Logs API: Retrieve recent application and integration logs
 
 import { NextResponse } from 'next/server';
-import { getAppLogs } from '@/lib/db.js';
+import { getAppLogs, cleanOldAppLogs } from '@/lib/db.js';
 import { logger } from '@/lib/logger.js';
 
 export async function GET(req) {
@@ -15,6 +15,19 @@ export async function GET(req) {
     return NextResponse.json({ logs });
   } catch (err) {
     await logger.error('LOGS_FETCH_ERROR', 'Failed to retrieve application logs', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const daysParam = searchParams.get('days');
+    const maxAgeDays = daysParam ? parseInt(daysParam, 10) || 14 : 14;
+
+    const removedCount = await cleanOldAppLogs(maxAgeDays);
+    return NextResponse.json({ success: true, removedCount, retentionDays: maxAgeDays });
+  } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
