@@ -326,4 +326,271 @@ export class SchoolmateClient {
       durationMs
     };
   }
+
+  /**
+   * Helper to normalize date to Schoolmate format YYYY-M-D
+   */
+  normalizeDateForSchoolmate(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.trim().split('-');
+    if (parts.length === 3) {
+      return `${parts[0]}-${parseInt(parts[1], 10)}-${parseInt(parts[2], 10)}`;
+    }
+    return dateStr;
+  }
+
+  /**
+   * Fetch assigned group classes for a teacher in a date range.
+   * Calls POST /teacher/getteachergroupclasslist
+   * @param {object} params
+   * @param {number|string} params.teacherId
+   * @param {string} params.fromDate - format YYYY-MM-DD or YYYY-M-D
+   * @param {string} params.toDate - format YYYY-MM-DD or YYYY-M-D
+   * @returns {Promise<Array<{ GroupId: number, GroupName: string }>>}
+   */
+  async getTeacherGroupClassList({ teacherId, fromDate, toDate }) {
+    await this.ensureAuthenticated();
+    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
+    const url = `${this.baseUrl}/teacher/getteachergroupclasslist`;
+
+    const formattedFrom = this.normalizeDateForSchoolmate(fromDate);
+    const formattedTo = this.normalizeDateForSchoolmate(toDate);
+
+    const payload = {
+      teacherId: Number(teacherId),
+      lessonSearchModel: {
+        FromDate: formattedFrom,
+        ToDate: formattedTo
+      },
+      requestuserId: this.requestUserId,
+      roleId: 2
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'Accept': 'application/json, text/plain, */*'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 302) {
+        this.sessionId = null;
+        await this.login();
+        return this.getTeacherGroupClassList({ teacherId, fromDate, toDate });
+      }
+      throw new Error(`Failed to fetch teacher groups: HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (!json.IsSuccess) {
+      throw new Error(`Schoolmate getteachergroupclasslist error: ${json.Message || 'Unknown error'}`);
+    }
+
+    return json.Data?.TeacherGroupList || [];
+  }
+
+  /**
+   * Fetch lessons and financial details for a specific group of a teacher.
+   * Calls POST /teacher/getteachergroupclassdetail
+   * @param {object} params
+   * @param {number|string} params.groupId
+   * @param {number|string} params.teacherId
+   * @param {string} params.fromDate
+   * @param {string} params.toDate
+   * @returns {Promise<{ lessons: Array, wageSum: string, totalWage: string, currencySymbol: string }>}
+   */
+  async getTeacherGroupClassDetail({ groupId, teacherId, fromDate, toDate }) {
+    await this.ensureAuthenticated();
+    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
+    const url = `${this.baseUrl}/teacher/getteachergroupclassdetail`;
+
+    const formattedFrom = this.normalizeDateForSchoolmate(fromDate);
+    const formattedTo = this.normalizeDateForSchoolmate(toDate);
+
+    const payload = {
+      groupId: Number(groupId),
+      teacherId: Number(teacherId),
+      lessonSearchModel: {
+        FromDate: formattedFrom,
+        ToDate: formattedTo
+      },
+      requestuserId: this.requestUserId,
+      roleId: 2
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'Accept': 'application/json, text/plain, */*'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 302) {
+        this.sessionId = null;
+        await this.login();
+        return this.getTeacherGroupClassDetail({ groupId, teacherId, fromDate, toDate });
+      }
+      throw new Error(`Failed to fetch group class detail: HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (!json.IsSuccess) {
+      throw new Error(`Schoolmate getteachergroupclassdetail error: ${json.Message || 'Unknown error'}`);
+    }
+
+    const data = json.Data || {};
+    return {
+      lessons: data.LessonClasseList || [],
+      wageSum: data.WageSum || '0.00',
+      totalWage: data.TotalWage || '0.00 ₴',
+      currencySymbol: data.CurrencySymbol || '₴'
+    };
+  }
+
+  /**
+   * Fetch complete schedule for all groups of a teacher in batches of 2-3.
+   * Aggregates lessons into a Daily Timeline with status markings and wage calculations.
+   * @param {object} params
+   * @param {number|string} params.teacherId
+   * @param {string} params.fromDate - YYYY-MM-DD
+   * @param {string} params.toDate - YYYY-MM-DD
+   * @param {string} [params.teacherName]
+   * @param {number} [params.batchSize=3]
+   * @returns {Promise<object>}
+   */
+  async getTeacherClassesSchedule({ teacherId, fromDate, toDate, teacherName = '', batchSize = 3 }) {
+    const overallStart = Date.now();
+
+    // 1. Fetch group list
+    const groups = await this.getTeacherGroupClassList({ teacherId, fromDate, toDate });
+
+    // 2. Fetch class details in batches (2-3 groups per batch)
+    const allGroupResults = [];
+    for (let i = 0; i < groups.length; i += batchSize) {
+      const batch = groups.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (group) => {
+          try {
+            const detail = await this.getTeacherGroupClassDetail({
+              groupId: group.GroupId,
+              teacherId,
+              fromDate,
+              toDate
+            });
+            return { group, detail };
+          } catch (err) {
+            console.warn(`[Schoolmate] Warning: group ${group.GroupId} (${group.GroupName}) failed:`, err.message);
+            return {
+              group,
+              detail: { lessons: [], wageSum: '0.00', totalWage: '0.00 ₴', currencySymbol: '₴' }
+            };
+          }
+        })
+      );
+      allGroupResults.push(...batchResults);
+    }
+
+    // 3. Flatten and standardize all lessons
+    const dayMap = new Map();
+    const allLessons = [];
+    let totalWageNumeric = 0;
+    let currencySymbol = '₴';
+
+    for (const { group, detail } of allGroupResults) {
+      if (detail.currencySymbol) {
+        currencySymbol = detail.currencySymbol;
+      }
+
+      for (const item of (detail.lessons || [])) {
+        // Convert StrLessonDate "DD/MM/YYYY" to ISO "YYYY-MM-DD"
+        let isoDate = fromDate;
+        if (item.StrLessonDate && item.StrLessonDate.includes('/')) {
+          const [d, m, y] = item.StrLessonDate.split('/');
+          isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+
+        const durationMinutes = parseInt(item.LengthOfLesson, 10) || 60;
+        const rateNumeric = parseFloat(String(item.TeacherRatePerLesson || '0').replace(/[^0-9.]/g, '')) || 0;
+        totalWageNumeric += rateNumeric;
+
+        const lessonObj = {
+          id: `lesson_${item.GroupLessonId}`,
+          groupLessonId: item.GroupLessonId,
+          groupId: group.GroupId,
+          groupName: group.GroupName || group.CalendarHeadName || 'Group Class',
+          className: item.ClassName || 'GE',
+          date: isoDate,
+          strLessonDate: item.StrLessonDate,
+          durationMinutes,
+          attendanceChecked: Boolean(item.AttendanceChecked),
+          classDetailsAdded: Boolean(item.ClassDetailsAdded),
+          lessonStatusName: item.LessonStatusName || null,
+          lessonStatusColor: item.LessonStatusColor || null,
+          lessonFunctionId: item.LessonFunctionId || 0,
+          teacherRatePerLesson: item.TeacherRatePerLesson || '0.00',
+          teacherRate: item.TeacherRate || `${rateNumeric.toFixed(2)} ${currencySymbol}`,
+          currencySymbol: item.CurrencySymbol || currencySymbol
+        };
+
+        allLessons.push(lessonObj);
+
+        if (!dayMap.has(isoDate)) {
+          const dateObj = new Date(`${isoDate}T12:00:00Z`);
+          const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'long' });
+          const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+          dayMap.set(isoDate, {
+            date: isoDate,
+            strDate: item.StrLessonDate,
+            dayName: `${capitalizedDayName} (${item.StrLessonDate})`,
+            subtotalMinutes: 0,
+            subtotalWage: 0,
+            lessons: []
+          });
+        }
+
+        const dayInfo = dayMap.get(isoDate);
+        dayInfo.lessons.push(lessonObj);
+        dayInfo.subtotalMinutes += durationMinutes;
+        dayInfo.subtotalWage += rateNumeric;
+      }
+    }
+
+    // Sort days chronologically
+    const sortedDays = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Sort lessons inside each day (by groupName then groupLessonId)
+    for (const day of sortedDays) {
+      day.lessons.sort((a, b) => (a.groupName || '').localeCompare(b.groupName || ''));
+      day.subtotalWageFormatted = `${day.subtotalWage.toFixed(2)} ${currencySymbol}`;
+    }
+
+    const totalMinutesCalculated = allLessons.reduce((sum, l) => sum + l.durationMinutes, 0);
+    const durationMs = Date.now() - overallStart;
+
+    return {
+      teacherName,
+      teacherId,
+      periodFrom: fromDate,
+      periodTo: toDate,
+      totalGroupsCount: groups.length,
+      totalLessonsCount: allLessons.length,
+      totalMinutesCalculated,
+      totalWageNumeric,
+      totalWage: `${totalWageNumeric.toFixed(2)} ${currencySymbol}`,
+      currencySymbol,
+      source: 'schoolmate_group_class_detail',
+      days: sortedDays,
+      lessons: allLessons,
+      groups: groups.map(g => ({ groupId: g.GroupId, groupName: g.GroupName })),
+      durationMs
+    };
+  }
 }

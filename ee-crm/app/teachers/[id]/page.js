@@ -29,6 +29,9 @@ export default function TeacherSchedulePage() {
   // Accordion State: Set of open lesson IDs
   const [expandedLessons, setExpandedLessons] = useState(new Set());
 
+  // Filter State: 'all' | 'attendance_checked' | 'attendance_missing' | 'cancellations' | 'details_added'
+  const [statusFilter, setStatusFilter] = useState('all');
+
   // Load Teacher details
   const fetchTeacher = useCallback(async () => {
     if (!teacherId) return;
@@ -297,105 +300,296 @@ export default function TeacherSchedulePage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {report.days.map((dayGroup) => (
-                    <div key={dayGroup.date} className="day-group">
-                      {/* Day Subtotal Header */}
-                      <div className="day-header">
-                        <span className="day-title">
-                          📅 {dayGroup.dayName || dayGroup.date} ({dayGroup.date})
-                        </span>
-                        <span className="day-subtotal">
-                          Subtotal: {dayGroup.subtotalMinutes} min ({dayGroup.lessons.length} {t('schedule.lessonsCount').toLowerCase()})
-                        </span>
+                  {/* Filter Pills */}
+                  {(() => {
+                    const allReportLessons = report.lessons || (report.days ? report.days.flatMap(d => d.lessons || []) : []);
+                    const filterCounts = {
+                      all: allReportLessons.length,
+                      attendance_checked: allReportLessons.filter(l => l.attendanceChecked).length,
+                      attendance_missing: allReportLessons.filter(l => !l.attendanceChecked).length,
+                      cancellations: allReportLessons.filter(l => Boolean(l.lessonStatusName)).length,
+                      details_added: allReportLessons.filter(l => l.classDetailsAdded).length
+                    };
+
+                    return (
+                      <div className="filter-pills-container">
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'all' ? 'active' : ''}`}
+                          onClick={() => setStatusFilter('all')}
+                        >
+                          <span>{t('schedule.filterAll')}</span>
+                          <span className="pill-counter">{filterCounts.all}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'attendance_checked' ? 'active' : ''}`}
+                          onClick={() => setStatusFilter('attendance_checked')}
+                        >
+                          <span style={{ color: '#0284c7' }}>🔖</span>
+                          <span>{t('schedule.filterChecked')}</span>
+                          <span className="pill-counter">{filterCounts.attendance_checked}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'attendance_missing' ? 'active' : ''}`}
+                          onClick={() => setStatusFilter('attendance_missing')}
+                        >
+                          <span style={{ color: '#ef4444' }}>⚠️</span>
+                          <span>{t('schedule.filterMissing')}</span>
+                          <span className="pill-counter">{filterCounts.attendance_missing}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'cancellations' ? 'active' : ''}`}
+                          onClick={() => setStatusFilter('cancellations')}
+                        >
+                          <span style={{ color: '#f59e0b' }}>🚫</span>
+                          <span>{t('schedule.filterCancellations')}</span>
+                          <span className="pill-counter">{filterCounts.cancellations}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'details_added' ? 'active' : ''}`}
+                          onClick={() => setStatusFilter('details_added')}
+                        >
+                          <span style={{ color: '#16a34a' }}>📝</span>
+                          <span>{t('schedule.filterDetailsAdded')}</span>
+                          <span className="pill-counter">{filterCounts.details_added}</span>
+                        </button>
                       </div>
+                    );
+                  })()}
 
-                      {/* Day Lessons List */}
-                      <div className="lesson-list">
-                        {dayGroup.lessons.map((lesson) => {
-                          const isExpanded = expandedLessons.has(lesson.id);
-                          return (
-                            <div
-                              key={lesson.id}
-                              className={`lesson-card ${isExpanded ? 'expanded' : ''}`}
-                            >
-                              {/* Summary Bar */}
+                  {/* Day Groups */}
+                  {report.days.map((dayGroup) => {
+                    const filterDayLessons = (lessons) => {
+                      if (!Array.isArray(lessons)) return [];
+                      switch (statusFilter) {
+                        case 'attendance_checked':
+                          return lessons.filter(l => l.attendanceChecked);
+                        case 'attendance_missing':
+                          return lessons.filter(l => !l.attendanceChecked);
+                        case 'cancellations':
+                          return lessons.filter(l => Boolean(l.lessonStatusName));
+                        case 'details_added':
+                          return lessons.filter(l => l.classDetailsAdded);
+                        default:
+                          return lessons;
+                      }
+                    };
+
+                    const filteredLessons = filterDayLessons(dayGroup.lessons);
+                    if (filteredLessons.length === 0 && statusFilter !== 'all') {
+                      return null;
+                    }
+
+                    return (
+                      <div key={dayGroup.date} className="day-group">
+                        {/* Day Subtotal Header */}
+                        <div className="day-header">
+                          <span className="day-title">
+                            📅 {dayGroup.dayName || dayGroup.date}
+                          </span>
+                          <span className="day-subtotal">
+                            {dayGroup.subtotalMinutes} min • {filteredLessons.length} {t('schedule.lessonsCount').toLowerCase()}
+                            {dayGroup.subtotalWageFormatted ? ` • ${dayGroup.subtotalWageFormatted}` : ''}
+                          </span>
+                        </div>
+
+                        {/* Day Lessons List */}
+                        <div className="lesson-list">
+                          {filteredLessons.map((lesson, idx) => {
+                            const isExpanded = expandedLessons.has(lesson.id);
+                            const hasStatus = Boolean(lesson.lessonStatusName);
+                            const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
+                            const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
+
+                            return (
                               <div
-                                className="lesson-summary-bar"
-                                onClick={() => toggleLesson(lesson.id)}
+                                key={lesson.id}
+                                className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
+                                style={statusColor ? { borderLeftColor: statusColor } : {}}
                               >
-                                <div className="lesson-left-meta">
-                                  <span className="lesson-time">
-                                    ⏱️ {lesson.startTime} - {lesson.endTime}
-                                  </span>
-                                  <span className="lesson-duration">
-                                    {lesson.durationMinutes} min
-                                  </span>
-                                  <span className="lesson-student">
-                                    {lesson.groupOrStudent || 'Individual Lesson'}
-                                  </span>
+                                {/* Summary Bar */}
+                                <div
+                                  className="lesson-summary-bar"
+                                  onClick={() => toggleLesson(lesson.id)}
+                                >
+                                  <div className="lesson-left-meta">
+                                    {/* Authentic Ribbon Bookmarks */}
+                                    <div className="ribbon-bookmarks-wrapper">
+                                      {lesson.classDetailsAdded && (
+                                        <div className="sm-tooltip-wrapper">
+                                          <span className="ribbon-bookmark ribbon-green" />
+                                          <span className="sm-tooltip-text">Added classes details</span>
+                                        </div>
+                                      )}
+                                      {lesson.attendanceChecked && (
+                                        <div className="sm-tooltip-wrapper">
+                                          <span className="ribbon-bookmark ribbon-blue" />
+                                          <span className="sm-tooltip-text">Attendance checked</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Group/Student Title */}
+                                    <span className="lesson-student">
+                                      {idx + 1}. {lesson.groupName || lesson.groupOrStudent || 'Group Class'}
+                                    </span>
+
+                                    {/* Duration Badge */}
+                                    <span className="lesson-duration">
+                                      ⏱️ {lesson.durationMinutes} min
+                                    </span>
+
+                                    {/* Status Badge with Tooltip if Cancelled / Special */}
+                                    {hasStatus && (
+                                      <div className="sm-tooltip-wrapper">
+                                        <span
+                                          className="badge"
+                                          style={{
+                                            backgroundColor: statusColor ? `${statusColor}22` : '#fef3c7',
+                                            color: statusColor || '#b45309',
+                                            borderColor: statusColor || '#fcd34d',
+                                            fontSize: 11,
+                                            fontWeight: 600
+                                          }}
+                                        >
+                                          {lesson.lessonStatusName}
+                                        </span>
+                                        <span className="sm-tooltip-text">{lesson.lessonStatusName}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    {/* Rate Tag */}
+                                    <span className={`lesson-rate-tag ${isZeroRate ? 'zero-rate' : ''}`}>
+                                      {lesson.teacherRate || `${lesson.teacherRatePerLesson} ${lesson.currencySymbol || '₴'}`}
+                                    </span>
+
+                                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                                      {lesson.className || lesson.lessonType || 'GE'}
+                                    </span>
+                                    <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`}>
+                                      ▼
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>
-                                    {lesson.lessonType || 'GE'}
-                                  </span>
-                                  <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`}>
-                                    ▼
-                                  </span>
-                                </div>
+                                {/* Accordion Detail Drawer */}
+                                {isExpanded && (
+                                  <div className="lesson-details-drawer">
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Group / Class</span>
+                                      <span className="lesson-detail-val">{lesson.groupName || 'N/A'} (ID: {lesson.groupId || 'N/A'})</span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
+                                      <span className="lesson-detail-val">
+                                        <span className="badge badge-info">{lesson.className || 'GE'}</span>
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Status</span>
+                                      <span className="lesson-detail-val" style={{ color: statusColor || 'inherit' }}>
+                                        {lesson.lessonStatusName || 'Completed / Normal'}
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Attendance Checked</span>
+                                      <span className="lesson-detail-val">
+                                        {lesson.attendanceChecked ? 'Yes ✅' : 'No ❌'}
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Class Details Added</span>
+                                      <span className="lesson-detail-val">
+                                        {lesson.classDetailsAdded ? 'Yes ✅' : 'No ❌'}
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Teacher Rate</span>
+                                      <span className="lesson-detail-val">
+                                        {lesson.teacherRate || `${lesson.teacherRatePerLesson} ₴`}
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Internal Lesson ID</span>
+                                      <span className="lesson-detail-val" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                                        {lesson.groupLessonId || lesson.id}
+                                      </span>
+                                    </div>
+
+                                    <div className="lesson-detail-item">
+                                      <span className="lesson-detail-label">Date & Duration</span>
+                                      <span className="lesson-detail-val">
+                                        {lesson.strLessonDate || lesson.date} ({lesson.durationMinutes} min)
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
 
-                              {/* Accordion Detail Drawer */}
-                              {isExpanded && (
-                                <div className="lesson-details-drawer">
-                                  <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
-                                    <span className="lesson-detail-val">
-                                      <span className="badge badge-info">{lesson.lessonType || 'GE (General English)'}</span>
-                                    </span>
-                                  </div>
-
-                                  <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">{t('schedule.language')}</span>
-                                    <span className="lesson-detail-val">{lesson.language || 'English'}</span>
-                                  </div>
-
-                                  <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">Internal ID</span>
-                                    <span className="lesson-detail-val" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                                      {lesson.id}
-                                    </span>
-                                  </div>
-
-                                  <div className="lesson-detail-item">
-                                    <span className="lesson-detail-label">Date & Timing</span>
-                                    <span className="lesson-detail-val">
-                                      {lesson.date} ({lesson.startTime} - {lesson.endTime})
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                  {/* Markers Legend Block */}
+                  <div className="markers-legend-card">
+                    <div className="markers-legend-title">
+                      <span>📌</span>
+                      <span>{t('schedule.legendTitle')}</span>
+                    </div>
+                    <div className="markers-legend-grid">
+                      <div className="legend-item">
+                        <span className="ribbon-bookmark ribbon-green" />
+                        <span>Added classes details</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="ribbon-bookmark ribbon-blue" />
+                        <span>Attendance checked</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-color-bar" style={{ backgroundColor: '#00FF00' }} />
+                        <span>Cancelled in Advance (0%)</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-color-bar" style={{ backgroundColor: '#CC9933' }} />
+                        <span>Last-minute cancellation (100%)</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-color-bar" style={{ backgroundColor: '#f59e0b' }} />
+                        <span>Late Cancelation (50%)</span>
                       </div>
                     </div>
-                  ))}
+                  </div>
 
-                  {/* Week Summary Footer */}
+                  {/* Week Summary Footer with Total Wage */}
                   <div className="week-totals-banner">
                     <div className="totals-group">
                       <div className="total-stat">
                         <span className="stat-label">{t('schedule.totalClaimedMinutes')}</span>
-                        <span className="stat-value">{report.totalMinutesReported} min</span>
+                        <span className="stat-value">{report.totalMinutesCalculated || report.totalMinutesReported} min</span>
                       </div>
                       <div className="total-stat">
                         <span className="stat-label">{t('schedule.lessonsCount')}</span>
                         <span className="stat-value">{report.totalLessonsCount}</span>
                       </div>
                       <div className="total-stat">
-                        <span className="stat-label">{t('schedule.totalClaimedLabel')}</span>
-                        <span className="stat-value">{report.totalMinutesCalculated} min</span>
+                        <span className="stat-label">{t('schedule.totalWageLabel')}</span>
+                        <span className="stat-value" style={{ color: '#16a34a', fontWeight: 800 }}>
+                          {report.totalWage || `${report.totalWageNumeric || 0} ₴`}
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -74,7 +74,25 @@ export async function POST(req) {
       async () => {
         const client = new SchoolmateClient();
 
-        // Preferred fast method: Direct native JSON scheduler API (~350ms)
+        // 1. Primary method: Rich Group Class Details with attendance, cancellation markers, and wage details (batches of 3)
+        try {
+          const schedule = await client.getTeacherClassesSchedule({
+            teacherId: numericTeacherId,
+            fromDate: normalizedFromDate,
+            toDate: normalizedToDate,
+            teacherName,
+            batchSize: 3
+          });
+
+          if (schedule && (schedule.totalLessonsCount > 0 || schedule.totalGroupsCount > 0)) {
+            await saveCachedReport(numericTeacherId, periodKey, schedule);
+            return schedule;
+          }
+        } catch (groupErr) {
+          console.warn('Group classes schedule error, falling back to JSON scheduler:', groupErr.message);
+        }
+
+        // 2. Secondary fallback: Direct native JSON scheduler API (~350ms)
         if (teacherName) {
           try {
             const schedule = await client.getTeacherWeeklySchedule({
@@ -91,7 +109,7 @@ export async function POST(req) {
           }
         }
 
-        // Secondary fallback: PDF generator and parser (~3.5s)
+        // 3. Tertiary fallback: PDF generator and parser (~3.5s)
         const { buffer } = await client.getTeacherSchedulePdf({
           teacherId: numericTeacherId,
           fromDate: normalizedFromDate,
@@ -110,12 +128,17 @@ export async function POST(req) {
       teacherName: parsedData.teacherName || teacherName,
       periodFrom: parsedData.periodFrom,
       periodTo: parsedData.periodTo,
-      totalMinutesReported: parsedData.totalMinutesReported,
+      totalMinutesReported: parsedData.totalMinutesReported || parsedData.totalMinutesCalculated,
       totalMinutesCalculated: parsedData.totalMinutesCalculated,
       totalLessonsCount: parsedData.totalLessonsCount,
-      isMinutesMatching: parsedData.isMinutesMatching,
-      days: parsedData.days,
-      lessons: parsedData.lessons,
+      totalWage: parsedData.totalWage || null,
+      totalWageNumeric: parsedData.totalWageNumeric || 0,
+      currencySymbol: parsedData.currencySymbol || '₴',
+      isMinutesMatching: parsedData.isMinutesMatching ?? true,
+      days: parsedData.days || [],
+      lessons: parsedData.lessons || [],
+      groups: parsedData.groups || [],
+      source: parsedData.source,
       cached: false,
       durationMs
     });
