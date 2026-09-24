@@ -305,14 +305,16 @@ function TeachersDirectoryContent() {
     };
   }, []);
 
+  // Target teachers for weekly lessons:
+  // When sorting by thisWeek, target all filtered teachers so sorting is stable and accurate.
+  // Otherwise, target visible paginated teachers.
+  const targetTeachers = useMemo(() => {
+    return sortField === 'thisWeek' ? filteredTeachers : paginatedTeachers;
+  }, [sortField, filteredTeachers, paginatedTeachers]);
+
   // Fetch weekly lessons on demand
   useEffect(() => {
-    if (!teachers.length) return;
-
-    // When sorting by thisWeek, load all filtered teachers so sort order is fully accurate and stable.
-    // Otherwise, fetch for visible paginated teachers.
-    const targetTeachers = sortField === 'thisWeek' ? filteredTeachers : paginatedTeachers;
-    if (!targetTeachers.length) return;
+    if (!teachers.length || !targetTeachers.length) return;
 
     const uncachedTeacherIds = [];
     for (const t of targetTeachers) {
@@ -377,7 +379,7 @@ function TeachersDirectoryContent() {
           return next;
         });
       });
-  }, [targetTeachers, weeklyLessons, currentWeekRange, sortField, filteredTeachers, paginatedTeachers, teachers.length]);
+  }, [targetTeachers, weeklyLessons, currentWeekRange, teachers.length]);
 
   // Handle Manual Form Submission
   const handleAddTeacher = async (e) => {
