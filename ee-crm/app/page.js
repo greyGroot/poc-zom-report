@@ -482,8 +482,24 @@ function TeachersDirectoryContent() {
     }
   };
 
+  // Compute current week date range string for header
+  const thisWeekDatesStr = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatShort = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    return `${formatShort(monday)} – ${formatShort(sunday)}`;
+  }, []);
+
   // Render Sortable Column Header
-  const renderSortHeader = (field, label, align = 'left') => {
+  const renderSortHeader = (field, label, align = 'left', sublabel = null) => {
     const isCurrent = sortField === field;
     return (
       <th
@@ -499,21 +515,35 @@ function TeachersDirectoryContent() {
         <div
           style={{
             display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            justifyContent: align === 'right' ? 'flex-end' : 'flex-start'
+            flexDirection: 'column',
+            alignItems: align === 'right' ? 'flex-end' : 'flex-start',
+            gap: 1
           }}
         >
-          <span>{label}</span>
-          <span
+          <div
             style={{
-              fontSize: 11,
-              color: isCurrent ? 'var(--primary, #2563eb)' : 'var(--text-muted, #94a3b8)',
-              fontWeight: isCurrent ? 700 : 400
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              justifyContent: align === 'right' ? 'flex-end' : 'flex-start'
             }}
           >
-            {isCurrent ? (sortOrder === 'asc' ? '▲' : '▼') : '⇅'}
-          </span>
+            <span>{label}</span>
+            <span
+              style={{
+                fontSize: 11,
+                color: isCurrent ? 'var(--primary, #2563eb)' : 'var(--text-muted, #94a3b8)',
+                fontWeight: isCurrent ? 700 : 400
+              }}
+            >
+              {isCurrent ? (sortOrder === 'asc' ? '▲' : '▼') : '⇅'}
+            </span>
+          </div>
+          {sublabel && (
+            <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>
+              {sublabel}
+            </span>
+          )}
         </div>
       </th>
     );
@@ -1027,7 +1057,7 @@ function TeachersDirectoryContent() {
                     {renderSortHeader('email', t('directory.email'))}
                     {renderSortHeader('schoolmateTeacherId', t('directory.tableColSchoolmateId'))}
                     {renderSortHeader('zoomStatus', t('directory.tableColZoom'))}
-                    {renderSortHeader('thisWeek', t('directory.tableColThisWeek'))}
+                    {renderSortHeader('thisWeek', t('directory.tableColThisWeek'), 'left', thisWeekDatesStr)}
                     <th style={{ textAlign: 'right' }}>{t('directory.tableColActions')}</th>
                   </tr>
                 </thead>
@@ -1042,20 +1072,6 @@ function TeachersDirectoryContent() {
                         <strong style={{ color: 'var(--text-primary)' }}>
                           {teacher.fullName || `${teacher.lastName} ${teacher.firstName}`.trim()}
                         </strong>
-                        {(teacher.phone || teacher.telegramId) && (
-                          <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                            {teacher.phone && (
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                📞 {teacher.phone}
-                              </span>
-                            )}
-                            {teacher.telegramId && (
-                              <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
-                                ✈️ {teacher.telegramId}
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </td>
                       <td>
                         <span style={{ color: 'var(--text-secondary)' }}>{teacher.email}</span>
