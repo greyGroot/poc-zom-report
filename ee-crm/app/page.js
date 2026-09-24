@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
+// Module-level in-memory cache for weekly lessons across client navigations
+const globalWeeklyLessonsCache = new Map();
+
 function TeachersDirectoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,7 +31,7 @@ function TeachersDirectoryContent() {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [weeklyLessons, setWeeklyLessons] = useState({});
+  const [weeklyLessons, setWeeklyLessons] = useState(() => Object.fromEntries(globalWeeklyLessonsCache.entries()));
   const [submitting, setSubmitting] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -311,12 +314,14 @@ function TeachersDirectoryContent() {
             const next = { ...prev };
             for (const [idStr, resData] of Object.entries(data.results)) {
               const idNum = Number(idStr);
-              next[idNum] = {
+              const record = {
                 loading: false,
                 totalLessons: resData.totalLessons,
                 totalMinutes: resData.totalMinutes || 0,
                 error: resData.error
               };
+              next[idNum] = record;
+              globalWeeklyLessonsCache.set(idNum, record);
             }
             return next;
           });
@@ -1100,7 +1105,7 @@ function TeachersDirectoryContent() {
                             >
                               <span>📅</span>
                               <span>
-                                {lessonInfo.totalLessons} {t('directory.lessonsShort', { count: lessonInfo.totalLessons })}
+                                {t('directory.lessonsShort', { count: lessonInfo.totalLessons })}
                               </span>
                             </span>
                           );
