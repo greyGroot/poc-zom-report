@@ -358,7 +358,8 @@ export default async function handler(reqOrRequest, optionalRes) {
 
   // Handle raw event logs export
   if (query.format === 'raw') {
-    const events = await getWebhookLogs(200);
+    const limit = query.limit !== undefined ? Number(query.limit) : 10000;
+    const events = await getWebhookLogs(limit);
     return responder.send(200, events);
   }
 

@@ -15,7 +15,7 @@ function TeachersDirectoryContent() {
   const initialLimit = ['10', '20', '50', '100', 'all'].includes(searchParams?.get('limit'))
     ? searchParams.get('limit')
     : '10';
-  const initialSort = ['name', 'email', 'schoolmateTeacherId', 'zoomStatus', 'createdAt'].includes(searchParams?.get('sort'))
+  const initialSort = ['name', 'email', 'schoolmateTeacherId', 'zoomStatus', 'thisWeek'].includes(searchParams?.get('sort'))
     ? searchParams.get('sort')
     : 'name';
   const initialOrder = searchParams?.get('order') === 'desc' ? 'desc' : 'asc';
@@ -28,6 +28,7 @@ function TeachersDirectoryContent() {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [weeklyLessons, setWeeklyLessons] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -242,9 +243,11 @@ function TeachersDirectoryContent() {
         const rank = { member: 1, pending: 2, not_invited: 3 };
         valA = rank[a.zoomStatus] || 3;
         valB = rank[b.zoomStatus] || 3;
-      } else if (sortField === 'createdAt') {
-        valA = new Date(a.createdAt || 0).getTime();
-        valB = new Date(b.createdAt || 0).getTime();
+      } else if (sortField === 'thisWeek') {
+        const smIdA = Number(a.schoolmateTeacherId);
+        const smIdB = Number(b.schoolmateTeacherId);
+        valA = weeklyLessons[smIdA]?.totalLessons ?? -1;
+        valB = weeklyLessons[smIdB]?.totalLessons ?? -1;
       } else {
         // Default: Teacher Name
         valA = (a.fullName || `${a.lastName} ${a.firstName}`).toLowerCase();
@@ -256,7 +259,7 @@ function TeachersDirectoryContent() {
       return 0;
     });
     return list;
-  }, [filteredTeachers, sortField, sortOrder]);
+  }, [filteredTeachers, sortField, sortOrder, weeklyLessons]);
 
   // Pagination Computations
   const totalItems = sortedTeachers.length;
@@ -270,6 +273,66 @@ function TeachersDirectoryContent() {
     const startIndex = (safePage - 1) * effectivePageSize;
     return sortedTeachers.slice(startIndex, startIndex + effectivePageSize);
   }, [sortedTeachers, isAll, safePage, effectivePageSize]);
+
+  // Fetch weekly lessons for visible teachers on demand
+  useEffect(() => {
+    if (!paginatedTeachers.length) return;
+
+    const uncachedTeacherIds = [];
+    for (const t of paginatedTeachers) {
+      const smId = Number(t.schoolmateTeacherId);
+      if (smId && weeklyLessons[smId] === undefined) {
+        uncachedTeacherIds.push(smId);
+      }
+    }
+
+    if (!uncachedTeacherIds.length) return;
+
+    // Set loading state for uncached
+    setWeeklyLessons(prev => {
+      const next = { ...prev };
+      for (const id of uncachedTeacherIds) {
+        if (!next[id]) {
+          next[id] = { loading: true, totalLessons: null };
+        }
+      }
+      return next;
+    });
+
+    fetch('/api/teachers/weekly-lessons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherIds: uncachedTeacherIds })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.results) {
+          setWeeklyLessons(prev => {
+            const next = { ...prev };
+            for (const [idStr, resData] of Object.entries(data.results)) {
+              const idNum = Number(idStr);
+              next[idNum] = {
+                loading: false,
+                totalLessons: resData.totalLessons,
+                totalMinutes: resData.totalMinutes || 0,
+                error: resData.error
+              };
+            }
+            return next;
+          });
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to fetch weekly lessons:', err.message);
+        setWeeklyLessons(prev => {
+          const next = { ...prev };
+          for (const id of uncachedTeacherIds) {
+            next[id] = { loading: false, totalLessons: null, error: 'failed' };
+          }
+          return next;
+        });
+      });
+  }, [paginatedTeachers, weeklyLessons]);
 
   // Handle Manual Form Submission
   const handleAddTeacher = async (e) => {
@@ -959,7 +1022,7 @@ function TeachersDirectoryContent() {
                     {renderSortHeader('email', t('directory.email'))}
                     {renderSortHeader('schoolmateTeacherId', t('directory.tableColSchoolmateId'))}
                     {renderSortHeader('zoomStatus', t('directory.tableColZoom'))}
-                    {renderSortHeader('createdAt', t('directory.tableColAdded'))}
+                    {renderSortHeader('thisWeek', t('directory.tableColThisWeek'))}
                     <th style={{ textAlign: 'right' }}>{t('directory.tableColActions')}</th>
                   </tr>
                 </thead>
@@ -1005,14 +1068,43 @@ function TeachersDirectoryContent() {
                       <td>
                         {renderZoomBadge(teacher.zoomStatus)}
                       </td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                        {teacher.createdAt
-                          ? new Date(teacher.createdAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : '—'}
+                      <td>
+                        {(() => {
+                          const smId = Number(teacher.schoolmateTeacherId);
+                          const lessonInfo = weeklyLessons[smId];
+
+                          if (!lessonInfo || lessonInfo.loading) {
+                            return <span className="skeleton-pill" />;
+                          }
+
+                          if (lessonInfo.totalLessons === null) {
+                            return <span style={{ color: 'var(--text-muted)', fontSize: 13 }} title="Timed out">—</span>;
+                          }
+
+                          if (lessonInfo.totalLessons === 0) {
+                            return <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>0</span>;
+                          }
+
+                          return (
+                            <span
+                              className="badge badge-primary"
+                              style={{
+                                fontWeight: 600,
+                                fontSize: 12,
+                                padding: '3px 8px',
+                                borderRadius: 12,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <span>📅</span>
+                              <span>
+                                {lessonInfo.totalLessons} {t('directory.lessonsShort', { count: lessonInfo.totalLessons })}
+                              </span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>

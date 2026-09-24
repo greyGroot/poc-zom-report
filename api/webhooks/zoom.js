@@ -318,8 +318,10 @@ export default async function handler(reqOrRequest, optionalRes) {
         participant_name: object.participant?.user_name || object.participant?.name || undefined,
         participant_email: object.participant?.email || object.participant?.user_email || undefined,
         participant_user_id: object.participant?.user_id !== undefined ? String(object.participant.user_id) : undefined,
+        participant_ip: object.participant?.public_ip || object.participant?.ip_address || undefined,
         details: {
           action: object.action || undefined,
+          ip_address: object.participant?.public_ip || object.participant?.ip_address || undefined,
           join_time: object.participant?.join_time || undefined,
           leave_time: object.participant?.leave_time || undefined,
           duration: object.duration !== undefined ? object.duration : undefined,
@@ -418,7 +420,7 @@ export default async function handler(reqOrRequest, optionalRes) {
       const rawName = (pRaw.user_name || pRaw.name || '').trim();
       const rawPhone = (pRaw.phone || pRaw.phone_number || '').trim();
       const joinTime = pRaw.join_time || new Date().toISOString();
-      const ipAddress = pRaw.ip_address || null;
+      const ipAddress = pRaw.public_ip || pRaw.ip_address || null;
 
       // Determine Host role: user_id '16778240' is Zoom's reserved host session ID
       const isHost = rawUserId === '16778240' ||

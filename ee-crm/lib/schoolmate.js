@@ -654,6 +654,9 @@ export class SchoolmateClient {
       const telegramId = (item.TelegramId || '').trim();
       const schoolmateLogin = (item.UserName || '').trim();
       const isArchived = Boolean(item.IsArchived);
+      const city = (item.City || '').trim();
+      const nationality = (item.Nationality || '').trim();
+      const contractType = (item.StrContractType || '').trim();
 
       return {
         schoolmateTeacherId: teacherId,
@@ -665,6 +668,9 @@ export class SchoolmateClient {
         telegramId,
         schoolmateLogin,
         isArchived,
+        city,
+        nationality,
+        contractType,
         createdDate: item.StrCreatedDate || ''
       };
     });

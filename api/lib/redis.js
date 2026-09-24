@@ -736,7 +736,7 @@ export async function recordWebhookLog(entry) {
     if (typeof redis.lpush === 'function') {
       await redis.lpush(WEBHOOK_LOGS_KEY, JSON.stringify(item));
       if (typeof redis.ltrim === 'function') {
-        await redis.ltrim(WEBHOOK_LOGS_KEY, 0, 199);
+        await redis.ltrim(WEBHOOK_LOGS_KEY, 0, 9999);
       }
     }
   } catch (err) {

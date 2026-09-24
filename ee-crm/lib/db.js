@@ -7,12 +7,14 @@ import crypto from 'node:crypto';
 const TEACHERS_KEY = 'ee:teachers:map';
 const LOGS_KEY = 'ee:app:logs';
 const REPORT_KEY_PREFIX = 'ee:report:';
+const WEEKLY_LESSONS_PREFIX = 'ee:lessons:week:';
 
 // In-Memory Fallback store for local testing
 class MemoryStore {
   constructor() {
     this.teachers = new Map();
     this.reports = new Map();
+    this.weeklyLessons = new Map();
     this.logs = [];
   }
 }
@@ -76,7 +78,10 @@ export async function createTeacher({
   phone,
   telegramId,
   zoomHostEmail,
-  schoolmateLogin
+  schoolmateLogin,
+  city,
+  nationality,
+  contractType
 }) {
   const id = `t_${crypto.randomUUID().substring(0, 8)}`;
   const teacher = {
@@ -89,6 +94,9 @@ export async function createTeacher({
     phone: phone?.trim() || '',
     telegramId: telegramId?.trim() || '',
     schoolmateLogin: schoolmateLogin?.trim() || '',
+    city: city?.trim() || '',
+    nationality: nationality?.trim() || '',
+    contractType: contractType?.trim() || '',
     zoomHostEmail: zoomHostEmail?.trim() || email?.trim() || '',
     createdAt: new Date().toISOString()
   };
@@ -163,6 +171,9 @@ export async function bulkUpsertTeachers(schoolmateTeachers = []) {
         phone: item.phone?.trim() || existing.phone || '',
         telegramId: item.telegramId?.trim() || existing.telegramId || '',
         schoolmateLogin: item.schoolmateLogin?.trim() || existing.schoolmateLogin || '',
+        city: item.city?.trim() || existing.city || '',
+        nationality: item.nationality?.trim() || existing.nationality || '',
+        contractType: item.contractType?.trim() || existing.contractType || '',
         isArchived: item.isArchived !== undefined ? Boolean(item.isArchived) : Boolean(existing.isArchived),
         zoomHostEmail: existing.zoomHostEmail || item.email?.trim() || '',
         updatedAt: new Date().toISOString()
@@ -182,6 +193,9 @@ export async function bulkUpsertTeachers(schoolmateTeachers = []) {
         phone: item.phone?.trim() || '',
         telegramId: item.telegramId?.trim() || '',
         schoolmateLogin: item.schoolmateLogin?.trim() || '',
+        city: item.city?.trim() || '',
+        nationality: item.nationality?.trim() || '',
+        contractType: item.contractType?.trim() || '',
         isArchived: Boolean(item.isArchived),
         zoomHostEmail: item.email?.trim() || '',
         createdAt: new Date().toISOString()
@@ -219,6 +233,70 @@ export async function bulkUpsertTeachers(schoolmateTeachers = []) {
     updated: updatedCount,
     totalTeachers: teachersMap.size
   };
+}
+
+/**
+ * Get weekly lessons summary cache from Redis/DB
+ * @param {string} weekKey e.g. '2026-09-21'
+ * @param {Array<number|string>} teacherIds
+ * @returns {Promise<Map<number, object>>}
+ */
+export async function getWeeklyLessonsCache(weekKey, teacherIds = []) {
+  const resultMap = new Map();
+  if (!weekKey || !teacherIds.length) return resultMap;
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const keys = teacherIds.map(id => `${WEEKLY_LESSONS_PREFIX}${weekKey}:${id}`);
+      if (keys.length > 0) {
+        const results = await redis.mget(...keys);
+        results.forEach((val, idx) => {
+          if (val) {
+            const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+            resultMap.set(Number(teacherIds[idx]), parsed);
+          }
+        });
+        return resultMap;
+      }
+    } catch (err) {
+      console.warn('[DB] Redis getWeeklyLessonsCache error, checking memory store:', err.message);
+    }
+  }
+
+  // Memory fallback
+  for (const id of teacherIds) {
+    const memKey = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${id}`;
+    if (memoryStore.weeklyLessons.has(memKey)) {
+      resultMap.set(Number(id), memoryStore.weeklyLessons.get(memKey));
+    }
+  }
+
+  return resultMap;
+}
+
+/**
+ * Save weekly lessons summary in Redis/DB with 24-hour TTL (86400s)
+ * @param {string} weekKey e.g. '2026-09-21'
+ * @param {number|string} teacherId
+ * @param {object} data e.g. { totalLessons, totalMinutes, totalWage }
+ * @param {number} [ttlSeconds=86400] 24 hours
+ */
+export async function setWeeklyLessonsCache(weekKey, teacherId, data, ttlSeconds = 86400) {
+  if (!weekKey || !teacherId) return;
+  const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
+      return;
+    } catch (err) {
+      console.warn('[DB] Redis setWeeklyLessonsCache error, saving to memory:', err.message);
+    }
+  }
+
+  memoryStore.weeklyLessons.set(key, data);
 }
 
 

@@ -437,7 +437,7 @@
 
     async function fetchEvents() {
       try {
-        const res = await fetch('/api/telemetry?format=raw');
+        const res = await fetch('/api/telemetry?format=raw&limit=10000');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         eventsData = await res.json();
         if (!Array.isArray(eventsData)) eventsData = [];
@@ -468,6 +468,8 @@
           who = '<strong>' + escapeHtml(item.participant_name) + '</strong>';
           if (item.participant_email) who += '<br><span style="color: #64748b; font-size: 11px;">✉️ ' + escapeHtml(item.participant_email) + '</span>';
           if (item.participant_user_id) who += '<br><span style="color: #64748b; font-size: 11px;">ID: <code>' + escapeHtml(item.participant_user_id) + '</code></span>';
+          const ip = item.participant_ip || item.details?.ip_address;
+          if (ip) who += '<br><span style="color: #64748b; font-size: 11px;">🌐 IP: <code>' + escapeHtml(ip) + '</code></span>';
         } else if (item.host_email) {
           who = 'Організатор: <strong>' + escapeHtml(item.host_email) + '</strong>';
         } else if (item.message) {

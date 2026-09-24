@@ -234,6 +234,26 @@ export default function TeacherSchedulePage() {
                   ✈️ {t('schedule.telegram')}: {teacher.telegramId}
                 </span>
               )}
+              {teacher?.city && (
+                <span className="badge badge-neutral">
+                  📍 {t('schedule.city') || 'City'}: {teacher.city}
+                </span>
+              )}
+              {teacher?.nationality && (
+                <span className="badge badge-neutral">
+                  🌍 {t('schedule.nationality') || 'Nationality'}: {teacher.nationality}
+                </span>
+              )}
+              {teacher?.contractType && (
+                <span className="badge badge-info" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  📄 {teacher.contractType}
+                </span>
+              )}
+              {teacher?.schoolmateLogin && (
+                <span className="badge badge-neutral">
+                  👤 Login: {teacher.schoolmateLogin}
+                </span>
+              )}
             </div>
           </div>
         </div>
