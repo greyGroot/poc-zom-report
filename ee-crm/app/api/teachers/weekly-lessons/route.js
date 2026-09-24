@@ -37,7 +37,7 @@ function getCurrentWeekRange() {
 }
 
 function normalize(s) {
-  return (s || '').toLowerCase().trim();
+  return (s || '').toLowerCase().replace(/['`’]/g, "'").replace(/\s+/g, ' ').trim();
 }
 
 export async function POST(req) {
@@ -136,8 +136,12 @@ export async function POST(req) {
     }
 
     // Aggregate lessons from scheduler events
+    const seenLessonIds = new Set();
     for (const ev of (schedulerData.events || [])) {
       for (const l of (ev.SchedulerLessons || [])) {
+        if (l.GroupLessonId && seenLessonIds.has(l.GroupLessonId)) continue;
+        if (l.GroupLessonId) seenLessonIds.add(l.GroupLessonId);
+
         const rawName = normalize(l.Teacher);
         if (!rawName) continue;
 
@@ -171,20 +175,22 @@ export async function POST(req) {
     // Save all computed teacher summaries to Redis cache (24h TTL)
     await setMultipleWeeklyLessonsCache(weekKey, computedSummaries, 86400);
 
-    // Populate response for requested teachers
+    // Populate response for requested teachers without overwriting cached ones
     for (const id of validIds) {
-      if (computedSummaries.has(id)) {
-        results[id] = {
-          ...computedSummaries.get(id),
-          cached: false
-        };
-      } else if (!results[id]) {
-        results[id] = {
-          totalLessons: 0,
-          totalMinutes: 0,
-          totalWage: '0 ₴',
-          cached: false
-        };
+      if (!results[id]) {
+        if (computedSummaries.has(id)) {
+          results[id] = {
+            ...computedSummaries.get(id),
+            cached: false
+          };
+        } else {
+          results[id] = {
+            totalLessons: 0,
+            totalMinutes: 0,
+            totalWage: '0 ₴',
+            cached: false
+          };
+        }
       }
     }
 

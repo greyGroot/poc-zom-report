@@ -313,12 +313,16 @@ export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds
   const redis = getRedisClient();
   if (redis) {
     try {
-      const pipeline = redis.pipeline();
-      for (const [teacherId, data] of entriesList) {
-        const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
-        pipeline.set(key, JSON.stringify(data), { ex: ttlSeconds });
+      // Chunk pipeline execution in batches of 100
+      for (let i = 0; i < entriesList.length; i += 100) {
+        const chunk = entriesList.slice(i, i + 100);
+        const pipeline = redis.pipeline();
+        for (const [teacherId, data] of chunk) {
+          const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
+          pipeline.set(key, JSON.stringify(data), { ex: ttlSeconds });
+        }
+        await pipeline.exec();
       }
-      await pipeline.exec();
       return;
     } catch (err) {
       console.warn('[DB] Redis setMultipleWeeklyLessonsCache error, saving to memory:', err.message);
@@ -344,8 +348,10 @@ export async function pruneAllCaches() {
         ...(Array.isArray(lessonKeys) ? lessonKeys : []),
         ...(Array.isArray(reportKeys) ? reportKeys : [])
       ];
-      if (allKeys.length > 0) {
-        await redis.del(...allKeys);
+      // Chunk key deletion in batches of 100
+      for (let i = 0; i < allKeys.length; i += 100) {
+        const batch = allKeys.slice(i, i + 100);
+        await redis.del(...batch);
       }
     } catch (err) {
       console.warn('[DB] Redis pruneAllCaches error, clearing memory store:', err.message);

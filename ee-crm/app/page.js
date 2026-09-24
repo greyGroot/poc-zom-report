@@ -277,12 +277,45 @@ function TeachersDirectoryContent() {
     return sortedTeachers.slice(startIndex, startIndex + effectivePageSize);
   }, [sortedTeachers, isAll, safePage, effectivePageSize]);
 
-  // Fetch weekly lessons for visible teachers on demand
+  // Compute current week date range (Monday - Sunday) in 'YYYY-MM-DD'
+  const currentWeekRange = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatIso = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dt = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dt}`;
+    };
+
+    const formatShort = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+    return {
+      fromDate: formatIso(monday),
+      toDate: formatIso(sunday),
+      displayStr: `${formatShort(monday)} – ${formatShort(sunday)}`
+    };
+  }, []);
+
+  // Fetch weekly lessons on demand
   useEffect(() => {
-    if (!paginatedTeachers.length) return;
+    if (!teachers.length) return;
+
+    // When sorting by thisWeek, load all filtered teachers so sort order is fully accurate and stable.
+    // Otherwise, fetch for visible paginated teachers.
+    const targetTeachers = sortField === 'thisWeek' ? filteredTeachers : paginatedTeachers;
+    if (!targetTeachers.length) return;
 
     const uncachedTeacherIds = [];
-    for (const t of paginatedTeachers) {
+    for (const t of targetTeachers) {
       const smId = Number(t.schoolmateTeacherId);
       if (smId && (weeklyLessons[smId] === undefined || (weeklyLessons[smId]?.error && !weeklyLessons[smId]?.loading))) {
         uncachedTeacherIds.push(smId);
@@ -303,9 +336,16 @@ function TeachersDirectoryContent() {
     fetch('/api/teachers/weekly-lessons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ teacherIds: uncachedTeacherIds })
+      body: JSON.stringify({
+        teacherIds: uncachedTeacherIds,
+        fromDate: currentWeekRange.fromDate,
+        toDate: currentWeekRange.toDate
+      })
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data?.results) {
           setWeeklyLessons(prev => {
@@ -337,7 +377,7 @@ function TeachersDirectoryContent() {
           return next;
         });
       });
-  }, [paginatedTeachers, weeklyLessons]);
+  }, [targetTeachers, weeklyLessons, currentWeekRange, sortField, filteredTeachers, paginatedTeachers, teachers.length]);
 
   // Handle Manual Form Submission
   const handleAddTeacher = async (e) => {
@@ -486,21 +526,8 @@ function TeachersDirectoryContent() {
     }
   };
 
-  // Compute current week date range string for header
-  const thisWeekDatesStr = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const formatShort = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    return `${formatShort(monday)} – ${formatShort(sunday)}`;
-  }, []);
+  // Date range display string for header
+  const thisWeekDatesStr = currentWeekRange.displayStr;
 
   // Render Sortable Column Header
   const renderSortHeader = (field, label, align = 'left', sublabel = null) => {
