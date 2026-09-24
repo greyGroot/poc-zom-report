@@ -117,6 +117,24 @@ function TeachersDirectoryContent() {
     fetchTeachers();
   }, [fetchTeachers]);
 
+  // Auto-dismiss success notification after 5 seconds
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => {
+      setSuccessMessage(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
+  // Auto-dismiss error notification after 8 seconds
+  useEffect(() => {
+    if (!errorMessage) return;
+    const timer = setTimeout(() => {
+      setErrorMessage(null);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [errorMessage]);
+
   // Handle Sort Click
   const handleSort = (field) => {
     let nextOrder = 'asc';
