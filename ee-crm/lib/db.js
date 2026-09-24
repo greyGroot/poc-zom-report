@@ -299,6 +299,31 @@ export async function setWeeklyLessonsCache(weekKey, teacherId, data, ttlSeconds
   memoryStore.weeklyLessons.set(key, data);
 }
 
+/**
+ * Prunes all weekly lessons and report caches from Redis and in-memory store
+ */
+export async function pruneAllCaches() {
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const lessonKeys = await redis.keys(`${WEEKLY_LESSONS_PREFIX}*`);
+      const reportKeys = await redis.keys(`${REPORT_KEY_PREFIX}*`);
+      const allKeys = [
+        ...(Array.isArray(lessonKeys) ? lessonKeys : []),
+        ...(Array.isArray(reportKeys) ? reportKeys : [])
+      ];
+      if (allKeys.length > 0) {
+        await redis.del(...allKeys);
+      }
+    } catch (err) {
+      console.warn('[DB] Redis pruneAllCaches error, clearing memory store:', err.message);
+    }
+  }
+
+  memoryStore.weeklyLessons.clear();
+  memoryStore.reports.clear();
+}
+
 
 // -------------------------------------------------------------
 // Report Cache

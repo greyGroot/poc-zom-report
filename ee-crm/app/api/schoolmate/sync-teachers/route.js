@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { SchoolmateClient } from '@/lib/schoolmate.js';
-import { bulkUpsertTeachers, getTeachers } from '@/lib/db.js';
+import { bulkUpsertTeachers, getTeachers, pruneAllCaches } from '@/lib/db.js';
 import { getZoomUsersStatusMap } from '@/lib/zoom.js';
 import { logger } from '@/lib/logger.js';
 
@@ -12,10 +12,13 @@ export async function POST() {
   try {
     const client = new SchoolmateClient();
     
-    // 1. Fetch all teachers from Schoolmate
+    // 1. Prune existing caches so fresh data is retrieved on demand
+    await pruneAllCaches();
+
+    // 2. Fetch all teachers from Schoolmate
     const schoolmateTeachers = await client.fetchTeachersList({ pageSize: 300 });
 
-    // 2. Bulk upsert with deduplication
+    // 3. Bulk upsert with deduplication
     const stats = await bulkUpsertTeachers(schoolmateTeachers);
 
     // 3. Fetch full enriched list with Zoom statuses

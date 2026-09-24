@@ -422,6 +422,10 @@ function TeachersDirectoryContent() {
       setErrorMessage(null);
       setSuccessMessage(null);
 
+      // Prune client-side weekly lessons cache so table reloads fresh counts
+      globalWeeklyLessonsCache.clear();
+      setWeeklyLessons({});
+
       const res = await fetch('/api/schoolmate/sync-teachers', {
         method: 'POST'
       });
@@ -828,27 +832,6 @@ function TeachersDirectoryContent() {
             <span>👥</span>
             <span>{t('common.teachers')} ({totalItems}{totalItems !== teachers.length ? ` / ${teachers.length}` : ''})</span>
           </h2>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
-              onClick={fetchTeachers}
-              className="btn btn-sm btn-secondary"
-              disabled={loading}
-              title={t('common.refresh')}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner spinner-dark"></span>
-                  <span>{t('common.loading')}</span>
-                </>
-              ) : (
-                <>
-                  <span>🔄</span>
-                  <span>{t('common.refresh')}</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* Filter & Search Bar */}
