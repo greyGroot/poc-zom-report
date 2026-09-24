@@ -1,9 +1,9 @@
 // ee-crm/app/api/teachers/weekly-lessons/route.js
-// Batch retrieves weekly planned lessons for teachers with a strict 2-second per-teacher timeout and 24-hour Redis caching
+// Batch retrieves weekly planned lessons for teachers using fast calendar aggregation and 24-hour Redis caching
 
 import { NextResponse } from 'next/server';
 import { SchoolmateClient } from '@/lib/schoolmate.js';
-import { getWeeklyLessonsCache, setWeeklyLessonsCache } from '@/lib/db.js';
+import { getWeeklyLessonsCache, setMultipleWeeklyLessonsCache, getTeachers } from '@/lib/db.js';
 
 /**
  * Compute current week date range (Monday - Sunday) in 'YYYY-MM-DD'
@@ -36,6 +36,10 @@ function getCurrentWeekRange() {
   };
 }
 
+function normalize(s) {
+  return (s || '').toLowerCase().trim();
+}
+
 export async function POST(req) {
   try {
     let body;
@@ -55,8 +59,9 @@ export async function POST(req) {
       ? getCurrentWeekRange()
       : { fromDate: customFrom, toDate: customTo, weekKey: customFrom };
 
-    // 1. Check 24-hour DB/Redis cache
     const validIds = teacherIds.map(id => Number(id)).filter(id => !isNaN(id) && id > 0);
+
+    // 1. Check 24-hour DB/Redis cache
     const cachedMap = await getWeeklyLessonsCache(weekKey, validIds);
 
     const results = {};
@@ -73,7 +78,7 @@ export async function POST(req) {
       }
     }
 
-    // 2. If all are cached, return immediately (<5ms)
+    // 2. If all requested teachers are cached, return immediately (<5ms)
     if (uncachedIds.length === 0) {
       return NextResponse.json({
         results,
@@ -81,77 +86,114 @@ export async function POST(req) {
       });
     }
 
-    // 3. Fetch missing teachers with strict 2-second timeout per teacher
+    // 3. Fast Weekly Calendar Event Aggregation from Schoolmate
+    // A single call to Schoolmate scheduler returns all lessons for the entire school in ~400ms
     const client = new SchoolmateClient();
-    try {
-      await client.ensureAuthenticated();
-    } catch (authErr) {
-      console.warn('[WEEKLY_LESSONS] Schoolmate auth error:', authErr.message);
+    let [dbTeachers, schedulerData] = await Promise.all([
+      getTeachers(),
+      client.getSchedulerEvents({ date: fromDate })
+    ]);
+
+    if (!dbTeachers || dbTeachers.length === 0) {
+      try {
+        dbTeachers = await client.fetchTeachersList({ pageSize: 300 });
+      } catch {
+        dbTeachers = [];
+      }
     }
 
-    // Run parallel fetches for uncached teachers (max 5 concurrent)
-    const fetchTeacherWeekly = async (teacherId) => {
-      const timeoutMs = 6000; // 6-second timeout to allow teachers with multiple groups to finish
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
-      );
+    // Build teacher lookup dictionaries
+    const byName = new Map();
+    const byLastName = new Map();
 
-      try {
-        const report = await Promise.race([
-          client.getTeacherClassesSchedule({
-            teacherId,
-            fromDate,
-            toDate,
-            batchSize: 5
-          }),
-          timeoutPromise
-        ]);
+    for (const t of dbTeachers) {
+      const full = normalize(t.fullName);
+      const lastFirst = normalize(`${t.lastName} ${t.firstName}`);
+      const firstLast = normalize(`${t.firstName} ${t.lastName}`);
+      if (full) byName.set(full, t);
+      if (lastFirst) byName.set(lastFirst, t);
+      if (firstLast) byName.set(firstLast, t);
+      if (t.lastName) {
+        const ln = normalize(t.lastName);
+        if (!byLastName.has(ln)) byLastName.set(ln, []);
+        byLastName.get(ln).push(t);
+      }
+    }
 
-        const lessonSummary = {
-          totalLessons: report.totalLessonsCount || 0,
-          totalMinutes: report.totalMinutesCalculated || 0,
-          totalWage: report.totalWage || '0 ₴',
-          cachedAt: new Date().toISOString()
-        };
+    // Initialize all known teachers with 0 lessons
+    const computedSummaries = new Map();
+    const nowIso = new Date().toISOString();
+    for (const t of dbTeachers) {
+      const smId = Number(t.schoolmateTeacherId);
+      if (smId) {
+        computedSummaries.set(smId, {
+          totalLessons: 0,
+          totalMinutes: 0,
+          totalWage: '0 ₴',
+          cachedAt: nowIso
+        });
+      }
+    }
 
-        // Cache in Redis/DB for 24 hours (86400s)
-        await setWeeklyLessonsCache(weekKey, teacherId, lessonSummary, 86400);
+    // Aggregate lessons from scheduler events
+    for (const ev of (schedulerData.events || [])) {
+      for (const l of (ev.SchedulerLessons || [])) {
+        const rawName = normalize(l.Teacher);
+        if (!rawName) continue;
 
-        return {
-          teacherId,
-          data: {
-            ...lessonSummary,
-            cached: false
+        let found = byName.get(rawName);
+        if (!found) {
+          const parts = rawName.split(/\s+/).filter(Boolean);
+          for (const part of parts) {
+            const candidates = byLastName.get(part);
+            if (candidates && candidates.length === 1) {
+              found = candidates[0];
+              break;
+            }
           }
-        };
-      } catch (err) {
-        return {
-          teacherId,
-          data: {
-            totalLessons: null,
+        }
+
+        if (found && found.schoolmateTeacherId) {
+          const id = Number(found.schoolmateTeacherId);
+          const cur = computedSummaries.get(id) || {
+            totalLessons: 0,
             totalMinutes: 0,
-            error: err.message === 'TIMEOUT' ? 'timeout' : err.message,
-            cached: false
-          }
+            totalWage: '0 ₴',
+            cachedAt: nowIso
+          };
+          cur.totalLessons += 1;
+          cur.totalMinutes += (Number(l.DefaultLessonLength) || 60);
+          computedSummaries.set(id, cur);
+        }
+      }
+    }
+
+    // Save all computed teacher summaries to Redis cache (24h TTL)
+    await setMultipleWeeklyLessonsCache(weekKey, computedSummaries, 86400);
+
+    // Populate response for requested teachers
+    for (const id of validIds) {
+      if (computedSummaries.has(id)) {
+        results[id] = {
+          ...computedSummaries.get(id),
+          cached: false
+        };
+      } else if (!results[id]) {
+        results[id] = {
+          totalLessons: 0,
+          totalMinutes: 0,
+          totalWage: '0 ₴',
+          cached: false
         };
       }
-    };
-
-    // Execute batch
-    const fetchPromises = uncachedIds.map(id => fetchTeacherWeekly(id));
-    const settleResults = await Promise.allSettled(fetchPromises);
-
-    settleResults.forEach(res => {
-      if (res.status === 'fulfilled' && res.value) {
-        results[res.value.teacherId] = res.value.data;
-      }
-    });
+    }
 
     return NextResponse.json({
       results,
       weekRange: { fromDate, toDate, weekKey }
     });
   } catch (err) {
+    console.error('[WEEKLY_LESSONS] Error computing weekly lessons:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

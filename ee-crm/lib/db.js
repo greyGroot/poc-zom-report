@@ -300,6 +300,38 @@ export async function setWeeklyLessonsCache(weekKey, teacherId, data, ttlSeconds
 }
 
 /**
+ * Save multiple weekly lessons summaries in Redis/DB with 24-hour TTL (86400s)
+ * @param {string} weekKey e.g. '2026-09-21'
+ * @param {Map<number, object>|Array<[number, object]>} entries
+ * @param {number} [ttlSeconds=86400]
+ */
+export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds = 86400) {
+  if (!weekKey || !entries) return;
+  const entriesList = entries instanceof Map ? Array.from(entries.entries()) : entries;
+  if (!entriesList.length) return;
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const pipeline = redis.pipeline();
+      for (const [teacherId, data] of entriesList) {
+        const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
+        pipeline.set(key, JSON.stringify(data), { ex: ttlSeconds });
+      }
+      await pipeline.exec();
+      return;
+    } catch (err) {
+      console.warn('[DB] Redis setMultipleWeeklyLessonsCache error, saving to memory:', err.message);
+    }
+  }
+
+  for (const [teacherId, data] of entriesList) {
+    const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
+    memoryStore.weeklyLessons.set(key, data);
+  }
+}
+
+/**
  * Prunes all weekly lessons and report caches from Redis and in-memory store
  */
 export async function pruneAllCaches() {

@@ -284,7 +284,7 @@ function TeachersDirectoryContent() {
     const uncachedTeacherIds = [];
     for (const t of paginatedTeachers) {
       const smId = Number(t.schoolmateTeacherId);
-      if (smId && weeklyLessons[smId] === undefined) {
+      if (smId && (weeklyLessons[smId] === undefined || (weeklyLessons[smId]?.error && !weeklyLessons[smId]?.loading))) {
         uncachedTeacherIds.push(smId);
       }
     }
@@ -295,9 +295,7 @@ function TeachersDirectoryContent() {
     setWeeklyLessons(prev => {
       const next = { ...prev };
       for (const id of uncachedTeacherIds) {
-        if (!next[id]) {
-          next[id] = { loading: true, totalLessons: null };
-        }
+        next[id] = { loading: true, totalLessons: null };
       }
       return next;
     });
@@ -316,12 +314,14 @@ function TeachersDirectoryContent() {
               const idNum = Number(idStr);
               const record = {
                 loading: false,
-                totalLessons: resData.totalLessons,
+                totalLessons: resData.totalLessons ?? 0,
                 totalMinutes: resData.totalMinutes || 0,
-                error: resData.error
+                error: resData.error || null
               };
               next[idNum] = record;
-              globalWeeklyLessonsCache.set(idNum, record);
+              if (resData.totalLessons !== null && !resData.error) {
+                globalWeeklyLessonsCache.set(idNum, record);
+              }
             }
             return next;
           });
