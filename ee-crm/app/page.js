@@ -27,6 +27,7 @@ function TeachersDirectoryContent() {
   // Data & UI State
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -346,6 +347,41 @@ function TeachersDirectoryContent() {
     }
   };
 
+  // Handle Sync from Schoolmate
+  const handleSyncSchoolmateTeachers = async () => {
+    try {
+      setSyncing(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      const res = await fetch('/api/schoolmate/sync-teachers', {
+        method: 'POST'
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || t('directory.syncFailed'));
+      }
+
+      if (Array.isArray(data.teachers)) {
+        setTeachers(data.teachers);
+      }
+
+      const { totalFetched, created, updated } = data.stats || {};
+      setSuccessMessage(
+        t('directory.syncSuccess', {
+          total: totalFetched || data.teachers?.length || 0,
+          created: created ?? 0,
+          updated: updated ?? 0
+        })
+      );
+    } catch (err) {
+      setErrorMessage(err.message || t('directory.syncFailed'));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Confirm Delete Teacher from Modal
   const confirmDeleteTeacher = async () => {
     if (!teacherToDelete) return;
@@ -520,8 +556,8 @@ function TeachersDirectoryContent() {
         </div>
       )}
 
-      {/* Action Bar: Add Teacher Button */}
-      <div style={{ marginBottom: 20 }}>
+      {/* Action Bar: Add Teacher & Sync from Schoolmate Buttons */}
+      <div style={{ marginBottom: 20, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <button
           type="button"
           className="btn btn-secondary"
@@ -529,6 +565,23 @@ function TeachersDirectoryContent() {
           style={{ padding: '9px 18px', fontSize: 14 }}
         >
           <span>{isAddFormOpen ? t('directory.closeFormBtn') : t('directory.addTeacherBtn')}</span>
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleSyncSchoolmateTeachers}
+          disabled={syncing}
+          style={{ padding: '9px 18px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          {syncing ? (
+            <>
+              <span className="spinner"></span>
+              <span>{t('directory.syncingBtn')}</span>
+            </>
+          ) : (
+            <span>{t('directory.syncFromSchoolmateBtn')}</span>
+          )}
         </button>
       </div>
 

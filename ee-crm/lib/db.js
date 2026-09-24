@@ -120,6 +120,108 @@ export async function deleteTeacher(id) {
   return memoryStore.teachers.delete(String(id));
 }
 
+/**
+ * Bulk upsert teachers from Schoolmate with deduplication
+ * Matches by schoolmateTeacherId or email, preserving existing IDs and custom fields.
+ * @param {Array<object>} schoolmateTeachers
+ * @returns {Promise<{ totalFetched: number, created: number, updated: number, totalTeachers: number }>}
+ */
+export async function bulkUpsertTeachers(schoolmateTeachers = []) {
+  const existingTeachers = await getTeachers();
+  const bySmId = new Map();
+  const byEmail = new Map();
+
+  for (const t of existingTeachers) {
+    if (t.schoolmateTeacherId) {
+      bySmId.set(Number(t.schoolmateTeacherId), t);
+    }
+    if (t.email) {
+      byEmail.set(t.email.trim().toLowerCase(), t);
+    }
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  const teachersMap = new Map(existingTeachers.map(t => [t.id, t]));
+
+  for (const item of schoolmateTeachers) {
+    const smId = Number(item.schoolmateTeacherId);
+    const email = (item.email || '').trim().toLowerCase();
+
+    // Match existing teacher
+    const existing = (smId ? bySmId.get(smId) : null) || (email ? byEmail.get(email) : null);
+
+    if (existing) {
+      // Update existing record
+      const updatedTeacher = {
+        ...existing,
+        firstName: item.firstName?.trim() || existing.firstName || '',
+        lastName: item.lastName?.trim() || existing.lastName || '',
+        fullName: item.fullName?.trim() || existing.fullName || `${item.lastName} ${item.firstName}`.trim(),
+        email: existing.email || item.email?.trim() || '',
+        schoolmateTeacherId: smId || existing.schoolmateTeacherId,
+        phone: item.phone?.trim() || existing.phone || '',
+        telegramId: item.telegramId?.trim() || existing.telegramId || '',
+        schoolmateLogin: item.schoolmateLogin?.trim() || existing.schoolmateLogin || '',
+        isArchived: item.isArchived !== undefined ? Boolean(item.isArchived) : Boolean(existing.isArchived),
+        zoomHostEmail: existing.zoomHostEmail || item.email?.trim() || '',
+        updatedAt: new Date().toISOString()
+      };
+      teachersMap.set(existing.id, updatedTeacher);
+      updatedCount++;
+    } else {
+      // Create new record
+      const newId = `t_${crypto.randomUUID().substring(0, 8)}`;
+      const newTeacher = {
+        id: newId,
+        firstName: item.firstName?.trim() || '',
+        lastName: item.lastName?.trim() || '',
+        fullName: item.fullName?.trim() || `${item.lastName} ${item.firstName}`.trim() || 'Teacher',
+        email: item.email?.trim() || '',
+        schoolmateTeacherId: smId,
+        phone: item.phone?.trim() || '',
+        telegramId: item.telegramId?.trim() || '',
+        schoolmateLogin: item.schoolmateLogin?.trim() || '',
+        isArchived: Boolean(item.isArchived),
+        zoomHostEmail: item.email?.trim() || '',
+        createdAt: new Date().toISOString()
+      };
+      teachersMap.set(newId, newTeacher);
+      if (smId) bySmId.set(smId, newTeacher);
+      if (email) byEmail.set(email, newTeacher);
+      createdCount++;
+    }
+  }
+
+  // Persist all updated records to Redis or MemoryStore
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const recordsToSet = {};
+      for (const [id, teacher] of teachersMap.entries()) {
+        recordsToSet[id] = JSON.stringify(teacher);
+      }
+      if (Object.keys(recordsToSet).length > 0) {
+        await redis.hset(TEACHERS_KEY, recordsToSet);
+      }
+    } catch (err) {
+      console.warn('[DB] Redis bulkUpsertTeachers error, updating memory store:', err.message);
+    }
+  }
+
+  for (const [id, teacher] of teachersMap.entries()) {
+    memoryStore.teachers.set(id, teacher);
+  }
+
+  return {
+    totalFetched: schoolmateTeachers.length,
+    created: createdCount,
+    updated: updatedCount,
+    totalTeachers: teachersMap.size
+  };
+}
+
+
 // -------------------------------------------------------------
 // Report Cache
 // -------------------------------------------------------------

@@ -593,4 +593,81 @@ export class SchoolmateClient {
       durationMs
     };
   }
+
+  /**
+   * Fetch full list of teachers from Schoolmate portal
+   * @param {object} [options]
+   * @param {number} [options.pageSize=300]
+   * @param {number} [options.pageIndex=1]
+   * @returns {Promise<Array<object>>} List of mapped teacher objects
+   */
+  async fetchTeachersList(options = {}) {
+    await this.ensureAuthenticated();
+
+    const pageSize = options.pageSize || 300;
+    const pageIndex = options.pageIndex || 1;
+    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
+    const url = `${this.baseUrl}/teacher/teacherlist`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'Accept': 'application/json, text/plain, */*'
+      },
+      body: JSON.stringify({
+        searchParams: {
+          LastWorkingRecordId: '',
+          RecordType: 'undefined',
+          MasterSearch: ''
+        },
+        sortIndex: 'LastName',
+        sortDirection: 'ASC',
+        oldSortIndex: 'LastName',
+        oldsortDirection: 'ASC',
+        pageSize,
+        pageIndex,
+        requestuserId: this.requestUserId,
+        roleId: 2
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Schoolmate teacherlist error (${res.status}): ${errText}`);
+    }
+
+    const data = await res.json();
+    if (!data.IsSuccess) {
+      throw new Error(`Schoolmate teacherlist returned error: ${data.Message || 'Unknown error'}`);
+    }
+
+    const rawList = data.Data?.ListItems || [];
+    return rawList.map(item => {
+      const teacherId = Number(item.TeacherId || item.PrimaryKeyId);
+      const firstName = (item.FirstName || '').trim();
+      const lastName = (item.LastName || '').trim();
+      const fullName = (item.CalendarHeadName || `${lastName} ${firstName}`).trim() || 'Teacher';
+      const email = (item.Email || '').trim().toLowerCase();
+      const phone = (item.Phone || item.Mobile || '').trim();
+      const telegramId = (item.TelegramId || '').trim();
+      const schoolmateLogin = (item.UserName || '').trim();
+      const isArchived = Boolean(item.IsArchived);
+
+      return {
+        schoolmateTeacherId: teacherId,
+        firstName,
+        lastName,
+        fullName,
+        email,
+        phone,
+        telegramId,
+        schoolmateLogin,
+        isArchived,
+        createdDate: item.StrCreatedDate || ''
+      };
+    });
+  }
 }
+
