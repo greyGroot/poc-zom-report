@@ -443,23 +443,24 @@ export default function TeacherSchedulePage() {
                                       ⏱️ {lesson.durationMinutes} min
                                     </span>
 
-                                    {/* Status Badge with Tooltip if Cancelled / Special */}
-                                    {hasStatus && (
+                                    {/* Status Chip near duration */}
+                                    {hasStatus ? (
                                       <div className="sm-tooltip-wrapper">
-                                        <span
-                                          className="badge"
-                                          style={{
-                                            backgroundColor: statusColor ? `${statusColor}22` : '#fef3c7',
-                                            color: statusColor || '#b45309',
-                                            borderColor: statusColor || '#fcd34d',
-                                            fontSize: 11,
-                                            fontWeight: 600
-                                          }}
-                                        >
+                                        <span className={`lesson-status-chip ${
+                                          lesson.lessonStatusName?.toLowerCase().includes('advance')
+                                            ? 'chip-cancelled-advance'
+                                            : lesson.lessonStatusName?.toLowerCase().includes('last')
+                                              ? 'chip-last-minute'
+                                              : 'chip-late-cancellation'
+                                        }`}>
                                           {lesson.lessonStatusName}
                                         </span>
                                         <span className="sm-tooltip-text">{lesson.lessonStatusName}</span>
                                       </div>
+                                    ) : (
+                                      <span className="lesson-status-chip chip-completed">
+                                        Completed
+                                      </span>
                                     )}
                                   </div>
 
@@ -490,34 +491,6 @@ export default function TeacherSchedulePage() {
                                       <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
                                       <span className="lesson-detail-val">
                                         <span className="badge badge-info">{lesson.className || 'GE'}</span>
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Status</span>
-                                      <span className="lesson-detail-val" style={{ color: statusColor || 'inherit' }}>
-                                        {lesson.lessonStatusName || 'Completed / Normal'}
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Attendance Checked</span>
-                                      <span className="lesson-detail-val">
-                                        {lesson.attendanceChecked ? 'Yes ✅' : 'No ❌'}
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Class Details Added</span>
-                                      <span className="lesson-detail-val">
-                                        {lesson.classDetailsAdded ? 'Yes ✅' : 'No ❌'}
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Teacher Rate</span>
-                                      <span className="lesson-detail-val">
-                                        {lesson.teacherRate || `${lesson.teacherRatePerLesson} ₴`}
                                       </span>
                                     </div>
 
