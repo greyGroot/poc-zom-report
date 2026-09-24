@@ -145,7 +145,7 @@ export default function AirbnbDatePicker({
         newTo = tempStart;
       }
 
-      onChange({ fromDate: newFrom, toDate: newTo });
+      onChange({ fromDate: newFrom, toDate: newTo, preset: null });
       setSelectionState(null);
       setTempStart(null);
       setHoverDate(null);
@@ -158,7 +158,7 @@ export default function AirbnbDatePicker({
     const y = new Date();
     y.setDate(y.getDate() - 1);
     const dateStr = formatIso(y);
-    onChange({ fromDate: dateStr, toDate: dateStr });
+    onChange({ fromDate: dateStr, toDate: dateStr, preset: 'yesterday' });
     if (onPresetSelect) onPresetSelect('yesterday');
     setViewYear(y.getFullYear());
     setViewMonth(y.getMonth());
@@ -177,7 +177,7 @@ export default function AirbnbDatePicker({
 
     const from = formatIso(monday);
     const to = formatIso(sunday);
-    onChange({ fromDate: from, toDate: to });
+    onChange({ fromDate: from, toDate: to, preset: 'thisWeek' });
     if (onPresetSelect) onPresetSelect('thisWeek');
     setViewYear(monday.getFullYear());
     setViewMonth(monday.getMonth());
@@ -190,7 +190,7 @@ export default function AirbnbDatePicker({
 
     const from = formatIso(firstDay);
     const to = formatIso(lastDay);
-    onChange({ fromDate: from, toDate: to });
+    onChange({ fromDate: from, toDate: to, preset: 'thisMonth' });
     if (onPresetSelect) onPresetSelect('thisMonth');
     setViewYear(firstDay.getFullYear());
     setViewMonth(firstDay.getMonth());

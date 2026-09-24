@@ -1,15 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import AirbnbDatePicker from './AirbnbDatePicker';
 
 export default function TeacherSchedulePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const teacherId = params?.id;
   const { t, formatUrl } = useLanguage();
+
+  // Read initial values from URL search parameters (or fallback to defaults)
+  const paramFrom = searchParams?.get('from');
+  const paramTo = searchParams?.get('to');
+  const paramPreset = searchParams?.get('preset');
+  const paramFilter = searchParams?.get('filter');
 
   // Teacher State
   const [teacher, setTeacher] = useState(null);
@@ -17,9 +24,9 @@ export default function TeacherSchedulePage() {
   const [teacherError, setTeacherError] = useState(null);
 
   // Date Range Controls
-  const [fromDate, setFromDate] = useState('2026-09-14');
-  const [toDate, setToDate] = useState('2026-09-20');
-  const [activePreset, setActivePreset] = useState(null);
+  const [fromDate, setFromDate] = useState(paramFrom || '2026-08-24');
+  const [toDate, setToDate] = useState(paramTo || '2026-08-30');
+  const [activePreset, setActivePreset] = useState(paramPreset || null);
 
   // Schedule Report State
   const [report, setReport] = useState(null);
@@ -29,8 +36,30 @@ export default function TeacherSchedulePage() {
   // Accordion State: Set of open lesson IDs
   const [expandedLessons, setExpandedLessons] = useState(new Set());
 
-  // Filter State: 'all' | 'attendance_checked' | 'attendance_missing' | 'cancellations' | 'details_added'
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Filter State: 'all' | 'completed' | 'cancelled_advance' | 'last_minute' | 'attendance_checked'
+  const [statusFilter, setStatusFilter] = useState(paramFilter || 'all');
+
+  // Keep a ref to avoid duplicate auto-fetch
+  const autoFetchedRef = useRef(false);
+
+  // Sync state with URL query parameters
+  const syncUrlParams = useCallback((newFrom, newTo, newPreset, newFilter) => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (newFrom) url.searchParams.set('from', newFrom);
+    if (newTo) url.searchParams.set('to', newTo);
+    if (newPreset) {
+      url.searchParams.set('preset', newPreset);
+    } else {
+      url.searchParams.delete('preset');
+    }
+    if (newFilter && newFilter !== 'all') {
+      url.searchParams.set('filter', newFilter);
+    } else {
+      url.searchParams.delete('filter');
+    }
+    window.history.replaceState(null, '', url.toString());
+  }, []);
 
   // Load Teacher details
   const fetchTeacher = useCallback(async () => {
@@ -56,18 +85,21 @@ export default function TeacherSchedulePage() {
   }, [fetchTeacher]);
 
   // Fetch & Parse Report from Schoolmate
-  const handleFetchReport = async () => {
+  const handleFetchReport = useCallback(async (overrideFrom = fromDate, overrideTo = toDate) => {
     if (!teacher?.schoolmateTeacherId) {
       setReportError(t('schedule.errMissingId'));
       return;
     }
 
-    if (!fromDate || !toDate) {
+    const effectiveFrom = overrideFrom || fromDate;
+    const effectiveTo = overrideTo || toDate;
+
+    if (!effectiveFrom || !effectiveTo) {
       setReportError(t('schedule.errDateRange'));
       return;
     }
 
-    if (fromDate > toDate) {
+    if (effectiveFrom > effectiveTo) {
       setReportError(t('schedule.errDateOrder'));
       return;
     }
@@ -82,8 +114,8 @@ export default function TeacherSchedulePage() {
         body: JSON.stringify({
           teacherId: Number(teacher.schoolmateTeacherId),
           teacherName: teacher.fullName,
-          fromDate,
-          toDate
+          fromDate: effectiveFrom,
+          toDate: effectiveTo
         })
       });
 
@@ -115,7 +147,15 @@ export default function TeacherSchedulePage() {
     } finally {
       setLoadingReport(false);
     }
-  };
+  }, [teacher, fromDate, toDate, t]);
+
+  // Auto-fetch report when teacher loads so page refresh restores data automatically
+  useEffect(() => {
+    if (teacher?.schoolmateTeacherId && !autoFetchedRef.current) {
+      autoFetchedRef.current = true;
+      handleFetchReport(fromDate, toDate);
+    }
+  }, [teacher?.schoolmateTeacherId, fromDate, toDate, handleFetchReport]);
 
   // Toggle single lesson accordion
   const toggleLesson = (id) => {
@@ -208,10 +248,15 @@ export default function TeacherSchedulePage() {
               fromDate={fromDate}
               toDate={toDate}
               activePreset={activePreset}
-              onPresetSelect={(preset) => setActivePreset(preset)}
-              onChange={({ fromDate: newFrom, toDate: newTo }) => {
+              onPresetSelect={(preset) => {
+                setActivePreset(preset);
+              }}
+              onChange={({ fromDate: newFrom, toDate: newTo, preset }) => {
                 setFromDate(newFrom);
                 setToDate(newTo);
+                const nextPreset = preset !== undefined ? preset : null;
+                setActivePreset(nextPreset);
+                syncUrlParams(newFrom, newTo, nextPreset, statusFilter);
               }}
             />
 
@@ -219,7 +264,7 @@ export default function TeacherSchedulePage() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={handleFetchReport}
+              onClick={() => handleFetchReport(fromDate, toDate)}
               disabled={loadingReport}
               style={{ padding: '9px 20px', fontSize: 14 }}
             >
@@ -303,12 +348,22 @@ export default function TeacherSchedulePage() {
                   {/* Filter Pills */}
                   {(() => {
                     const allReportLessons = report.lessons || (report.days ? report.days.flatMap(d => d.lessons || []) : []);
+                    const isCompleted = (l) => !l.lessonStatusName;
+                    const isCancelledAdvance = (l) => (l.lessonStatusName || '').toLowerCase().includes('advance');
+                    const isLastMinute = (l) => (l.lessonStatusName || '').toLowerCase().includes('last');
+                    const isAttendanceChecked = (l) => Boolean(l.attendanceChecked);
+
                     const filterCounts = {
                       all: allReportLessons.length,
-                      attendance_checked: allReportLessons.filter(l => l.attendanceChecked).length,
-                      attendance_missing: allReportLessons.filter(l => !l.attendanceChecked).length,
-                      cancellations: allReportLessons.filter(l => Boolean(l.lessonStatusName)).length,
-                      details_added: allReportLessons.filter(l => l.classDetailsAdded).length
+                      completed: allReportLessons.filter(isCompleted).length,
+                      cancelled_advance: allReportLessons.filter(isCancelledAdvance).length,
+                      last_minute: allReportLessons.filter(isLastMinute).length,
+                      attendance_checked: allReportLessons.filter(isAttendanceChecked).length
+                    };
+
+                    const handleFilterClick = (filter) => {
+                      setStatusFilter(filter);
+                      syncUrlParams(fromDate, toDate, activePreset, filter);
                     };
 
                     return (
@@ -316,46 +371,46 @@ export default function TeacherSchedulePage() {
                         <button
                           type="button"
                           className={`filter-pill-btn ${statusFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => setStatusFilter('all')}
+                          onClick={() => handleFilterClick('all')}
                         >
                           <span>{t('schedule.filterAll')}</span>
                           <span className="pill-counter">{filterCounts.all}</span>
                         </button>
                         <button
                           type="button"
+                          className={`filter-pill-btn ${statusFilter === 'completed' ? 'active' : ''}`}
+                          onClick={() => handleFilterClick('completed')}
+                        >
+                          <span style={{ color: '#16a34a' }}>✅</span>
+                          <span>{t('schedule.filterCompleted')}</span>
+                          <span className="pill-counter">{filterCounts.completed}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'cancelled_advance' ? 'active' : ''}`}
+                          onClick={() => handleFilterClick('cancelled_advance')}
+                        >
+                          <span style={{ color: '#15803d' }}>🟢</span>
+                          <span>{t('schedule.filterCancelledAdvance')}</span>
+                          <span className="pill-counter">{filterCounts.cancelled_advance}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`filter-pill-btn ${statusFilter === 'last_minute' ? 'active' : ''}`}
+                          onClick={() => handleFilterClick('last_minute')}
+                        >
+                          <span style={{ color: '#d97706' }}>🟤</span>
+                          <span>{t('schedule.filterLastMinute')}</span>
+                          <span className="pill-counter">{filterCounts.last_minute}</span>
+                        </button>
+                        <button
+                          type="button"
                           className={`filter-pill-btn ${statusFilter === 'attendance_checked' ? 'active' : ''}`}
-                          onClick={() => setStatusFilter('attendance_checked')}
+                          onClick={() => handleFilterClick('attendance_checked')}
                         >
                           <span style={{ color: '#0284c7' }}>🔖</span>
                           <span>{t('schedule.filterChecked')}</span>
                           <span className="pill-counter">{filterCounts.attendance_checked}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'attendance_missing' ? 'active' : ''}`}
-                          onClick={() => setStatusFilter('attendance_missing')}
-                        >
-                          <span style={{ color: '#ef4444' }}>⚠️</span>
-                          <span>{t('schedule.filterMissing')}</span>
-                          <span className="pill-counter">{filterCounts.attendance_missing}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'cancellations' ? 'active' : ''}`}
-                          onClick={() => setStatusFilter('cancellations')}
-                        >
-                          <span style={{ color: '#f59e0b' }}>🚫</span>
-                          <span>{t('schedule.filterCancellations')}</span>
-                          <span className="pill-counter">{filterCounts.cancellations}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'details_added' ? 'active' : ''}`}
-                          onClick={() => setStatusFilter('details_added')}
-                        >
-                          <span style={{ color: '#16a34a' }}>📝</span>
-                          <span>{t('schedule.filterDetailsAdded')}</span>
-                          <span className="pill-counter">{filterCounts.details_added}</span>
                         </button>
                       </div>
                     );
@@ -366,14 +421,14 @@ export default function TeacherSchedulePage() {
                     const filterDayLessons = (lessons) => {
                       if (!Array.isArray(lessons)) return [];
                       switch (statusFilter) {
+                        case 'completed':
+                          return lessons.filter(l => !l.lessonStatusName);
+                        case 'cancelled_advance':
+                          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('advance'));
+                        case 'last_minute':
+                          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('last'));
                         case 'attendance_checked':
-                          return lessons.filter(l => l.attendanceChecked);
-                        case 'attendance_missing':
-                          return lessons.filter(l => !l.attendanceChecked);
-                        case 'cancellations':
-                          return lessons.filter(l => Boolean(l.lessonStatusName));
-                        case 'details_added':
-                          return lessons.filter(l => l.classDetailsAdded);
+                          return lessons.filter(l => Boolean(l.attendanceChecked));
                         default:
                           return lessons;
                       }
