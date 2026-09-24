@@ -91,7 +91,7 @@ export async function POST(req) {
 
     // Run parallel fetches for uncached teachers (max 5 concurrent)
     const fetchTeacherWeekly = async (teacherId) => {
-      const timeoutMs = 2000; // strict 2-second timeout
+      const timeoutMs = 6000; // 6-second timeout to allow teachers with multiple groups to finish
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
       );
