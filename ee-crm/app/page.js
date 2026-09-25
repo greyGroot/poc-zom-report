@@ -1142,7 +1142,7 @@ function TeachersDirectoryContent() {
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                           <Link
-                            href={formatUrl(`/teachers/${teacher.id}`)}
+                            href={formatUrl(`/teachers/${teacher.id}?from=${currentWeekRange.fromDate}&to=${currentWeekRange.toDate}&preset=thisWeek`)}
                             className="btn btn-sm btn-primary"
                             onClick={(e) => e.stopPropagation()}
                           >

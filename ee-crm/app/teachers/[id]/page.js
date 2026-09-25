@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -12,21 +12,51 @@ export default function TeacherSchedulePage() {
   const teacherId = params?.id;
   const { t, formatUrl } = useLanguage();
 
-  // Read initial values from URL search parameters (or fallback to defaults)
+  // Helper to compute default current week (Monday - Sunday)
+  const defaultWeek = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatIso = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dt = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dt}`;
+    };
+
+    return {
+      from: formatIso(monday),
+      to: formatIso(sunday),
+      preset: 'thisWeek'
+    };
+  }, []);
+
+  // Read initial values from URL search parameters (or fallback to current week)
   const paramFrom = searchParams?.get('from');
   const paramTo = searchParams?.get('to');
   const paramPreset = searchParams?.get('preset');
   const paramFilter = searchParams?.get('filter');
+
+  const initialFrom = paramFrom || defaultWeek.from;
+  const initialTo = paramTo || defaultWeek.to;
+  const initialPreset = paramPreset || (paramFrom ? null : 'thisWeek');
 
   // Teacher State
   const [teacher, setTeacher] = useState(null);
   const [loadingTeacher, setLoadingTeacher] = useState(true);
   const [teacherError, setTeacherError] = useState(null);
 
-  // Date Range Controls
-  const [fromDate, setFromDate] = useState(paramFrom || '2026-08-24');
-  const [toDate, setToDate] = useState(paramTo || '2026-08-30');
-  const [activePreset, setActivePreset] = useState(paramPreset || null);
+  // Date Range Controls - default to current week
+  const [fromDate, setFromDate] = useState(initialFrom);
+  const [toDate, setToDate] = useState(initialTo);
+  const [activePreset, setActivePreset] = useState(initialPreset);
 
   // Schedule Report State
   const [report, setReport] = useState(null);
@@ -60,6 +90,13 @@ export default function TeacherSchedulePage() {
     }
     window.history.replaceState(null, '', url.toString());
   }, []);
+
+  // Keep URL parameters synced with current dates on initial load if missing
+  useEffect(() => {
+    if (!paramFrom || !paramTo) {
+      syncUrlParams(initialFrom, initialTo, initialPreset, statusFilter);
+    }
+  }, [paramFrom, paramTo, initialFrom, initialTo, initialPreset, statusFilter, syncUrlParams]);
 
   // Load Teacher details
   const fetchTeacher = useCallback(async () => {
@@ -198,6 +235,74 @@ export default function TeacherSchedulePage() {
     );
   }
 
+  // Render Zoom Invitation Status Badge
+  const renderZoomBadge = (status) => {
+    if (status === 'member') {
+      return (
+        <span
+          className="badge"
+          style={{
+            backgroundColor: '#dcfce7',
+            color: '#15803d',
+            border: '1px solid #86efac',
+            fontWeight: 600,
+            fontSize: 12,
+            padding: '3px 9px',
+            borderRadius: 12,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5
+          }}
+        >
+          <span style={{ fontSize: 9 }}>●</span>
+          <span>{t('directory.zoomMember')}</span>
+        </span>
+      );
+    }
+    if (status === 'pending') {
+      return (
+        <span
+          className="badge"
+          style={{
+            backgroundColor: '#fef3c7',
+            color: '#b45309',
+            border: '1px solid #fde68a',
+            fontWeight: 600,
+            fontSize: 12,
+            padding: '3px 9px',
+            borderRadius: 12,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5
+          }}
+        >
+          <span style={{ fontSize: 10 }}>⏳</span>
+          <span>{t('directory.zoomPending')}</span>
+        </span>
+      );
+    }
+    return (
+      <span
+        className="badge"
+        style={{
+          backgroundColor: '#f1f5f9',
+          color: '#64748b',
+          border: '1px solid #e2e8f0',
+          fontWeight: 500,
+          fontSize: 12,
+          padding: '3px 9px',
+          borderRadius: 12,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5
+        }}
+      >
+        <span style={{ fontSize: 9 }}>○</span>
+        <span>{t('directory.zoomNotInvited')}</span>
+      </span>
+    );
+  };
+
   return (
     <div>
       {/* Back link */}
@@ -224,6 +329,7 @@ export default function TeacherSchedulePage() {
               <span className="badge badge-purple">
                 🎥 {t('schedule.zoomHost')}: {teacher?.zoomHostEmail || teacher?.email || '...'}
               </span>
+              {renderZoomBadge(teacher?.zoomStatus)}
               {teacher?.phone && (
                 <span className="badge badge-neutral">
                   📞 {t('schedule.phone')}: {teacher.phone}
@@ -277,6 +383,9 @@ export default function TeacherSchedulePage() {
                 const nextPreset = preset !== undefined ? preset : null;
                 setActivePreset(nextPreset);
                 syncUrlParams(newFrom, newTo, nextPreset, statusFilter);
+                if (newFrom && newTo && teacher?.schoolmateTeacherId) {
+                  handleFetchReport(newFrom, newTo);
+                }
               }}
             />
 
