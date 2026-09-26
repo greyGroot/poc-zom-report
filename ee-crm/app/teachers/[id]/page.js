@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import AirbnbDatePicker from './AirbnbDatePicker';
+import ZoomMeetingsPanel from './ZoomMeetingsPanel';
 
 export default function TeacherSchedulePage() {
   const params = useParams();
@@ -757,70 +758,13 @@ export default function TeacherSchedulePage() {
         </div>
 
         {/* ===================================================================
-            RIGHT COLUMN: Zoom Telemetry Reconciliation (Phase 2 Placeholder)
+            RIGHT COLUMN: Tracked Zoom Meetings (CRM-001)
             =================================================================== */}
-        <div className="telemetry-column">
-          <div className="telemetry-card">
-            <div className="telemetry-header">
-              <h2 className="telemetry-title">
-                <span>🎥</span>
-                <span>{t('schedule.zoomTelemetryTitle')}</span>
-                <span className="badge badge-purple" style={{ fontSize: 11 }}>Phase 2</span>
-              </h2>
-              <p className="telemetry-subtitle">
-                {t('schedule.zoomNoticeBody')}
-              </p>
-            </div>
-
-            <div className="telemetry-body">
-              {/* Informational Callout */}
-              <div style={{ backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', padding: 14, border: '1px solid #bfdbfe' }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: '#1e40af', marginBottom: 4 }}>
-                  📡 {t('schedule.zoomNoticeTitle')}
-                </div>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  {t('schedule.zoomStep1', { host: teacher?.zoomHostEmail || teacher?.email || 'configured host' })}
-                </p>
-              </div>
-
-              {/* Status Preview */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{t('schedule.matchingStatusLabel')}:</span>
-                  <span className="badge badge-info" style={{ fontSize: 11 }}>{t('schedule.readyToReconcile')}</span>
-                </div>
-
-                <div className="mock-reconciliation-card">
-                  <div className="mock-rec-row">
-                    <span style={{ fontWeight: 600 }}>Lesson Match (08:00 - 09:00)</span>
-                    <span className="badge badge-success">VERIFIED ✅</span>
-                  </div>
-                  <div className="mock-rec-row" style={{ color: 'var(--text-secondary)' }}>
-                    <span>Claimed: 60 min</span>
-                    <span>Zoom Call: 56 min</span>
-                  </div>
-                  <div className="mock-meta">
-                    Zoom Meeting ID: 894 1120 4451 • QoS: Good • Host + Student present
-                  </div>
-                </div>
-
-                <div className="mock-reconciliation-card">
-                  <div className="mock-rec-row">
-                    <span style={{ fontWeight: 600 }}>Lesson Match (11:00 - 12:00)</span>
-                    <span className="badge badge-warning">ONLY_HOST ⚠️</span>
-                  </div>
-                  <div className="mock-rec-row" style={{ color: 'var(--text-secondary)' }}>
-                    <span>Claimed: 60 min</span>
-                    <span>Host Online: 18 min</span>
-                  </div>
-                  <div className="mock-meta">
-                    Student No-Show detected (Host waited 18m).
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ZoomMeetingsPanel
+          teacherId={teacherId}
+          fromDate={fromDate}
+          toDate={toDate}
+        />
       </div>
     </div>
   );

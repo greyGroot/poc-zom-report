@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 const tests = [
   { name: 'PDF Parser Test', file: 'test-parser.js' },
   { name: 'Database & Logging Test', file: 'test-db.js' },
+  { name: 'Zoom Occurrences Test', file: 'test-zoom-occurrences.js' },
   { name: 'Live Schoolmate API Test', file: 'test-schoolmate.js' }
 ];
 

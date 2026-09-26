@@ -30,6 +30,9 @@ export default function Header() {
     ? user.email.charAt(0).toUpperCase()
     : 'U';
 
+  const isBypass = process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS === 'true';
+  const canNavigate = status === 'authenticated' || isBypass;
+
   return (
     <header className="navbar">
       <div className="nav-inner">
@@ -39,7 +42,7 @@ export default function Header() {
         </Link>
 
         <div className="nav-right">
-          {status === 'authenticated' && (
+          {canNavigate && (
             <nav className="nav-links">
               <Link href={formatUrl('/')} className="nav-link">
                 <span>👥</span>
@@ -91,7 +94,7 @@ export default function Header() {
             </div>
           )}
 
-          {status === 'unauthenticated' && (
+          {status === 'unauthenticated' && !isBypass && (
             <Link href={formatUrl('/login')} className="btn-signin-link">
               <span>{t('auth.signInWithGoogle')}</span>
             </Link>

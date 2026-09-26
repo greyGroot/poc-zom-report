@@ -14,6 +14,12 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <LanguageProvider>
+            {process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS === 'true' && (
+              <aside className="auth-bypass-notice" role="status" aria-label="Environment notice">
+                <span className="sr-only">Environment notice: </span>
+                <span>Authentication bypass is active — testing only</span>
+              </aside>
+            )}
             <Header />
             <main className="main-content">
               {children}

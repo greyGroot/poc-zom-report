@@ -10,7 +10,9 @@
     "test": "node test-all.js",
     "test:parser": "node test-parser.js",
     "test:schoolmate": "node test-schoolmate.js",
-    "test:db": "node test-db.js"
+    "test:db": "node test-db.js",
+    "test:zoom": "node test-zoom-occurrences.js",
+    "test:e2e": "node test-qa-e2e.mjs"
   },
   "keywords": [],
   "author": "",
