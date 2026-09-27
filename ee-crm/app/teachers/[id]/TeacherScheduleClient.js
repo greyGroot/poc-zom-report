@@ -4,14 +4,16 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { getKyivDateString, formatKyivDateHeader } from '@/lib/timezone';
 import AirbnbDatePicker from './AirbnbDatePicker';
-import ZoomMeetingsPanel from './ZoomMeetingsPanel';
+import { useZoomMeetings } from './useZoomMeetings';
+import ZoomMeetingCard from './ZoomMeetingCard';
 
 export default function TeacherScheduleClient({ initialTeacher = null, initialZoomMeetings = [] }) {
   const params = useParams();
   const searchParams = useSearchParams();
   const teacherId = params?.id;
-  const { t, formatUrl } = useLanguage();
+  const { t, locale, formatUrl } = useLanguage();
 
   // Helper to compute default current week (Monday - Sunday)
   const defaultWeek = useMemo(() => {
@@ -69,6 +71,21 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
 
   // Filter State: 'all' | 'completed' | 'cancelled_advance' | 'last_minute' | 'attendance_checked'
   const [statusFilter, setStatusFilter] = useState(paramFilter || 'all');
+
+  // Zoom Meetings hook
+  const {
+    status: zoomStatus,
+    meetings: zoomMeetings,
+    totalMeetings: zoomTotalCount,
+    error: zoomError,
+    refreshError: zoomRefreshError,
+    refresh: refreshZoom
+  } = useZoomMeetings({
+    teacherId,
+    fromDate,
+    toDate,
+    initialMeetings: initialZoomMeetings
+  });
 
   // Keep a ref to avoid duplicate auto-fetch
   const autoFetchedRef = useRef(false);
@@ -221,6 +238,92 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
     }
   };
 
+  // Group Zoom meetings by Kyiv date
+  const zoomMeetingsByDate = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(zoomMeetings)) {
+      for (const m of zoomMeetings) {
+        const d = getKyivDateString(m.startTime) || 'Unknown';
+        if (!map.has(d)) {
+          map.set(d, []);
+        }
+        map.get(d).push(m);
+      }
+    }
+    return map;
+  }, [zoomMeetings]);
+
+  // Combined Day-by-Day List (Union of Schoolmate days and Zoom meeting dates)
+  const combinedDaysList = useMemo(() => {
+    const schoolmateMap = new Map();
+    if (report?.days) {
+      for (const d of report.days) {
+        schoolmateMap.set(d.date, d);
+      }
+    }
+
+    const allDatesSet = new Set();
+    // Add all dates from Schoolmate
+    for (const d of schoolmateMap.keys()) {
+      if (d) allDatesSet.add(d);
+    }
+    // Add all dates from Zoom
+    for (const d of zoomMeetingsByDate.keys()) {
+      if (d && d !== 'Unknown') allDatesSet.add(d);
+    }
+
+    // If no days found yet, but fromDate/toDate exist, ensure the requested dates are in range
+    if (allDatesSet.size === 0 && fromDate && toDate) {
+      if (fromDate === toDate) {
+        allDatesSet.add(fromDate);
+      }
+    }
+
+    const sortedDates = Array.from(allDatesSet).sort();
+
+    const filterDayLessons = (lessons) => {
+      if (!Array.isArray(lessons)) return [];
+      switch (statusFilter) {
+        case 'completed':
+          return lessons.filter(l => !l.lessonStatusName || l.lessonStatusName.toLowerCase().includes('trial success'));
+        case 'cancelled_advance':
+          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('advance'));
+        case 'last_minute':
+          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('last'));
+        case 'attendance_checked':
+          return lessons.filter(l => Boolean(l.attendanceChecked));
+        default:
+          return lessons;
+      }
+    };
+
+    return sortedDates.map(dateStr => {
+      const smDay = schoolmateMap.get(dateStr);
+      const dayLessons = smDay?.lessons || [];
+      const filteredLessons = filterDayLessons(dayLessons);
+      const dayZoomMeetings = zoomMeetingsByDate.get(dateStr) || [];
+
+      let dayName = smDay?.dayName || '';
+      if (!dayName && dateStr) {
+        dayName = formatKyivDateHeader(dateStr, locale);
+      }
+
+      const subtotalMinutes = smDay?.subtotalMinutes || dayLessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+      const subtotalWageFormatted = smDay?.subtotalWageFormatted || (smDay?.subtotalWage ? `${smDay.subtotalWage.toFixed(2)} ₴` : null);
+
+      return {
+        date: dateStr,
+        dayName,
+        daySchedule: smDay,
+        rawLessons: dayLessons,
+        filteredLessons,
+        zoomMeetings: dayZoomMeetings,
+        subtotalMinutes,
+        subtotalWageFormatted
+      };
+    });
+  }, [report, zoomMeetingsByDate, fromDate, toDate, statusFilter, locale]);
+
   if (teacherError) {
     return (
       <div>
@@ -305,7 +408,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
   };
 
   return (
-    <div>
+    <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 40 }}>
       {/* Back link */}
       <div style={{ marginBottom: 16 }}>
         <Link href={formatUrl('/')} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex' }}>
@@ -314,7 +417,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
       </div>
 
       {/* Teacher Profile Card */}
-      <div className="card">
+      <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ padding: '20px 24px' }}>
           <div>
             <h1 className="page-title" style={{ fontSize: 24, marginBottom: 6 }}>
@@ -367,7 +470,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
       </div>
 
       {/* Date Range & Fetch Controls Card */}
-      <div className="card" style={{ overflow: 'visible' }}>
+      <div className="card" style={{ overflow: 'visible', marginBottom: 20 }}>
         <div className="card-body" style={{ overflow: 'visible' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'flex-start' }}>
             {/* Airbnb Date Range Picker & Fast Selections */}
@@ -426,398 +529,438 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
         </div>
       </div>
 
-      {/* Split-View Layout */}
-      <div className="split-view-container">
-        {/* ===================================================================
-            LEFT COLUMN: Schoolmate Claimed Schedule
-            =================================================================== */}
-        <div className="schedule-column">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">
-                <span>📚</span>
-                <span>{t('schedule.scheduleTitle')}</span>
-              </h2>
+      {/* Floating Filter Pills & Expand Controls */}
+      {(() => {
+        const allReportLessons = report?.lessons || (report?.days ? report.days.flatMap(d => d.lessons || []) : []);
+        const isCompleted = (l) => !l.lessonStatusName || (l.lessonStatusName || '').toLowerCase().includes('trial success');
+        const isCancelledAdvance = (l) => (l.lessonStatusName || '').toLowerCase().includes('advance');
+        const isLastMinute = (l) => (l.lessonStatusName || '').toLowerCase().includes('last');
+        const isAttendanceChecked = (l) => Boolean(l.attendanceChecked);
 
-              {report && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={toggleAllLessons}
-                    className="btn btn-sm btn-secondary"
-                  >
-                    {expandedLessons.size > 0 ? 'Collapse All' : 'Expand All'}
-                  </button>
-                </div>
-              )}
+        const filterCounts = {
+          all: allReportLessons.length,
+          completed: allReportLessons.filter(isCompleted).length,
+          cancelled_advance: allReportLessons.filter(isCancelledAdvance).length,
+          last_minute: allReportLessons.filter(isLastMinute).length,
+          attendance_checked: allReportLessons.filter(isAttendanceChecked).length
+        };
+
+        const handleFilterClick = (filter) => {
+          setStatusFilter(filter);
+          syncUrlParams(fromDate, toDate, activePreset, filter);
+        };
+
+        return (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+            <div className="filter-pills-container" style={{ margin: 0 }}>
+              <button
+                type="button"
+                className={`filter-pill-btn ${statusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => handleFilterClick('all')}
+              >
+                <span>{t('schedule.filterAll')}</span>
+                <span className="pill-counter">{filterCounts.all}</span>
+              </button>
+              <button
+                type="button"
+                className={`filter-pill-btn ${statusFilter === 'completed' ? 'active' : ''}`}
+                onClick={() => handleFilterClick('completed')}
+              >
+                <span style={{ color: '#16a34a' }}>✅</span>
+                <span>{t('schedule.filterCompleted')}</span>
+                <span className="pill-counter">{filterCounts.completed}</span>
+              </button>
+              <button
+                type="button"
+                className={`filter-pill-btn ${statusFilter === 'cancelled_advance' ? 'active' : ''}`}
+                onClick={() => handleFilterClick('cancelled_advance')}
+              >
+                <span style={{ color: '#15803d' }}>🟢</span>
+                <span>{t('schedule.filterCancelledAdvance')}</span>
+                <span className="pill-counter">{filterCounts.cancelled_advance}</span>
+              </button>
+              <button
+                type="button"
+                className={`filter-pill-btn ${statusFilter === 'last_minute' ? 'active' : ''}`}
+                onClick={() => handleFilterClick('last_minute')}
+              >
+                <span style={{ color: '#d97706' }}>🟤</span>
+                <span>{t('schedule.filterLastMinute')}</span>
+                <span className="pill-counter">{filterCounts.last_minute}</span>
+              </button>
+              <button
+                type="button"
+                className={`filter-pill-btn ${statusFilter === 'attendance_checked' ? 'active' : ''}`}
+                onClick={() => handleFilterClick('attendance_checked')}
+              >
+                <span style={{ color: '#0284c7' }}>🔖</span>
+                <span>{t('schedule.filterChecked')}</span>
+                <span className="pill-counter">{filterCounts.attendance_checked}</span>
+              </button>
             </div>
 
-            <div className="card-body">
-              {!report ? (
-                <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🗓️</div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    {t('schedule.noScheduleLoaded')}
-                  </div>
-                  <p style={{ margin: 0, fontSize: 13 }}>
-                    {t('schedule.noSchedulePrompt')}
-                  </p>
+            {report && (
+              <button
+                type="button"
+                onClick={toggleAllLessons}
+                className="btn btn-sm btn-secondary"
+              >
+                {expandedLessons.size > 0 ? 'Collapse All' : 'Expand All'}
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Loading Skeletons */}
+      {loadingReport && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+          <div className="card" style={{ padding: 24 }}>
+            <div className="zoom-card-skeleton" style={{ marginBottom: 12 }} />
+            <div className="zoom-card-skeleton" />
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          DAY-BY-DAY ELEVATED PAPER BOXES (CRM-004 ARCHITECTURE)
+          =================================================================== */}
+      {!loadingReport && combinedDaysList.length === 0 && (
+        <div className="card" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🏖️</div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+            0 {t('schedule.lessonsCount')}
+          </div>
+          <p style={{ margin: 0, fontSize: 13 }}>
+            Teacher has 0 scheduled lessons for the period {fromDate} to {toDate}.
+          </p>
+        </div>
+      )}
+
+      {!loadingReport && combinedDaysList.map((day) => {
+        if (statusFilter !== 'all' && day.filteredLessons.length === 0 && day.zoomMeetings.length === 0) {
+          return null;
+        }
+
+        return (
+          <section
+            key={day.date}
+            className="day-box-card"
+            aria-label={`Day ${day.dayName || day.date}`}
+          >
+            {/* Day Elevated Header */}
+            <header className="day-box-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span className="day-title" style={{ fontSize: 15, fontWeight: 700 }}>
+                  📅 {day.dayName || day.date}
+                </span>
+                <span className="day-subtotal">
+                  {day.subtotalMinutes} min • {day.filteredLessons.length} {t('schedule.lessonsCount').toLowerCase()}
+                  {day.subtotalWageFormatted ? ` • ${day.subtotalWageFormatted}` : ''}
+                </span>
+              </div>
+
+              {day.date && (
+                <Link
+                  href={formatUrl(`/teachers/${teacherId}/${day.date}?from=${fromDate}&to=${toDate}${activePreset ? `&preset=${activePreset}` : ''}${statusFilter !== 'all' ? `&filter=${statusFilter}` : ''}`)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#1d4ed8',
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <span>{t('schedule.openDayDetails') || 'Open day details'}</span>
+                  <span>→</span>
+                </Link>
+              )}
+            </header>
+
+            {/* Side-by-Side Day Body */}
+            <div className="day-box-grid">
+              {/* ========================================================= */}
+              {/* LEFT: Schoolmate Schedule for this day                     */}
+              {/* ========================================================= */}
+              <div className="day-column-box">
+                <div className="day-column-heading">
+                  <span>📚 {t('schedule.scheduleTitle')}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                    {day.filteredLessons.length}
+                  </span>
                 </div>
-              ) : report.days.length === 0 ? (
-                <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🏖️</div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    0 {t('schedule.lessonsCount')}
+
+                {day.filteredLessons.length === 0 ? (
+                  <div className="zoom-empty-card" style={{ padding: '24px 16px', minHeight: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 24, marginBottom: 4 }}>📋</span>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                      {t('schedule.schoolmateEmpty') || 'No Schoolmate lessons scheduled for this day.'}
+                    </p>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13 }}>
-                    Teacher has 0 scheduled lessons for the period {report.periodFrom} to {report.periodTo}.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Filter Pills */}
-                  {(() => {
-                    const allReportLessons = report.lessons || (report.days ? report.days.flatMap(d => d.lessons || []) : []);
-                    const isCompleted = (l) => !l.lessonStatusName;
-                    const isCancelledAdvance = (l) => (l.lessonStatusName || '').toLowerCase().includes('advance');
-                    const isLastMinute = (l) => (l.lessonStatusName || '').toLowerCase().includes('last');
-                    const isAttendanceChecked = (l) => Boolean(l.attendanceChecked);
+                ) : (
+                  <div className="lesson-list" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {day.filteredLessons.map((lesson, idx) => {
+                      const isExpanded = expandedLessons.has(lesson.id);
+                      const hasStatus = Boolean(lesson.lessonStatusName);
+                      const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
+                      const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
 
-                    const filterCounts = {
-                      all: allReportLessons.length,
-                      completed: allReportLessons.filter(isCompleted).length,
-                      cancelled_advance: allReportLessons.filter(isCancelledAdvance).length,
-                      last_minute: allReportLessons.filter(isLastMinute).length,
-                      attendance_checked: allReportLessons.filter(isAttendanceChecked).length
-                    };
+                      const timeDisplay = (lesson.startTime && lesson.endTime && lesson.startTime !== '00:00')
+                        ? `${lesson.startTime} – ${lesson.endTime}`
+                        : (lesson.startTime && lesson.startTime !== '00:00' ? lesson.startTime : null);
 
-                    const handleFilterClick = (filter) => {
-                      setStatusFilter(filter);
-                      syncUrlParams(fromDate, toDate, activePreset, filter);
-                    };
+                      const safeRate = lesson.teacherRate || `${parseFloat(String(lesson.teacherRatePerLesson || 0)).toFixed(2)} ${lesson.currencySymbol || '₴'}`;
 
-                    return (
-                      <div className="filter-pills-container">
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => handleFilterClick('all')}
+                      return (
+                        <article
+                          key={lesson.id || idx}
+                          className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
+                          style={statusColor ? { borderLeftColor: statusColor } : {}}
                         >
-                          <span>{t('schedule.filterAll')}</span>
-                          <span className="pill-counter">{filterCounts.all}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'completed' ? 'active' : ''}`}
-                          onClick={() => handleFilterClick('completed')}
-                        >
-                          <span style={{ color: '#16a34a' }}>✅</span>
-                          <span>{t('schedule.filterCompleted')}</span>
-                          <span className="pill-counter">{filterCounts.completed}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'cancelled_advance' ? 'active' : ''}`}
-                          onClick={() => handleFilterClick('cancelled_advance')}
-                        >
-                          <span style={{ color: '#15803d' }}>🟢</span>
-                          <span>{t('schedule.filterCancelledAdvance')}</span>
-                          <span className="pill-counter">{filterCounts.cancelled_advance}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'last_minute' ? 'active' : ''}`}
-                          onClick={() => handleFilterClick('last_minute')}
-                        >
-                          <span style={{ color: '#d97706' }}>🟤</span>
-                          <span>{t('schedule.filterLastMinute')}</span>
-                          <span className="pill-counter">{filterCounts.last_minute}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`filter-pill-btn ${statusFilter === 'attendance_checked' ? 'active' : ''}`}
-                          onClick={() => handleFilterClick('attendance_checked')}
-                        >
-                          <span style={{ color: '#0284c7' }}>🔖</span>
-                          <span>{t('schedule.filterChecked')}</span>
-                          <span className="pill-counter">{filterCounts.attendance_checked}</span>
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Day Groups */}
-                  {report.days.map((dayGroup) => {
-                    const filterDayLessons = (lessons) => {
-                      if (!Array.isArray(lessons)) return [];
-                      switch (statusFilter) {
-                        case 'completed':
-                          return lessons.filter(l => !l.lessonStatusName);
-                        case 'cancelled_advance':
-                          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('advance'));
-                        case 'last_minute':
-                          return lessons.filter(l => (l.lessonStatusName || '').toLowerCase().includes('last'));
-                        case 'attendance_checked':
-                          return lessons.filter(l => Boolean(l.attendanceChecked));
-                        default:
-                          return lessons;
-                      }
-                    };
-
-                    const filteredLessons = filterDayLessons(dayGroup.lessons);
-                    if (filteredLessons.length === 0 && statusFilter !== 'all') {
-                      return null;
-                    }
-
-                    return (
-                      <div key={dayGroup.date} className="day-group">
-                        {/* Day Subtotal Header */}
-                        <div className="day-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                            <span className="day-title">
-                              📅 {dayGroup.dayName || dayGroup.date}
-                            </span>
-                            <span className="day-subtotal">
-                              {dayGroup.subtotalMinutes} min • {filteredLessons.length} {t('schedule.lessonsCount').toLowerCase()}
-                              {dayGroup.subtotalWageFormatted ? ` • ${dayGroup.subtotalWageFormatted}` : ''}
-                            </span>
-                          </div>
-                          {dayGroup.date && (
-                            <Link
-                              href={formatUrl(`/teachers/${teacherId}/${dayGroup.date}?from=${fromDate}&to=${toDate}${activePreset ? `&preset=${activePreset}` : ''}${statusFilter !== 'all' ? `&filter=${statusFilter}` : ''}`)}
-                              className="btn-open-day-details"
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                padding: '4px 10px',
-                                borderRadius: 6,
-                                backgroundColor: '#eff6ff',
-                                color: '#2563eb',
-                                border: '1px solid #bfdbfe',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                textDecoration: 'none',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <span>{t('schedule.openDayDetails') || 'Open day details'}</span>
-                              <span>→</span>
-                            </Link>
-                          )}
-                        </div>
-
-                        {/* Day Lessons List */}
-                        <div className="lesson-list">
-                          {filteredLessons.map((lesson, idx) => {
-                            const isExpanded = expandedLessons.has(lesson.id);
-                            const hasStatus = Boolean(lesson.lessonStatusName);
-                            const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
-                            const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
-
-                            const timeDisplay = (lesson.startTime && lesson.endTime && lesson.startTime !== '00:00')
-                              ? `${lesson.startTime} – ${lesson.endTime}`
-                              : (lesson.startTime && lesson.startTime !== '00:00' ? lesson.startTime : null);
-
-                            return (
-                              <div
-                                key={lesson.id}
-                                className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
-                                style={statusColor ? { borderLeftColor: statusColor } : {}}
-                              >
-                                {/* Summary Bar */}
-                                <div
-                                  className="lesson-summary-bar"
-                                  onClick={() => toggleLesson(lesson.id)}
-                                >
-                                  <div className="lesson-left-meta">
-                                    {/* Authentic Ribbon Bookmarks */}
-                                    <div className="ribbon-bookmarks-wrapper">
-                                      {lesson.classDetailsAdded && (
-                                        <div className="sm-tooltip-wrapper">
-                                          <span className="ribbon-bookmark ribbon-green" />
-                                          <span className="sm-tooltip-text">Added classes details</span>
-                                        </div>
-                                      )}
-                                      {lesson.attendanceChecked && (
-                                        <div className="sm-tooltip-wrapper">
-                                          <span className="ribbon-bookmark ribbon-blue" />
-                                          <span className="sm-tooltip-text">Attendance checked</span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Time Badge */}
-                                    {timeDisplay && (
-                                      <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
-                                        {timeDisplay}
-                                      </span>
-                                    )}
-
-                                    {/* Group/Student Title */}
-                                    <span className="lesson-student">
-                                      {idx + 1}. {lesson.groupName || lesson.groupOrStudent || 'Group Class'}
-                                    </span>
-
-                                    {/* Duration Badge */}
-                                    <span className="lesson-duration">
-                                      ⏱️ {lesson.durationMinutes} min
-                                    </span>
-
-                                    {/* Status Chip near duration */}
-                                    {hasStatus ? (
-                                      <div className="sm-tooltip-wrapper">
-                                        <span className={`lesson-status-chip ${
-                                          lesson.lessonStatusName?.toLowerCase().includes('advance')
-                                            ? 'chip-cancelled-advance'
-                                            : lesson.lessonStatusName?.toLowerCase().includes('last')
-                                              ? 'chip-last-minute'
-                                              : 'chip-late-cancellation'
-                                        }`}>
-                                          {lesson.lessonStatusName}
-                                        </span>
-                                        <span className="sm-tooltip-text">{lesson.lessonStatusName}</span>
-                                      </div>
-                                    ) : (
-                                      <span className="lesson-status-chip chip-completed">
-                                        Completed
-                                      </span>
-                                    )}
+                          {/* Summary Bar */}
+                          <div
+                            className="lesson-summary-bar"
+                            onClick={() => toggleLesson(lesson.id)}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleLesson(lesson.id);
+                              }
+                            }}
+                          >
+                            <div className="lesson-left-meta">
+                              {/* Ribbon Bookmarks with Tooltips */}
+                              <div className="ribbon-bookmarks-wrapper">
+                                {lesson.classDetailsAdded && (
+                                  <div className="sm-tooltip-wrapper">
+                                    <span className="ribbon-bookmark ribbon-green" />
+                                    <span className="sm-tooltip-text">{t('dayDetails.classNotesAdded') || 'Added classes details'}</span>
                                   </div>
-
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    {/* Rate Tag */}
-                                    <span className={`lesson-rate-tag ${isZeroRate ? 'zero-rate' : ''}`}>
-                                      {lesson.teacherRate || `${lesson.teacherRatePerLesson} ${lesson.currencySymbol || '₴'}`}
-                                    </span>
-
-                                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>
-                                      {lesson.className || lesson.lessonType || 'GE'}
-                                    </span>
-                                    <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`}>
-                                      ▼
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Symmetrical Sub-Bar (Planned / Attended Students & Attendance Marker) */}
-                                <div className="lesson-sub-meta" style={{ padding: '2px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                                  <span>
-                                    👥 Planned: {lesson.enrolledStudents || 1}
-                                    {lesson.attendanceChecked && (
-                                      <span style={{ marginLeft: 4 }}>
-                                        · Attended: {lesson.attendedCount || lesson.enrolledStudents || 1}/{lesson.enrolledStudents || 1}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span>
-                                    {lesson.attendanceChecked ? '✅ Attendance marked' : '⚪ Attendance not marked'}
-                                  </span>
-                                </div>
-
-                                {/* Accordion Detail Drawer */}
-                                {isExpanded && (
-                                  <div className="lesson-details-drawer">
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Group / Class</span>
-                                      <span className="lesson-detail-val">{lesson.groupName || 'N/A'} (ID: {lesson.groupId || 'N/A'})</span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
-                                      <span className="lesson-detail-val">
-                                        <span className="badge badge-info">{lesson.className || 'GE'}</span>
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Internal Lesson ID</span>
-                                      <span className="lesson-detail-val" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                                        {lesson.groupLessonId || lesson.id}
-                                      </span>
-                                    </div>
-
-                                    <div className="lesson-detail-item">
-                                      <span className="lesson-detail-label">Date & Duration</span>
-                                      <span className="lesson-detail-val">
-                                        {lesson.strLessonDate || lesson.date} ({lesson.durationMinutes} min)
-                                      </span>
-                                    </div>
+                                )}
+                                {lesson.attendanceChecked && (
+                                  <div className="sm-tooltip-wrapper">
+                                    <span className="ribbon-bookmark ribbon-blue" />
+                                    <span className="sm-tooltip-text">{t('dayDetails.attendanceMarked') || 'Attendance checked'}</span>
                                   </div>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
 
-                  {/* Markers Legend Block */}
-                  <div className="markers-legend-card">
-                    <div className="markers-legend-title">
-                      <span>📌</span>
-                      <span>{t('schedule.legendTitle')}</span>
-                    </div>
-                    <div className="markers-legend-grid">
-                      <div className="legend-item">
-                        <span className="ribbon-bookmark ribbon-green" />
-                        <span>Added classes details</span>
-                      </div>
-                      <div className="legend-item">
-                        <span className="ribbon-bookmark ribbon-blue" />
-                        <span>Attendance checked</span>
-                      </div>
-                      <div className="legend-item">
-                        <span className="legend-color-bar" style={{ backgroundColor: '#00FF00' }} />
-                        <span>Cancelled in Advance (0%)</span>
-                      </div>
-                      <div className="legend-item">
-                        <span className="legend-color-bar" style={{ backgroundColor: '#CC9933' }} />
-                        <span>Last-minute cancellation (100%)</span>
-                      </div>
-                      <div className="legend-item">
-                        <span className="legend-color-bar" style={{ backgroundColor: '#f59e0b' }} />
-                        <span>Late Cancelation (50%)</span>
-                      </div>
-                    </div>
+                              {/* Time Badge (Symmetrical) */}
+                              {timeDisplay && (
+                                <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+                                  {timeDisplay}
+                                </span>
+                              )}
+
+                              {/* Group/Student Title */}
+                              <span className="lesson-student" style={{ fontWeight: 600 }}>
+                                {idx + 1}. {lesson.groupName || lesson.groupOrStudent || 'Group Class'}
+                              </span>
+
+                              {/* Duration Badge */}
+                              <span className="lesson-duration">
+                                ⏱️ {lesson.durationMinutes} min
+                              </span>
+
+                              {/* Status Chip near duration */}
+                              {hasStatus ? (
+                                <div className="sm-tooltip-wrapper">
+                                  <span className={`lesson-status-chip ${
+                                    lesson.lessonStatusName?.toLowerCase().includes('advance')
+                                      ? 'chip-cancelled-advance'
+                                      : lesson.lessonStatusName?.toLowerCase().includes('last')
+                                        ? 'chip-last-minute'
+                                        : 'chip-late-cancellation'
+                                  }`}>
+                                    {lesson.lessonStatusName}
+                                  </span>
+                                  <span className="sm-tooltip-text">{lesson.lessonStatusName}</span>
+                                </div>
+                              ) : (
+                                <span className="lesson-status-chip chip-completed">
+                                  Completed
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {/* Rate Tag */}
+                              <span className={`lesson-rate-tag ${isZeroRate ? 'zero-rate' : ''}`}>
+                                {safeRate}
+                              </span>
+
+                              <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                                {lesson.className || lesson.lessonType || 'GE'}
+                              </span>
+                              <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`}>
+                                ▼
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Symmetrical Sub-Bar (Planned / Attended Students & Attendance Marker) */}
+                          <div className="lesson-sub-meta" style={{ padding: '4px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span>
+                              👥 {t('dayDetails.plannedStudents', { count: lesson.enrolledStudents || 1 }) || `Planned: ${lesson.enrolledStudents || 1}`}
+                              {lesson.attendanceChecked && (
+                                <span style={{ marginLeft: 4 }}>
+                                  · {t('dayDetails.attendedStudents', { attended: lesson.attendedCount || lesson.enrolledStudents || 1, planned: lesson.enrolledStudents || 1 }) || `Attended: ${lesson.attendedCount || lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1}`}
+                                </span>
+                              )}
+                            </span>
+                            <span>
+                              {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked') || 'Attendance marked'}` : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                            </span>
+                          </div>
+
+                          {/* Accordion Detail Drawer */}
+                          {isExpanded && (
+                            <div className="lesson-details-drawer">
+                              <div className="lesson-detail-item">
+                                <span className="lesson-detail-label">{t('dayDetails.groupOrClass') || 'Group / Class'}</span>
+                                <span className="lesson-detail-val">{lesson.groupName || 'N/A'} (ID: {lesson.groupId || 'N/A'})</span>
+                              </div>
+
+                              <div className="lesson-detail-item">
+                                <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
+                                <span className="lesson-detail-val">
+                                  <span className="badge badge-info">{lesson.className || 'GE'}</span>
+                                </span>
+                              </div>
+
+                              <div className="lesson-detail-item">
+                                <span className="lesson-detail-label">{t('dayDetails.internalLessonId') || 'Internal Lesson ID'}</span>
+                                <span className="lesson-detail-val" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                                  {lesson.groupLessonId || lesson.id}
+                                </span>
+                              </div>
+
+                              <div className="lesson-detail-item">
+                                <span className="lesson-detail-label">{t('dayDetails.reportedWage') || 'Wage'}</span>
+                                <span className="lesson-detail-val" style={{ fontWeight: 600 }}>
+                                  {safeRate}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================= */}
+              {/* RIGHT: Tracked Zoom Meetings for this day                 */}
+              {/* ========================================================= */}
+              <div className="day-column-box">
+                <div className="day-column-heading" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🎥 {t('schedule.zoomMeetingsTitle')}</span>
+                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                      {day.zoomMeetings.length}
+                    </span>
                   </div>
 
-                  {/* Week Summary Footer with Total Wage */}
-                  <div className="week-totals-banner">
-                    <div className="totals-group">
-                      <div className="total-stat">
-                        <span className="stat-label">{t('schedule.totalClaimedMinutes')}</span>
-                        <span className="stat-value">{report.totalMinutesCalculated || report.totalMinutesReported} min</span>
-                      </div>
-                      <div className="total-stat">
-                        <span className="stat-label">{t('schedule.lessonsCount')}</span>
-                        <span className="stat-value">{report.totalLessonsCount}</span>
-                      </div>
-                      <div className="total-stat">
-                        <span className="stat-label">{t('schedule.totalWageLabel')}</span>
-                        <span className="stat-value" style={{ color: '#16a34a', fontWeight: 800 }}>
-                          {report.totalWage || `${report.totalWageNumeric || 0} ₴`}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11, padding: '2px 8px', height: 22 }}
+                    onClick={refreshZoom}
+                    disabled={zoomStatus === 'loading' || zoomStatus === 'refreshing'}
+                  >
+                    <span>{zoomStatus === 'refreshing' ? '⏳' : '🔄'}</span>
+                    <span>{t('common.refresh') || 'Refresh'}</span>
+                  </button>
                 </div>
-              )}
+
+                {zoomStatus === 'loading' && (
+                  <div className="zoom-skeleton-list" aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="zoom-card-skeleton" />
+                  </div>
+                )}
+
+                {zoomStatus !== 'loading' && day.zoomMeetings.length === 0 && (
+                  <div className="zoom-empty-card" style={{ padding: '24px 16px', minHeight: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 24, marginBottom: 4 }}>📹</span>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                      {t('schedule.zoomEmpty') || 'No Zoom meetings recorded for this date.'}
+                    </p>
+                  </div>
+                )}
+
+                {zoomStatus !== 'loading' && day.zoomMeetings.length > 0 && (
+                  <div className="zoom-meeting-cards-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {day.zoomMeetings.map(occ => (
+                      <ZoomMeetingCard key={occ.id} occurrence={occ} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+
+      {/* Markers Legend Block */}
+      <div className="markers-legend-card" style={{ marginTop: 20 }}>
+        <div className="markers-legend-title">
+          <span>📌</span>
+          <span>{t('schedule.legendTitle')}</span>
+        </div>
+        <div className="markers-legend-grid">
+          <div className="legend-item">
+            <span className="ribbon-bookmark ribbon-green" />
+            <span>{t('dayDetails.classNotesAdded') || 'Added classes details'}</span>
+          </div>
+          <div className="legend-item">
+            <span className="ribbon-bookmark ribbon-blue" />
+            <span>{t('dayDetails.attendanceMarked') || 'Attendance checked'}</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color-bar" style={{ backgroundColor: '#00FF00' }} />
+            <span>Cancelled in Advance (0%)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color-bar" style={{ backgroundColor: '#CC9933' }} />
+            <span>Last-minute cancellation (100%)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color-bar" style={{ backgroundColor: '#f59e0b' }} />
+            <span>Late Cancelation (50%)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Week Summary Footer with Total Wage */}
+      {report && (
+        <div className="week-totals-banner" style={{ marginTop: 16 }}>
+          <div className="totals-group">
+            <div className="total-stat">
+              <span className="stat-label">{t('schedule.totalClaimedMinutes')}</span>
+              <span className="stat-value">{report.totalMinutesCalculated || report.totalMinutesReported} min</span>
+            </div>
+            <div className="total-stat">
+              <span className="stat-label">{t('schedule.lessonsCount')}</span>
+              <span className="stat-value">{report.totalLessonsCount}</span>
+            </div>
+            <div className="total-stat">
+              <span className="stat-label">{t('schedule.totalWageLabel')}</span>
+              <span className="stat-value" style={{ color: '#16a34a', fontWeight: 800 }}>
+                {report.totalWage || `${report.totalWageNumeric || 0} ₴`}
+              </span>
             </div>
           </div>
         </div>
-
-        {/* ===================================================================
-            RIGHT COLUMN: Tracked Zoom Meetings (CRM-001)
-            =================================================================== */}
-        <ZoomMeetingsPanel
-          teacherId={teacherId}
-          fromDate={fromDate}
-          toDate={toDate}
-          initialMeetings={initialZoomMeetings}
-        />
-      </div>
+      )}
     </div>
   );
 }

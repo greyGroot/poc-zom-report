@@ -62,78 +62,96 @@ export default function ZoomMeetingCard({ occurrence }) {
     }, 3000);
   }, [occurrence.uuid]);
 
+  const timeDisplay = (startTimeStr && endTimeStr)
+    ? `${startTimeStr} – ${endTimeStr}`
+    : (startTimeStr || '—');
+
   return (
     <article
-      className="zoom-meeting-card"
-      aria-label={`${topic}, ${startTimeStr}`}
+      className={`zoom-meeting-card ${participantsOpen ? 'expanded' : ''}`}
+      aria-label={`${topic}, ${timeDisplay}`}
     >
-      {/* Primary Row */}
-      <div className="zoom-card-primary">
+      {/* Symmetrical Summary Bar */}
+      <div
+        className="zoom-card-primary"
+        onClick={() => pCount > 0 && setParticipantsOpen(prev => !prev)}
+        style={{ cursor: pCount > 0 ? 'pointer' : 'default' }}
+      >
         <div className="zoom-card-time-topic">
-          <time className="zoom-start-badge" dateTime={occurrence.startTime}>
-            {startTimeStr || '—'}
-          </time>
-          <h3 className="zoom-meeting-topic">{topic}</h3>
-        </div>
-
-        <div className="zoom-card-duration">
-          <span className="zoom-duration-badge">{durationDisplay}</span>
-        </div>
-      </div>
-
-      {/* Secondary Row */}
-      <div className="zoom-card-secondary">
-        <span className="zoom-meta-item">
-          <strong>{t('schedule.startLabel')}:</strong> {startTimeStr || '—'}
-        </span>
-        <span className="zoom-meta-item">
-          <strong>{t('schedule.endLabel')}:</strong>{' '}
-          {endTimeStr ? endTimeStr : t('schedule.endNotRecorded')}
-        </span>
-        <span className="zoom-meta-item">
-          👥 {participantsCountLabel}
-        </span>
-        {occurrence.numericMeetingId && (
-          <span className="zoom-meta-item zoom-meeting-id">
-            <strong>{t('schedule.meetingIdLabel')}:</strong>{' '}
-            <code className="zoom-mono">{occurrence.numericMeetingId}</code>
+          {/* Symmetrical Time Range Badge */}
+          <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+            {timeDisplay}
           </span>
-        )}
+
+          <h3 className="zoom-meeting-topic" style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+            {topic}
+          </h3>
+
+          {/* Duration Badge */}
+          <span className="lesson-duration" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            ⏱️ {durationDisplay}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {occurrence.numericMeetingId && (
+            <span className="badge badge-neutral" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+              ID: {occurrence.numericMeetingId}
+            </span>
+          )}
+
+          {pCount > 0 && (
+            <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              {participantsOpen ? '▲' : '▼'}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Actions Row */}
-      <div className="zoom-card-actions">
-        {pCount > 0 ? (
+      {/* Symmetrical Sub-Bar (Participants Count, Host Info & Actions) */}
+      <div className="lesson-sub-meta" style={{ padding: '4px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>
+            👥 {participantsCountLabel}
+          </span>
+          {occurrence.hostEmail && (
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              🎥 {occurrence.hostEmail}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {pCount > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 11, padding: '2px 8px', height: 24 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setParticipantsOpen(prev => !prev);
+              }}
+              aria-expanded={participantsOpen}
+              aria-controls={`participants-${safeId}`}
+            >
+              <span>{participantsOpen ? '▲ ' + (t('schedule.hideParticipants') || 'Hide') : '▼ ' + (t('schedule.showParticipants', { count: pCount }) || 'Show participants')}</span>
+            </button>
+          )}
+
           <button
             type="button"
-            className="zoom-btn-disclosure"
-            aria-expanded={participantsOpen}
-            aria-controls={`participants-${safeId}`}
-            onClick={() => setParticipantsOpen(prev => !prev)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: 11, padding: '2px 8px', height: 24 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setTechOpen(prev => !prev);
+            }}
+            aria-expanded={techOpen}
+            aria-controls={`tech-${safeId}`}
           >
-            <span>{participantsOpen ? '▲' : '▼'}</span>
-            <span>
-              {participantsOpen
-                ? t('schedule.hideParticipants')
-                : t('schedule.showParticipants', { count: pCount })}
-            </span>
+            <span>⚙️ {t('schedule.technicalDetails') || 'Debug'}</span>
           </button>
-        ) : (
-          <span className="zoom-no-participants-text">
-            {t('schedule.noParticipantsRecorded')}
-          </span>
-        )}
-
-        <button
-          type="button"
-          className="zoom-btn-tech"
-          aria-expanded={techOpen}
-          aria-controls={`tech-${safeId}`}
-          onClick={() => setTechOpen(prev => !prev)}
-        >
-          <span>⚙️</span>
-          <span>{t('schedule.technicalDetails')}</span>
-        </button>
+        </div>
       </div>
 
       {/* Technical Details Disclosure */}

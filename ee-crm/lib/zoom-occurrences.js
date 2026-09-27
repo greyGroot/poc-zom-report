@@ -467,12 +467,14 @@ export function formatOccurrenceForDisplay(occ) {
     const normalizedName = rawName.toLowerCase();
 
     let groupKey = '';
-    if (userId) {
-      groupKey = `user_${userId}`;
-    } else if (email) {
+    if (email) {
       groupKey = `email_${email}`;
-    } else {
+    } else if (normalizedName && normalizedName !== 'unnamed participant') {
       groupKey = `name_${normalizedName}`;
+    } else if (userId) {
+      groupKey = `user_${userId}`;
+    } else {
+      groupKey = `anon_${p.key || Math.random().toString(36).substring(2, 7)}`;
     }
 
     if (!groupedMap.has(groupKey)) {

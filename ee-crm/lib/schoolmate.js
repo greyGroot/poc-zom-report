@@ -256,6 +256,7 @@ export class SchoolmateClient {
     const lastName = nameParts[0] || '';
     const firstName = nameParts[1] || '';
 
+    const fromLimit = date || '';
     const lessons = [];
     for (const ev of events) {
       for (const l of (ev.SchedulerLessons || [])) {
@@ -291,13 +292,21 @@ export class SchoolmateClient {
             lessonType: 'GE',
             language: 'English',
             enrolledStudents: l.EnrolledStudents || 1,
-            groupId: l.GroupId
+            groupId: l.GroupId,
+            teacherRate: '0.00 ₴',
+            teacherRatePerLesson: '0.00',
+            currencySymbol: '₴',
+            attendanceChecked: false,
+            classDetailsAdded: false,
+            lessonStatusName: null
           };
 
           lessons.push(lessonItem);
           if (dayInfo) {
             dayInfo.lessons.push(lessonItem);
             dayInfo.subtotalMinutes += durationMinutes;
+            dayInfo.subtotalWage = 0;
+            dayInfo.subtotalWageFormatted = '0.00 ₴';
           }
         }
       }
@@ -319,6 +328,9 @@ export class SchoolmateClient {
       totalMinutesReported: totalMinutesCalculated,
       totalMinutesCalculated,
       totalLessonsCount: lessons.length,
+      totalWage: '0.00 ₴',
+      totalWageNumeric: 0,
+      currencySymbol: '₴',
       isMinutesMatching: true,
       source: 'schoolmate_json_api',
       days,
@@ -469,8 +481,32 @@ export class SchoolmateClient {
   async getTeacherClassesSchedule({ teacherId, fromDate, toDate, teacherName = '', batchSize = 3 }) {
     const overallStart = Date.now();
 
-    // 1. Fetch group list
-    const groups = await this.getTeacherGroupClassList({ teacherId, fromDate, toDate });
+    // 1. Fetch group list and scheduler events in parallel
+    const [groups, schedulerRes] = await Promise.all([
+      this.getTeacherGroupClassList({ teacherId, fromDate, toDate }),
+      this.getSchedulerEvents({ date: fromDate }).catch(() => ({ events: [] }))
+    ]);
+
+    const timeMap = new Map();
+    for (const ev of (schedulerRes.events || [])) {
+      for (const l of (ev.SchedulerLessons || [])) {
+        if (l.GroupLessonId) {
+          let s = null;
+          let e = null;
+          if (l.LessonTime && l.LessonTime.includes('-')) {
+            const parts = l.LessonTime.split('-');
+            s = parts[0].trim();
+            e = parts[1].trim();
+          }
+          timeMap.set(l.GroupLessonId, {
+            startTime: s,
+            endTime: e,
+            enrolledStudents: l.EnrolledStudents,
+            groupName: l.GroupName
+          });
+        }
+      }
+    }
 
     // 2. Fetch class details in batches (2-3 groups per batch)
     const allGroupResults = [];
@@ -517,18 +553,27 @@ export class SchoolmateClient {
           isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
 
-        let startTime = null;
-        let endTime = null;
-        if (item.LessonTime && item.LessonTime.includes('-')) {
-          const [s, e] = item.LessonTime.split('-');
-          startTime = s.trim();
-          endTime = e.trim();
-        } else if (item.StrLessonFromTime || item.StrLessonToTime) {
-          startTime = item.StrLessonFromTime || null;
-          endTime = item.StrLessonToTime || null;
+        // Strict date filtering: skip if outside requested date range
+        if (isoDate < fromDate || isoDate > toDate) {
+          continue;
         }
 
-        const enrolledStudents = Number(item.EnrolledStudents) || 1;
+        const enriched = timeMap.get(item.GroupLessonId);
+
+        let startTime = enriched?.startTime || null;
+        let endTime = enriched?.endTime || null;
+        if (!startTime) {
+          if (item.LessonTime && item.LessonTime.includes('-')) {
+            const [s, e] = item.LessonTime.split('-');
+            startTime = s.trim();
+            endTime = e.trim();
+          } else if (item.StrLessonFromTime || item.StrLessonToTime) {
+            startTime = item.StrLessonFromTime || null;
+            endTime = item.StrLessonToTime || null;
+          }
+        }
+
+        const enrolledStudents = Number(enriched?.enrolledStudents || item.EnrolledStudents) || 1;
         const attendanceChecked = Boolean(item.AttendanceChecked);
         const classDetailsAdded = Boolean(item.ClassDetailsAdded);
         const statusName = item.LessonStatusName || null;
@@ -550,7 +595,11 @@ export class SchoolmateClient {
           statusCategory = 'other';
         }
 
+        const durationMinutes = Number(item.LengthOfLesson || item.DurationMinutes || item.DefaultLessonLength) || 60;
         const attendedCount = attendanceChecked ? enrolledStudents : 0;
+
+        const rateNumeric = parseFloat(String(item.TeacherRatePerLesson || item.TeacherRate || detail.wageSum || '0').replace(/[^0-9.]/g, '')) || 0;
+        totalWageNumeric += rateNumeric;
 
         const lessonObj = {
           id: `lesson_${item.GroupLessonId}`,
@@ -572,8 +621,8 @@ export class SchoolmateClient {
           lessonStatusName: statusName,
           lessonStatusColor: item.LessonStatusColor || null,
           lessonFunctionId: item.LessonFunctionId || 0,
-          teacherRatePerLesson: item.TeacherRatePerLesson || '0.00',
-          teacherRate: item.TeacherRate || `${rateNumeric.toFixed(2)} ${currencySymbol}`,
+          teacherRatePerLesson: item.TeacherRatePerLesson || (rateNumeric > 0 ? rateNumeric.toFixed(2) : '0.00'),
+          teacherRate: item.TeacherRate || (rateNumeric > 0 ? `${rateNumeric.toFixed(2)} ${currencySymbol}` : `0.00 ${currencySymbol}`),
           currencySymbol: item.CurrencySymbol || currencySymbol
         };
 
@@ -603,9 +652,15 @@ export class SchoolmateClient {
     // Sort days chronologically
     const sortedDays = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
-    // Sort lessons inside each day (by groupName then groupLessonId)
+    // Sort lessons inside each day chronologically by startTime, then groupName
     for (const day of sortedDays) {
-      day.lessons.sort((a, b) => (a.groupName || '').localeCompare(b.groupName || ''));
+      day.lessons.sort((a, b) => {
+        const timeA = a.startTime || '99:99';
+        const timeB = b.startTime || '99:99';
+        const timeComp = timeA.localeCompare(timeB);
+        if (timeComp !== 0) return timeComp;
+        return (a.groupName || '').localeCompare(b.groupName || '');
+      });
       day.subtotalWageFormatted = `${day.subtotalWage.toFixed(2)} ${currencySymbol}`;
     }
 
