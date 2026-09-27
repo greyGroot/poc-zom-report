@@ -548,33 +548,28 @@ export default function TeacherDayDetailsClient({
 
                       {/* Detail Drawer (Expanded) */}
                       {isExpanded && (
-                        <div id={`lesson-drawer-${lesson.id || idx}`} style={{ padding: '12px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
-                          <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>👥</span>
-                            <span>{t('dayDetails.plannedStudentsTitle') || 'Planned Students from Schoolmate'}:</span>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                        <div id={`lesson-drawer-${lesson.id || idx}`} style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {isIndividual ? (
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cleanStudentName}</span>
-                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>1 {t('dayDetails.enrolledStudent') || 'student enrolled'}</span>
+                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>1 {t('dayDetails.enrolledStudent')}</span>
                                 </div>
-                                <span style={{ fontSize: 12 }}>
-                                  {lesson.attendanceChecked ? `✅ ${t('dayDetails.attended') || 'Attended'}` : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                                <span style={{ fontSize: 12, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)' }}>
+                                  {lesson.attendanceChecked ? `✅ ${t('dayDetails.attended')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
                                 </span>
                               </div>
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rawGroupName}</span>
-                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{lesson.enrolledStudents || 1} {t('dayDetails.enrolledStudentsPlural') || 'students planned'}</span>
+                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{lesson.enrolledStudents || 1} {t('dayDetails.enrolledStudentsPlural')}</span>
                                 </div>
-                                <span style={{ fontSize: 12 }}>
+                                <span style={{ fontSize: 12, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)' }}>
                                   {lesson.attendanceChecked
-                                    ? `✅ ${lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1} ${t('dayDetails.attended') || 'Attended'}`
-                                    : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                                    ? `✅ ${lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1} ${t('dayDetails.attended')}`
+                                    : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
                                 </span>
                               </div>
                             )}
@@ -583,7 +578,7 @@ export default function TeacherDayDetailsClient({
                           {/* Class Notes / Additional Details if present */}
                           {(lesson.classDetailsAdded || lesson.notes) && (
                             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
-                              📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded') || 'Added classes details'}
+                              📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
                             </div>
                           )}
                         </div>
