@@ -28,11 +28,10 @@ export const config = {
      * - api/auth (NextAuth API routes)
      * - api/health (Health check endpoint)
      * - api/webhooks (External webhook ingestion endpoints)
-     * - api/migrations (Migration management endpoints)
      * - login, uk/login, pl/login (Login pages)
      * - _next/static, _next/image (Static assets)
      * - favicon.ico, icons, images
      */
-    '/((?!api/auth|api/health|api/webhooks|api/migrations|login|uk/login|pl/login|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/health|api/webhooks|login|uk/login|pl/login|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

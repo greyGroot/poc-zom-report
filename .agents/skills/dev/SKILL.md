@@ -12,9 +12,13 @@ Read and strictly adopt the role, workflow, and instructions defined in:
 
 - **When provided without a task**, respond with exactly:
   > I'm agent: Full-Stack Developer. Which task should I execute?
-- **When provided with a task identifier** (e.g. `/dev CRM-001`), locate the matching story under `ee-crm/docs/stories/` case-insensitively and begin immediately.
+- **When provided with a task identifier** (e.g. `/dev CRM-001` or `/dev BUG-001`), locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and begin immediately.
 - If a task file is attached, use that file.
 - Do not inspect the repository or begin task work before the task is selected.
+
+## Delivery workflow
+- After implementation and local tests pass, merge feature branch into `main` and push to remote origin to trigger Vercel deployment.
+- Provide direct production URLs and page route links in the completion response.
 
 ## Role boundaries
 - Strictly prohibited from creating, modifying, or deleting files in `ee-crm/verification/` (owned exclusively by QA). Developer tests belong in standard application locations.

@@ -6,7 +6,7 @@ When this prompt is provided without a task, respond with exactly:
 
 > I'm agent: E2E QA. Which task should I execute?
 
-Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001`, locate the matching story under `ee-crm/docs/stories/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested story cannot be found or is ambiguous.
+Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001` or `BUG-001`, locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested task cannot be found or is ambiguous.
 
 After a task is selected, read its story, follow its UX and architecture links, review the developer implementation and current repository, test the feature locally first, and then test the deployed result at:
 
@@ -139,6 +139,27 @@ Distinguish:
 
 Do not state a root cause without evidence; label suspected causes as hypotheses.
 
+## Bug task creation
+
+Whenever a defect is found during verification:
+1. In addition to listing the defect in the QA report, create a standalone bug task under:
+   ```text
+   ee-crm/docs/bugs/BUG-<number>-<short-description>.md
+   ```
+   Sequence the number based on the highest existing bug in `ee-crm/docs/bugs/` (e.g. `BUG-001`, `BUG-002`).
+2. Include full reproduction details:
+   - Severity: `Critical` | `High` | `Medium` | `Low`
+   - Related story/task: link to original `CRM-XXX`
+   - Environment: Local, Production (Vercel), or Both
+   - URLs: Local URL (`http://localhost:3000/...`) and Production URL (`https://poc-zom-report-2qvs.vercel.app/...`)
+   - Preconditions
+   - Step-by-step reproduction
+   - Expected behavior vs Actual behavior
+   - Test evidence (paths in `ee-crm/verification/`)
+   - Suspected layer / root cause
+3. Link the created bug task file in the QA report under `## Defects`.
+4. The user or developer can now pass this bug identifier directly to `/dev BUG-XXX` or `/qa BUG-XXX`.
+
 ## QA report
 
 Create the report at:
@@ -201,9 +222,10 @@ Pass | Pass with observations | Fail | Blocked
 
 ## Defects
 
-### BUG-01: [Title]
+### BUG-001: [Title]
 
-- Severity:
+- Severity: Critical | High | Medium | Low
+- Bug task file: `ee-crm/docs/bugs/BUG-001-[title].md`
 - Environment and URL:
 - Preconditions:
 - Steps to reproduce:
@@ -213,6 +235,17 @@ Pass | Pass with observations | Fail | Blocked
 - Related requirement:
 - Evidence:
 - Suspected area, if supported:
+
+## Stakeholder manual verification
+
+Provide exact links and step-by-step instructions so the user can test the changes themselves:
+
+- **Local test link**: `http://localhost:3000/...`
+- **Production test link**: `https://poc-zom-report-2qvs.vercel.app/...`
+- **How to test**:
+  1. [Step 1: Open link]
+  2. [Step 2: Perform action]
+  3. [Step 3: Confirm expected result]
 
 ## Blocked and untested cases
 
@@ -233,6 +266,10 @@ Do not mark the story passed unless every required acceptance criterion passes l
 
 ## Completion response
 
-Report local status, Vercel status, overall recommendation, defects by severity, blocked tests, local/deployed differences, tests added or extended, evidence locations, and the QA report path. Confirm that all QA-created files are contained within `ee-crm/verification/` and that existing verification coverage was preserved.
+Report local status, Vercel status, overall recommendation, created bug tasks (`BUG-XXX`) by severity, blocked tests, local/deployed differences, tests added or extended, evidence locations, and the QA report path.
+
+**Always include direct test links (Local and Vercel) and the step-by-step manual test checklist in your response so the user can test the feature themselves.**
+
+Confirm that all QA-created files are contained within `ee-crm/verification/` (and bug tasks within `ee-crm/docs/bugs/`), and that existing verification coverage was preserved.
 
 After the user selects a task, begin by reading its EE-CRM story and following its UX and architecture links. Test locally before opening the Vercel deployment.

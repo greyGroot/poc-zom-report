@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-09-27T04:58:25.861Z",
+  "timestamp": "2026-09-27T06:01:20.514Z",
   "vercelUrl": "https://poc-zom-report-2qvs.vercel.app",
   "localUrl": "http://localhost:3000",
   "probeReport": {
-    "apiDaysStatus": 404,
-    "pageDayStatus": 404
+    "apiDaysStatus": 200,
+    "pageDayStatus": 200
   },
   "testResults": [
     {
@@ -17,25 +17,25 @@
       "id": "HEALTH-VERCEL",
       "description": "Vercel deployment GET /api/health responds with 200 OK",
       "status": "PASS",
-      "details": "X-Vercel-Id: arn1::iad1::t45bs-1790485103849-b1d2fce31f00"
+      "details": "X-Vercel-Id: arn1::iad1::44kfq-1790488878295-fa62415727e4"
     },
     {
       "id": "VERCEL-API-DAYS",
-      "description": "Vercel GET /api/teachers/[id]/days/[date] endpoint presence",
-      "status": "BLOCKED",
-      "details": "HTTP 404: Endpoint not deployed to Vercel (uncommitted in repository)"
+      "description": "Vercel GET /api/teachers/[id]/days/[date] endpoint operational",
+      "status": "PASS",
+      "details": "HTTP 200: Savchuk Yuliia - 5 lessons, 1 meetings"
     },
     {
       "id": "VERCEL-PAGE-DAY",
-      "description": "Vercel GET /teachers/[id]/[date] page route presence",
-      "status": "BLOCKED",
-      "details": "HTTP 404: Route not deployed to Vercel (uncommitted in repository)"
+      "description": "Vercel GET /teachers/[id]/[date] page route renders successfully",
+      "status": "PASS",
+      "details": "HTTP 200: Renders Savchuk Yuliia day workspace"
     },
     {
       "id": "SEED-TEACHERS",
       "description": "Seeded test teachers (mapped Olena and unmapped Taras)",
       "status": "PASS",
-      "details": "Olena ID: t_00f9dbd4 (HTTP: t_9e757995), Unmapped ID: t_fbf758ec"
+      "details": "Olena ID: t_9881f54b (HTTP: t_817fd827), Unmapped ID: t_6ac7a857"
     },
     {
       "id": "SEED-SCHOOLMATE",
@@ -111,19 +111,19 @@
     },
     {
       "id": "HTTP-API-DAYS-200",
-      "description": "Local GET /api/teachers/[id]/days/[date] returns 200 with Cache-Control: no-store, private",
+      "description": "API Route Contract GET /api/teachers/[id]/days/[date] returns 200 with Cache-Control: no-store, private",
       "status": "PASS",
-      "details": "Status: 200, Success: true"
+      "details": "Status: 200, SM: 2, Zoom: 3"
     },
     {
       "id": "HTTP-API-DAYS-404",
-      "description": "Local GET /api/teachers/[id]/days/[date] returns 404 for missing teacher",
+      "description": "API Route Contract GET /api/teachers/[id]/days/[date] returns 404 for missing teacher",
       "status": "PASS",
       "details": "Teacher not found"
     },
     {
       "id": "HTTP-API-DAYS-400",
-      "description": "Local GET /api/teachers/[id]/days/[date] returns 400 for invalid date",
+      "description": "API Route Contract GET /api/teachers/[id]/days/[date] returns 400 for invalid date",
       "status": "PASS",
       "details": "Invalid date format (expected YYYY-MM-DD)"
     },

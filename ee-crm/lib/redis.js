@@ -13,6 +13,7 @@ export const OCCURRENCE_KEY_PREFIX = 'zoom:occurrence:';
 export const HOST_OCCURRENCES_KEY_PREFIX = 'zoom:host:occurrences:';
 export const OCCURRENCE_EVENTS_KEY_PREFIX = 'zoom:occurrence:events:';
 export const MIGRATION_STATE_KEY = 'zoom:migrations:crm-003';
+export const CRM_005_MIGRATION_STATE_KEY = 'zoom:migrations:crm-005';
 
 /**
  * Deep clone helper for in-memory isolation.
@@ -1031,6 +1032,30 @@ export async function getMigrationState(customClient = null) {
 export async function setMigrationState(state, customClient = null) {
   const redis = customClient || getRedisClient();
   await redis.set(MIGRATION_STATE_KEY, state);
+  return state;
+}
+
+/**
+ * Get the current CRM-005 migration state from target Redis.
+ * @param {object} [customClient]
+ * @returns {Promise<object|null>}
+ */
+export async function getCrm005MigrationState(customClient = null) {
+  const redis = customClient || getRedisClient();
+  const raw = await redis.get(CRM_005_MIGRATION_STATE_KEY);
+  if (!raw) return null;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
+/**
+ * Set or update the CRM-005 migration state in target Redis.
+ * @param {object} state
+ * @param {object} [customClient]
+ * @returns {Promise<object>}
+ */
+export async function setCrm005MigrationState(state, customClient = null) {
+  const redis = customClient || getRedisClient();
+  await redis.set(CRM_005_MIGRATION_STATE_KEY, state);
   return state;
 }
 

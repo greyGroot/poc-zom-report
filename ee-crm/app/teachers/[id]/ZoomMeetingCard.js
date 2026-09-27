@@ -139,20 +139,27 @@ export default function ZoomMeetingCard({ occurrence }) {
       {/* Technical Details Disclosure */}
       {techOpen && (
         <div id={`tech-${safeId}`} className="zoom-tech-details" role="region" aria-label="Technical Details">
-          <div className="zoom-tech-row">
-            <span className="zoom-tech-label">{t('schedule.occurrenceUuid')}:</span>
-            <code className="zoom-uuid-code" title={occurrence.uuid}>
-              {occurrence.uuid}
-            </code>
-            <button
-              type="button"
-              className="zoom-btn-copy"
-              onClick={handleCopyUuid}
-              aria-label={t('schedule.copyUuid')}
-            >
-              📋 {t('schedule.copyUuid')}
-            </button>
-          </div>
+          {occurrence.identityKind === 'legacy_derived' || !occurrence.uuid ? (
+            <div className="zoom-tech-row">
+              <span className="zoom-tech-label">{t('schedule.occurrenceIdentity')}:</span>
+              <span className="zoom-legacy-derived-badge">{t('schedule.legacyReconstructedOccurrence')}</span>
+            </div>
+          ) : (
+            <div className="zoom-tech-row">
+              <span className="zoom-tech-label">{t('schedule.occurrenceUuid')}:</span>
+              <code className="zoom-uuid-code" title={occurrence.uuid}>
+                {occurrence.uuid}
+              </code>
+              <button
+                type="button"
+                className="zoom-btn-copy"
+                onClick={handleCopyUuid}
+                aria-label={t('schedule.copyUuid')}
+              >
+                📋 {t('schedule.copyUuid')}
+              </button>
+            </div>
+          )}
 
           {copyStatus && (
             <div className="zoom-copy-feedback" role="status" aria-live="polite">

@@ -6,7 +6,7 @@ When this prompt is provided without a task, respond with exactly:
 
 > I'm agent: Architect. Which task should I execute?
 
-Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001`, locate the matching story under `ee-crm/docs/stories/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested story cannot be found or is ambiguous.
+Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001` or `BUG-001`, locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested task cannot be found or is ambiguous.
 
 After a task is selected, read its story, follow its UX link, inspect the related EE-CRM codebase, and create an implementation-ready technical plan. Do not implement the feature unless explicitly requested.
 

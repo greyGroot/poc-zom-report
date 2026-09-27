@@ -5,26 +5,78 @@
 import crypto from 'node:crypto';
 
 /**
- * Encodes an exact Zoom UUID into a base64url string safe for URLs, DOM IDs, and Redis keys.
+ * Encodes an exact Zoom UUID or canonical occurrence ID into a base64url string safe for URLs, DOM IDs, and Redis keys.
  * Omits any '=', '/', or '+' characters.
- * @param {string} uuid
+ * @param {string} uuidOrId
  * @returns {string}
  */
-export function toSafeOccurrenceId(uuid) {
-  if (!uuid) return '';
-  return Buffer.from(String(uuid), 'utf-8')
+export function toSafeOccurrenceId(uuidOrId) {
+  if (!uuidOrId) return '';
+  return Buffer.from(String(uuidOrId), 'utf-8')
     .toString('base64url')
     .replace(/=/g, '');
 }
 
 /**
- * Decodes a safe occurrence ID back to the exact Zoom UUID.
+ * Decodes a safe occurrence ID back to the exact Zoom UUID or canonical occurrence ID.
  * @param {string} safeId
  * @returns {string}
  */
 export function fromSafeOccurrenceId(safeId) {
   if (!safeId) return '';
   return Buffer.from(String(safeId), 'base64url').toString('utf-8');
+}
+
+/**
+ * Derives a deterministic canonical occurrence ID for historical Zoom evidence lacking a recoverable UUID.
+ * @param {string|number} numericMeetingId
+ * @param {string} startTime
+ * @returns {string} e.g. "legacy:poc:v1:<sha256>"
+ */
+export function deriveLegacyDerivedId(numericMeetingId, startTime) {
+  const normMeetingId = String(numericMeetingId || '').trim();
+  const normStartTime = String(startTime || '').trim();
+  const input = `${normMeetingId}|${normStartTime}`;
+  const hash = crypto.createHash('sha256').update(input).digest('hex');
+  return `legacy:poc:v1:${hash}`;
+}
+
+/**
+ * Parses and normalizes occurrence identity representation.
+ * @param {string|object} identity
+ * @returns {{ occurrence_id: string, uuid: string|null, identity_kind: 'exact_uuid'|'legacy_derived', identity_provenance: object|null }}
+ */
+export function parseOccurrenceIdentity(identity) {
+  if (!identity) {
+    throw new Error('Occurrence identity is required');
+  }
+  if (typeof identity === 'object') {
+    const occurrenceId = identity.occurrence_id || identity.occurrenceId || identity.uuid;
+    const isLegacy = identity.identity_kind === 'legacy_derived' || identity.identityKind === 'legacy_derived' || !identity.uuid;
+    return {
+      occurrence_id: occurrenceId,
+      uuid: isLegacy ? null : (identity.uuid || occurrenceId),
+      identity_kind: isLegacy ? 'legacy_derived' : 'exact_uuid',
+      identity_provenance: identity.identity_provenance || identity.identityProvenance || null
+    };
+  }
+
+  const idStr = String(identity).trim();
+  if (idStr.startsWith('legacy:poc:v1:')) {
+    return {
+      occurrence_id: idStr,
+      uuid: null,
+      identity_kind: 'legacy_derived',
+      identity_provenance: null
+    };
+  }
+
+  return {
+    occurrence_id: idStr,
+    uuid: idStr,
+    identity_kind: 'exact_uuid',
+    identity_provenance: null
+  };
 }
 
 /**
@@ -79,7 +131,8 @@ export function calculateIntervalUnionSeconds(sessions) {
 export function deriveFactFingerprint(fact) {
   const norm = {
     type: fact.type,
-    uuid: fact.uuid,
+    uuid: fact.uuid || fact.occurrence_id || '',
+    occurrence_id: fact.occurrence_id || fact.uuid || '',
     source_timestamp: fact.source_timestamp || '',
     user_id: fact.user_id || '',
     email: (fact.email || '').toLowerCase().trim(),
@@ -116,7 +169,9 @@ export function normalizeWebhookEventToFacts(event, payload) {
     return [
       {
         type: 'meeting.started',
+        occurrence_id: uuid,
         uuid,
+        identity_kind: 'exact_uuid',
         numeric_meeting_id: numericMeetingId,
         topic: object.topic || 'Zoom Meeting',
         host_id: object.host_id || null,
@@ -133,7 +188,9 @@ export function normalizeWebhookEventToFacts(event, payload) {
     return [
       {
         type: 'meeting.ended',
+        occurrence_id: uuid,
         uuid,
+        identity_kind: 'exact_uuid',
         numeric_meeting_id: numericMeetingId,
         end_time: object.end_time || null,
         duration: object.duration !== undefined ? Number(object.duration) : null,
@@ -161,7 +218,9 @@ export function normalizeWebhookEventToFacts(event, payload) {
     return [
       {
         type: 'participant.joined',
+        occurrence_id: uuid,
         uuid,
+        identity_kind: 'exact_uuid',
         numeric_meeting_id: numericMeetingId,
         user_id: rawUserId,
         zoom_user_id: rawZoomId,
@@ -188,7 +247,9 @@ export function normalizeWebhookEventToFacts(event, payload) {
     return [
       {
         type: 'participant.left',
+        occurrence_id: uuid,
         uuid,
+        identity_kind: 'exact_uuid',
         numeric_meeting_id: numericMeetingId,
         user_id: rawUserId,
         zoom_user_id: rawZoomId,
@@ -206,12 +267,13 @@ export function normalizeWebhookEventToFacts(event, payload) {
 /**
  * Reduce a collection of occurrence facts into the authoritative occurrence projection.
  * Guaranteed to be deterministic regardless of fact input order.
- * @param {string} uuid
+ * @param {string|object} occurrenceIdentity - Exact Zoom UUID, derived ID string, or identity object
  * @param {Array<object>} facts
+ * @param {object} [options]
  * @returns {object} Authoritative occurrence projection
  */
-export function reduceOccurrenceFacts(uuid, facts) {
-  if (!uuid) throw new Error('UUID is required for occurrence reduction');
+export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
+  const parsedIdentity = parseOccurrenceIdentity(occurrenceIdentity);
 
   let numericMeetingId = null;
   let topic = 'Zoom Meeting';
@@ -240,7 +302,7 @@ export function reduceOccurrenceFacts(uuid, facts) {
   };
 
   // Sort facts chronologically by source_timestamp, tie-break by fact type
-  const sortedFacts = [...facts].sort((a, b) => {
+  const sortedFacts = [...(facts || [])].sort((a, b) => {
     const tA = a.source_timestamp ? Date.parse(a.source_timestamp) : 0;
     const tB = b.source_timestamp ? Date.parse(b.source_timestamp) : 0;
     if (tA !== tB) return tA - tB;
@@ -412,7 +474,10 @@ export function reduceOccurrenceFacts(uuid, facts) {
   }
 
   return {
-    uuid,
+    occurrence_id: parsedIdentity.occurrence_id,
+    uuid: parsedIdentity.uuid,
+    identity_kind: parsedIdentity.identity_kind,
+    ...(parsedIdentity.identity_provenance ? { identity_provenance: parsedIdentity.identity_provenance } : {}),
     numeric_meeting_id: numericMeetingId,
     topic,
     host_id: hostId,
@@ -422,8 +487,104 @@ export function reduceOccurrenceFacts(uuid, facts) {
     duration_seconds: durationSeconds,
     duration_state: durationState,
     participants: canonicalParticipants,
-    revision: facts.length,
+    revision: sortedFacts.length,
     source_updated_at: latestSourceTime || startTime || new Date().toISOString()
+  };
+}
+
+/**
+ * Computes deterministic SHA-256 hash of canonicalized projection fields.
+ * @param {object} projection
+ * @returns {string} Hex SHA-256
+ */
+export function computeProjectionHash(projection) {
+  if (!projection) return '';
+  const canonical = {
+    occurrence_id: projection.occurrence_id || projection.uuid || '',
+    uuid: projection.uuid || null,
+    identity_kind: projection.identity_kind || (projection.uuid ? 'exact_uuid' : 'legacy_derived'),
+    numeric_meeting_id: projection.numeric_meeting_id ? String(projection.numeric_meeting_id).trim() : null,
+    topic: projection.topic || '',
+    host_email: projection.host_email ? projection.host_email.toLowerCase().trim() : '',
+    start_time: projection.start_time || '',
+    end_time: projection.end_time || '',
+    duration_seconds: projection.duration_seconds !== undefined ? projection.duration_seconds : null,
+    duration_state: projection.duration_state || '',
+    participants: Object.keys(projection.participants || {}).sort().reduce((acc, k) => {
+      const p = projection.participants[k];
+      acc[k] = {
+        name: p.name || '',
+        email: p.email ? p.email.toLowerCase().trim() : '',
+        user_id: p.user_id ? String(p.user_id).trim() : '',
+        is_host: Boolean(p.is_host),
+        duration_seconds: p.duration_seconds || 0,
+        sessions: (p.sessions || []).map(s => ({
+          join_time: s.join_time || '',
+          leave_time: s.leave_time || ''
+        }))
+      };
+      return acc;
+    }, {})
+  };
+
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(canonical))
+    .digest('hex');
+}
+
+/**
+ * Validates domain invariants for an authoritative occurrence projection.
+ * @param {object} occurrence
+ * @returns {{ valid: boolean, errors: Array<string> }}
+ */
+export function validateOccurrenceInvariants(occurrence) {
+  const errors = [];
+  if (!occurrence) {
+    return { valid: false, errors: ['Occurrence is null or undefined'] };
+  }
+  const occId = occurrence.occurrence_id || occurrence.uuid;
+  if (!occId) {
+    errors.push('Missing occurrence_id or uuid');
+  }
+
+  const kind = occurrence.identity_kind || (occurrence.uuid ? 'exact_uuid' : 'legacy_derived');
+  if (kind === 'exact_uuid') {
+    if (!occurrence.uuid) {
+      errors.push('Exact occurrence must have non-null uuid');
+    } else if (occurrence.occurrence_id && occurrence.occurrence_id !== occurrence.uuid) {
+      errors.push('Exact occurrence must have occurrence_id equal to uuid');
+    }
+  } else if (kind === 'legacy_derived') {
+    if (occurrence.uuid !== null && occurrence.uuid !== undefined) {
+      errors.push('Legacy-derived occurrence must have null uuid');
+    }
+    if (!occId || !String(occId).startsWith('legacy:poc:v1:')) {
+      errors.push('Legacy-derived occurrence must have canonical id starting with legacy:poc:v1:');
+    }
+  } else {
+    errors.push(`Unknown identity_kind: ${kind}`);
+  }
+
+  if (!occurrence.host_email) {
+    errors.push('Missing host_email');
+  }
+
+  if (!occurrence.start_time || Number.isNaN(Date.parse(occurrence.start_time))) {
+    errors.push('Missing or invalid start_time');
+  }
+
+  if (occurrence.end_time) {
+    const sMs = Date.parse(occurrence.start_time);
+    const eMs = Date.parse(occurrence.end_time);
+    if (!Number.isNaN(sMs) && !Number.isNaN(eMs) && eMs < sMs) {
+      errors.push('end_time is earlier than start_time');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
   };
 }
 

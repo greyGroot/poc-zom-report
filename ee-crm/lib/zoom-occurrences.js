@@ -128,7 +128,7 @@ export function calculateIntervalUnionSeconds(sessions) {
 export async function getZoomOccurrence(uuidOrSafeId) {
   if (!uuidOrSafeId) return null;
 
-  // Check exact UUID in memory
+  // Check exact UUID or canonical occurrence ID in memory
   if (memoryStore.occurrences.has(uuidOrSafeId)) {
     return memoryStore.occurrences.get(uuidOrSafeId);
   }
@@ -145,7 +145,10 @@ export async function getZoomOccurrence(uuidOrSafeId) {
   if (redis) {
     try {
       const safeId = toSafeOccurrenceId(uuidOrSafeId);
-      const raw = await redis.get(`${OCCURRENCE_PREFIX}${safeId}`);
+      let raw = await redis.get(`${OCCURRENCE_PREFIX}${safeId}`);
+      if (!raw && safeId !== uuidOrSafeId) {
+        raw = await redis.get(`${OCCURRENCE_PREFIX}${uuidOrSafeId}`);
+      }
       if (raw) {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
       }
@@ -159,7 +162,7 @@ export async function getZoomOccurrence(uuidOrSafeId) {
 
 /**
  * Save or update a Zoom meeting occurrence.
- * Authoritative key is the exact occurrence UUID.
+ * Authoritative key is the canonical occurrence ID (or exact Zoom UUID).
  * Replay idempotency: Merges participant sessions without duplicate sessions or inflating durations.
  * BUG-04 fix: Does NOT merge participants solely by display name. Requires user_id or email match.
  * BUG-03 fix: Missing end_time does not calculate wall-clock elapsed duration.
@@ -170,12 +173,17 @@ export async function getZoomOccurrence(uuidOrSafeId) {
  */
 export async function saveZoomOccurrence(occurrence, options = {}) {
   const { merge = false } = options;
-  if (!occurrence || !occurrence.uuid) {
-    throw new Error('Occurrence UUID is required');
+  const rawId = occurrence?.occurrence_id || occurrence?.uuid;
+  if (!rawId) {
+    throw new Error('Occurrence ID or UUID is required');
   }
 
-  const uuid = String(occurrence.uuid).trim();
-  const existing = await getZoomOccurrence(uuid);
+  const occId = String(rawId).trim();
+  const isLegacy = occurrence.identity_kind === 'legacy_derived' || !occurrence.uuid;
+  const uuid = isLegacy ? null : String(occurrence.uuid || occId).trim();
+  const identityKind = isLegacy ? 'legacy_derived' : 'exact_uuid';
+
+  const existing = await getZoomOccurrence(occId);
 
   let recordToSave;
   if (existing && merge) {
@@ -241,27 +249,31 @@ export async function saveZoomOccurrence(occurrence, options = {}) {
     recordToSave = {
       ...existing,
       ...occurrence,
+      occurrence_id: occId,
       uuid,
+      identity_kind: identityKind,
       participants: mergedParticipants,
       updated_at: new Date().toISOString()
     };
   } else {
     recordToSave = {
       ...occurrence,
+      occurrence_id: occId,
       uuid,
+      identity_kind: identityKind,
       created_at: existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
   }
 
   // Persist to memory
-  memoryStore.occurrences.set(uuid, recordToSave);
+  memoryStore.occurrences.set(occId, recordToSave);
 
   // Persist to Redis
   const redis = getRedisClient();
   if (redis) {
     try {
-      const safeId = toSafeOccurrenceId(uuid);
+      const safeId = toSafeOccurrenceId(occId);
       await redis.set(`${OCCURRENCE_PREFIX}${safeId}`, JSON.stringify(recordToSave));
       if (recordToSave.host_email) {
         const hostKey = `${HOST_OCCURRENCES_PREFIX}${recordToSave.host_email.toLowerCase().trim()}`;
@@ -306,13 +318,15 @@ export async function getZoomOccurrencesForTeacher({
   }
 
   const allOccurrences = [];
-  const seenUuids = new Set();
+  const seenIds = new Set();
 
   // 1. Gather occurrences from memoryStore
   for (const occ of memoryStore.occurrences.values()) {
-    if (!occ || !occ.uuid) continue;
+    if (!occ) continue;
+    const occId = occ.occurrence_id || occ.uuid;
+    if (!occId || seenIds.has(occId)) continue;
     allOccurrences.push(occ);
-    seenUuids.add(occ.uuid);
+    seenIds.add(occId);
   }
 
   // 2. Gather occurrences from Redis
@@ -355,9 +369,10 @@ export async function getZoomOccurrencesForTeacher({
           for (const raw of rawList) {
             if (raw) {
               const occ = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              if (occ && occ.uuid && !seenUuids.has(occ.uuid)) {
+              const occId = occ?.occurrence_id || occ?.uuid;
+              if (occ && occId && !seenIds.has(occId)) {
                 allOccurrences.push(occ);
-                seenUuids.add(occ.uuid);
+                seenIds.add(occId);
               }
             }
           }
@@ -405,6 +420,13 @@ export async function getZoomOccurrencesForTeacher({
  */
 export function formatOccurrenceForDisplay(occ) {
   if (!occ) return null;
+
+  const rawId = occ.occurrence_id || occ.uuid;
+  const occId = rawId ? String(rawId).trim() : '';
+  const safeId = toSafeOccurrenceId(occId);
+  const isLegacy = occ.identity_kind === 'legacy_derived' || !occ.uuid;
+  const identityKind = isLegacy ? 'legacy_derived' : 'exact_uuid';
+  const uuid = isLegacy ? null : (occ.uuid || null);
 
   let durationSeconds = null;
   let durationMinutes = null;
@@ -472,8 +494,10 @@ export function formatOccurrenceForDisplay(occ) {
   });
 
   return {
-    id: toSafeOccurrenceId(occ.uuid),
-    uuid: occ.uuid,
+    id: safeId,
+    occurrenceId: occId,
+    uuid,
+    identityKind,
     numericMeetingId: occ.numeric_meeting_id || occ.numericMeetingId || null,
     topic: occ.topic || 'Untitled Zoom meeting',
     hostEmail: occ.host_email || null,

@@ -416,12 +416,14 @@ export async function runMigration({
   return report;
 }
 
-// Auto-run if executed directly as a script
+// Auto-run if executed directly as a script - DEPRECATED in CRM-005
 if (process.argv[1] && process.argv[1].endsWith('migrate-poc-zoom-occurrences.js')) {
-  runMigration()
-    .then(() => process.exit(0))
-    .catch(err => {
-      console.error('\n❌ Migration failed:', err.message);
-      process.exit(1);
-    });
+  console.error('\n❌ DEPRECATED: Direct CLI execution of migrate-poc-zoom-occurrences.js is deprecated.');
+  console.error('   Please use the CRM-005 migration tooling under scripts/crm-005/:');
+  console.error('   - scripts/crm-005/export-poc-snapshot.js');
+  console.error('   - scripts/crm-005/plan-zoom-migration.js');
+  console.error('   - scripts/crm-005/execute-zoom-migration.js');
+  console.error('   - scripts/crm-005/verify-zoom-migration.js\n');
+  process.exit(1);
 }
+

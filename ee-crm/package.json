@@ -14,9 +14,13 @@
     "test:zoom": "node test-zoom-occurrences.js",
     "test:crm-002": "node test-crm-002.js",
     "test:crm-003": "node test-crm-003.js",
+    "test:crm-005": "node test-crm-005.js",
     "test:e2e": "node test-qa-e2e.mjs",
-    "migrate:zoom:dry-run": "node scripts/migrate-poc-zoom-occurrences.js --dry-run",
-    "migrate:zoom:execute": "node scripts/migrate-poc-zoom-occurrences.js --execute --confirm-target auto"
+    "migration:crm-005:snapshot": "node scripts/crm-005/export-poc-snapshot.js",
+    "migration:crm-005:plan": "node scripts/crm-005/plan-zoom-migration.js",
+    "migration:crm-005:execute": "node scripts/crm-005/execute-zoom-migration.js",
+    "migration:crm-005:verify": "node scripts/crm-005/verify-zoom-migration.js",
+    "migration:crm-005:rollback": "node scripts/crm-005/rollback-zoom-migration.js"
   },
   "keywords": [],
   "author": "",

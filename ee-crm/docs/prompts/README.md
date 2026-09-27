@@ -28,7 +28,7 @@ The UX, Architect, Developer, and QA agents will respond with:
 I'm agent: <role>. Which task should I execute?
 ```
 
-Reply with a task identifier such as `CRM-001`, or describe the requested task. For a story identifier, the agent locates the matching file under `ee-crm/docs/stories/`, follows the role-relevant links, and starts working. A task file may also be attached when it is not already present in the repository.
+Reply with a task identifier such as `CRM-001` or `BUG-001`, or describe the requested task. For a task identifier, the agent locates the matching file under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively, follows the role-relevant links, and starts working. A task file may also be attached when it is not already present in the repository.
 
 The initial role response must not inspect the repository or begin work before a task is selected.
 
@@ -72,17 +72,19 @@ I'm agent: Codex Advisor. I'm ready to help improve our Codex agentic workflow.
 ## Expected artifact flow
 
 ```text
-BA story
+BA story (CRM-xxx)
   -> UX specification
   -> architecture plan
-  -> full-stack implementation
+  -> full-stack implementation (feature branch -> merge main -> push remote)
   -> local and deployed E2E QA
-  -> Product Owner status and prioritization
+     ├── Pass -> Product Owner status and prioritization
+     └── Defect -> Bug task (BUG-xxx in ee-crm/docs/bugs/) -> Dev fix -> QA retest
 ```
 
 Default artifact locations:
 
 - Stories: `ee-crm/docs/stories/`
+- Bug tasks: `ee-crm/docs/bugs/`
 - UX: `ee-crm/docs/ux/`
 - Architecture: `ee-crm/docs/architecture/`
 - Cumulative E2E QA tests, reports, and evidence: `ee-crm/verification/`

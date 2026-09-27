@@ -12,6 +12,6 @@ Read and strictly adopt the role, workflow, and instructions defined in:
 
 - **When provided without a task**, respond with exactly:
   > I'm agent: UX. Which task should I execute?
-- **When provided with a task identifier** (e.g. `/ux CRM-001`), locate the matching story under `ee-crm/docs/stories/` case-insensitively and begin immediately.
+- **When provided with a task identifier** (e.g. `/ux CRM-001` or `/ux BUG-001`), locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and begin immediately.
 - If a task file is attached, use that file.
 - Do not inspect the repository or begin task work before the task is selected.

@@ -102,7 +102,7 @@ npm run test:zoom       # Occurrence store unit tests (10 checks)
 | Story ID | Story Title | Status | Primary Test Script | Report |
 |---|---|---|---|---|
 | **CRM-001** | Display tracked Zoom meetings on teacher page | **Pass locally / Blocked on Vercel (Auth)** | [`tests/crm-001-zoom-meetings.e2e.mjs`](./tests/crm-001-zoom-meetings.e2e.mjs) | [`reports/CRM-001-e2e-report.md`](./reports/CRM-001-e2e-report.md) |
-| **CRM-002** | View teacher-day details page and API | **Pass locally / Blocked on Vercel (Requires deployment)** | [`tests/crm-002-teacher-day-details.e2e.mjs`](./tests/crm-002-teacher-day-details.e2e.mjs) | [`reports/CRM-002-e2e-report.md`](./reports/CRM-002-e2e-report.md) |
+| **CRM-002** | View teacher-day details page and API | **Pass locally & on Vercel** | [`tests/crm-002-teacher-day-details.e2e.mjs`](./tests/crm-002-teacher-day-details.e2e.mjs) | [`reports/CRM-002-e2e-report.md`](./reports/CRM-002-e2e-report.md) |
 | **CRM-003** | Migrate legacy Zoom meetings and connect webhook ingestion | **Pass locally / Blocked on Vercel (Stale deployment)** | [`tests/crm-003-zoom-migration.e2e.mjs`](./tests/crm-003-zoom-migration.e2e.mjs) | [`reports/CRM-003-e2e-report.md`](./reports/CRM-003-e2e-report.md) |
 
 ---

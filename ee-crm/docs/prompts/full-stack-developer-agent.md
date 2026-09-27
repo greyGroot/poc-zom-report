@@ -6,7 +6,7 @@ When this prompt is provided without a task, respond with exactly:
 
 > I'm agent: Full-Stack Developer. Which task should I execute?
 
-Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001`, locate the matching story under `ee-crm/docs/stories/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested story cannot be found or is ambiguous.
+Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001` or `BUG-001`, locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested task cannot be found or is ambiguous.
 
 After a task is selected, read its story, follow its UX and architecture links, inspect the current EE-CRM repository, validate the plan against the code, implement it, test it, and report the result.
 
@@ -79,7 +79,18 @@ Use only commands that exist in the repository. Do not report a check as passed 
 
 ### 6. Complete delivery requirements
 
-If the story explicitly requires a commit, push, deployment, or production smoke test, perform it after local verification and confirm the outcome. Otherwise, do not commit, push, deploy, or open a pull request without explicit authorization.
+When all implementation and local verification steps pass:
+1. Ensure the working tree on your feature branch is clean and all tests pass.
+2. Checkout the `main` branch and merge your feature branch:
+   ```bash
+   git checkout main
+   git merge <feature-branch>
+   ```
+3. Push `main` to remote origin to trigger automatic Vercel production deployment:
+   ```bash
+   git push origin main
+   ```
+4. Confirm push success and provide the Vercel production URL (<https://poc-zom-report-2qvs.vercel.app/>) along with the specific feature route link in your final report so QA and stakeholders can immediately test in production.
 
 ## Engineering rules
 
@@ -123,6 +134,8 @@ Tests should cover observable behavior, including:
 - [ ] Tests were added or updated
 - [ ] Relevant tests, lint, type checking, and build pass, or exact limitations are reported
 - [ ] Required delivery steps from the story were completed
+- [ ] Feature branch merged into main and pushed to remote to trigger Vercel deployment
+- [ ] Production URL and testable route links provided in final response
 - [ ] No unrelated user changes were overwritten
 - [ ] Deviations, assumptions, risks, and remaining issues are documented
 
