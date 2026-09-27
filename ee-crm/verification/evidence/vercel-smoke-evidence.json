@@ -1,0 +1,86 @@
+{
+  "timestamp": "2026-09-26T18:46:54.193Z",
+  "target": "https://poc-zom-report-2qvs.vercel.app",
+  "probes": [
+    {
+      "name": "health",
+      "url": "https://poc-zom-report-2qvs.vercel.app/api/health",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+        "server": "Vercel",
+        "x-vercel-id": "arn1::iad1::xh8td-1790448416430-eb42cd9e31e3",
+        "content-type": "application/json"
+      },
+      "body": {
+        "status": "ok",
+        "service": "Empire English CRM (EE CRM)",
+        "timestamp": "2026-09-26T18:46:56.714Z",
+        "integrations": {
+          "redis": {
+            "configured": true,
+            "connected": true,
+            "mode": "upstash_cloud"
+          },
+          "schoolmate": {
+            "configured": true,
+            "baseUrl": "https://empireenglish.schoolmate.eu",
+            "username": "✓ configured"
+          }
+        }
+      }
+    },
+    {
+      "name": "root",
+      "url": "https://poc-zom-report-2qvs.vercel.app/",
+      "status": 307,
+      "statusText": "Temporary Redirect",
+      "headers": {
+        "server": "Vercel",
+        "x-vercel-id": "arn1::xh8td-1790448416848-b11bbd259c13",
+        "location": "/login?callbackUrl=%2F",
+        "content-type": "text/plain"
+      },
+      "body": null
+    },
+    {
+      "name": "teachers_api",
+      "url": "https://poc-zom-report-2qvs.vercel.app/api/teachers",
+      "status": 307,
+      "statusText": "Temporary Redirect",
+      "headers": {
+        "server": "Vercel",
+        "x-vercel-id": "arn1::zzfkc-1790448417043-a86eca967fc9",
+        "location": "/login?callbackUrl=%2Fapi%2Fteachers",
+        "content-type": "text/plain"
+      },
+      "body": null
+    },
+    {
+      "name": "teacher_zoom_api",
+      "url": "https://poc-zom-report-2qvs.vercel.app/api/teachers/17251/zoom-meetings?from=2026-09-14&to=2026-09-20",
+      "status": 307,
+      "statusText": "Temporary Redirect",
+      "headers": {
+        "server": "Vercel",
+        "x-vercel-id": "arn1::ksdnb-1790448417136-6a937ad5b581",
+        "location": "/login?callbackUrl=%2Fapi%2Fteachers%2F17251%2Fzoom-meetings%3Ffrom%3D2026-09-14%26to%3D2026-09-20",
+        "content-type": "text/plain"
+      },
+      "body": null
+    },
+    {
+      "name": "teacher_page",
+      "url": "https://poc-zom-report-2qvs.vercel.app/teachers/17251?from=2026-09-14&to=2026-09-20",
+      "status": 307,
+      "statusText": "Temporary Redirect",
+      "headers": {
+        "server": "Vercel",
+        "x-vercel-id": "arn1::r8wdz-1790448417243-b7ca6cfdbf97",
+        "location": "/login?callbackUrl=%2Fteachers%2F17251%3Ffrom%3D2026-09-14%26to%3D2026-09-20",
+        "content-type": "text/plain"
+      },
+      "body": null
+    }
+  ]
+}

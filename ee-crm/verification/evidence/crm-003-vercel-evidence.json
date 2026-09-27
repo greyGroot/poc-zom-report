@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-09-26T19:58:03.246Z",
+  "vercelUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "health": {
+    "status": "ok",
+    "service": "Empire English CRM (EE CRM)",
+    "timestamp": "2026-09-26T19:58:04.190Z",
+    "integrations": {
+      "redis": {
+        "configured": true,
+        "connected": true,
+        "mode": "upstash_cloud"
+      },
+      "schoolmate": {
+        "configured": true,
+        "baseUrl": "https://empireenglish.schoolmate.eu",
+        "username": "✓ configured"
+      }
+    }
+  },
+  "webhookCrcProbe": {
+    "status": 307,
+    "location": "/login?callbackUrl=%2Fapi%2Fwebhooks%2Fzoom",
+    "notes": "Stale deployment: CRM-003 middleware exemption not yet deployed to Vercel."
+  },
+  "teachersProbe": {
+    "status": 307,
+    "location": "/login?callbackUrl=%2Fapi%2Fteachers",
+    "notes": "Protected by NextAuth middleware."
+  }
+}

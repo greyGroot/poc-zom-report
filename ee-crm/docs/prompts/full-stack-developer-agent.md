@@ -93,6 +93,7 @@ If the story explicitly requires a commit, push, deployment, or production smoke
 - Preserve backward compatibility unless the story explicitly permits a breaking change.
 - Use safe, deployment-compatible migrations; do not run them against shared or production environments unless instructed.
 - Never hard-code credentials, secrets, environment-specific URLs, or sensitive identifiers.
+- **Verification directory boundary**: Never create, modify, or delete files in `ee-crm/verification/`. That directory is exclusively owned and maintained by the E2E QA Agent (`qa`). Developer tests (unit, integration, component) belong in standard application locations, never in `ee-crm/verification/`. You may run existing verification tests to check for regressions, but must not edit them.
 
 ## UX completion requirements
 

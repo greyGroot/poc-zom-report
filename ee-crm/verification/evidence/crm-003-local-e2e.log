@@ -1,0 +1,122 @@
+﻿========================================================================
+🧪 EE-CRM CUMULATIVE E2E VERIFICATION SUITE — CRM-003
+Task: Migrate legacy Zoom meetings & connect live webhook ingestion
+Vercel URL: https://poc-zom-report-2qvs.vercel.app
+Timestamp:  2026-09-26T19:35:29.495Z
+========================================================================
+
+--- Group 1: NextAuth Middleware Webhook Exemption (Scenario 1) ---
+✅ [PASS] AC-01-LOCAL: Scenario 1: /api/webhooks/zoom is excluded from NextAuth interception
+    ↳ Static negative matcher excludes api/webhooks; direct access permitted without 307
+✅ [PASS] AC-01-PROT: Teacher pages and teacher APIs remain intercepted by NextAuth middleware
+    ↳ Only api/webhooks is exempt; all application and teacher routes remain guarded
+
+--- Group 2: Zoom HMAC-SHA256 Signature Verification & CRC ---
+✅ [PASS] SEC-CRC: URL validation CRC challenge returns correct HMAC-SHA256 challenge response
+    ↳ Encrypted token verified: 431a4a31c11feb04...
+✅ [PASS] SEC-SIG-VALID: Signature verification succeeds for fresh, valid HMAC request
+    ↳ Verified against timestamp 1790451329
+✅ [PASS] SEC-SIG-STALE: Signature verification rejects stale timestamp (> 300s)
+    ↳ Rejected with reason: stale_timestamp
+✅ [PASS] SEC-SIG-FORGE: Signature verification rejects forged or invalid HMAC signature
+    ↳ Rejected with reason: invalid_signature
+
+--- Group 3: Live Webhook Ingestion Dual-Write (Scenario 2) ---
+[Zoom QoS] Primary QoS endpoint returned HTTP 400. Attempting past_meetings fallback.
+✅ [PASS] AC-02: Scenario 2: Live webhook creates occurrence record & updates host index
+    ↳ Dual-write confirmed: zoom:occurrence:bGl2ZV91dWlkX2NybTAwM19tZWV0aW5nXzAx and zoom:meeting:98765432101 populated
+✅ [PASS] AC-02-ISOLATION: Dual-write keeps separate occurrences sharing numeric meeting ID isolated
+    ↳ Two distinct occurrences in room 98765432101 remain strictly separated
+
+--- Group 4: Historical Migration Dry-Run Audit (Scenario 3) ---
+====================================================
+🚀 CRM-003 Zoom Occurrence Migration CLI
+   Mode:             🟡 DRY-RUN AUDIT
+   Source Endpoint:  in-memory-mock
+   Target Endpoint:  in-memory-mock
+   Batch Size:       50
+   Report File:      D:\2grow\poc-zoom-report\ee-crm\verification\evidence\crm-003-dry-run-report.json
+====================================================
+
+[Phase 1] Discovering historical records from source...
+   Discovered 5 legacy meeting entries.
+
+[Phase 2] Auditing and transforming legacy records...
+   Total Scanned:          5
+   Valid Candidates:       3
+   - Ready to Migrate:     3
+   - Already in Target:    0
+   Skipped:
+   - Missing UUID:         1
+   - Ambiguous UUID:       0
+   - Missing Host Email:   1
+   - Missing Start Time:   0
+
+🟡 DRY-RUN COMPLETE. No target writes or mutations were performed.
+📄 Migration report saved to: D:\2grow\poc-zoom-report\ee-crm\verification\evidence\crm-003-dry-run-report.json
+✅ [PASS] AC-03: Scenario 3: Migration dry-run audits existing Redis records without mutations
+    ↳ Scanned 5 records; 3 valid candidates, 2 skipped (missing UUID/host); 0 writes performed
+
+--- Group 5: Historical Migration Live Execution (Scenario 4) ---
+====================================================
+🚀 CRM-003 Zoom Occurrence Migration CLI
+   Mode:             🔴 LIVE EXECUTION
+   Source Endpoint:  in-memory-mock
+   Target Endpoint:  in-memory-mock
+   Batch Size:       50
+   Report File:      D:\2grow\poc-zoom-report\ee-crm\verification\evidence\crm-003-live-report.json
+====================================================
+
+[Phase 1] Discovering historical records from source...
+   Discovered 5 legacy meeting entries.
+
+[Phase 2] Auditing and transforming legacy records...
+   Total Scanned:          5
+   Valid Candidates:       3
+   - Ready to Migrate:     3
+   - Already in Target:    0
+   Skipped:
+   - Missing UUID:         1
+   - Ambiguous UUID:       0
+   - Missing Host Email:   1
+   - Missing Start Time:   0
+
+[Phase 3] Executing live migration writes in batches...
+   Processed batch: 3 / 3
+
+🎉 Live migration complete! Total occurrences migrated: 3
+📄 Migration report saved to: D:\2grow\poc-zoom-report\ee-crm\verification\evidence\crm-003-live-report.json
+✅ [PASS] AC-04: Scenario 4: Migration script backfills historical meetings and preserves source
+    ↳ Migrated 3 occurrences; source zoom:meeting:* keys remained identical and intact
+
+--- Group 6: Migrated Meetings Appear on Teacher Page (Scenario 5) ---
+✅ [PASS] AC-05: Scenario 5: Migrated meetings appear on teacher page for historical date 2026-09-25
+    ↳ Found 3 meetings on 2026-09-25; complete and incomplete states rendered factually
+
+--- Group 7: Migration Completion Guard & Idempotency (Scenario 6) ---
+====================================================
+🚀 CRM-003 Zoom Occurrence Migration CLI
+   Mode:             🔴 LIVE EXECUTION
+   Source Endpoint:  in-memory-mock
+   Target Endpoint:  in-memory-mock
+   Batch Size:       50
+   Report File:      ./test-guard-report.json
+====================================================
+
+✅ [PASS] AC-06: Scenario 6: Re-running completed live migration is prohibited by completion guard
+    ↳ Guard verified: zoom:migrations:crm-003 complete marker prevents duplicate execution
+
+--- Group 8: Vercel Production Deployment Verification ---
+✅ [PASS] VERCEL-HEALTH: Vercel deployment GET /api/health responds with 200 OK
+    ↳ Service: Empire English CRM (EE CRM), Redis: upstash_cloud
+🚫 [BLOCKED] VERCEL-WEBHOOK-EXEMPTION: Vercel deployment /api/webhooks/zoom NextAuth exemption status
+    ↳ HTTP 307 redirect to /login?callbackUrl=%2Fapi%2Fwebhooks%2Fzoom. Root cause: Vercel is serving earlier deployment (commit f4b921d); CRM-003 middleware change is not yet deployed.
+✅ [PASS] VERCEL-AUTH-PROTECTION: Vercel deployment protected routes enforce NextAuth redirect to /login
+    ↳ HTTP 307 redirect to /login?callbackUrl=%2Fapi%2Fteachers
+
+📄 Saved Vercel probe evidence to: D:\2grow\poc-zoom-report\ee-crm\verification\evidence\crm-003-vercel-evidence.json
+
+========================================================================
+SUMMARY: 14 PASSED, 0 FAILED, 1 BLOCKED out of 15 checks
+========================================================================
+

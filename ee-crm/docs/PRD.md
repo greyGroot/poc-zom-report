@@ -1,7 +1,7 @@
 # PRD: Empire English — Schedule and Zoom Evidence Review
 
 **Status:** Product specification for implementation  
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** 26 September 2026  
 **Primary user:** School administrator  
 **Scope:** Teacher-day comparison, Zoom evidence, attention flags and manual review
@@ -13,6 +13,7 @@
 | 1.0 | 25 September 2026 | Initial implementation specification. |
 | 1.1 | 26 September 2026 | Moved to EE-CRM documentation, added shared direction/end-goal summary and linked the supporting spike artifacts. No product requirements changed. |
 | 1.2 | 26 September 2026 | Identified the first Zoom delivery increment and linked its detailed story. The broader PRD scope remains unchanged. |
+| 1.3 | 26 September 2026 | Established EE-CRM as the permanent standalone application and Zoom system of record. Classified `poc-zoom-report` as a temporary legacy source that will be retired, not a runtime dependency. Assigned the independent Zoom backend foundation to CRM-002. |
 
 This PRD supersedes the product direction in the earlier [engineering and UX proposal](../../spike/reconciliation/PROPOSAL.md). The [reference contract](../../spike/reconciliation/contract.ts), [reconstruction engine](../../spike/reconciliation/engine.ts), [tests](../../spike/reconciliation/engine.test.mjs), [example response](../../spike/reconciliation/example-response.json), [React mockup](../../spike/reconciliation/ReconciliationCard.jsx) and [mockup styles](../../spike/reconciliation/cards.css) are exploratory artifacts, not the implementation specification. This document incorporates the agreed simplification: no numerical fraud score, no mandatory precise lesson matching, no new school compensation rules and no automatic payroll decisions.
 
@@ -21,6 +22,24 @@ This PRD supersedes the product direction in the earlier [engineering and UX pro
 We are building a reliable administrative review workspace that brings Schoolmate lesson records and occurrence-level Zoom evidence together by teacher and school-local day. It should help an administrator quickly see what was reported, what evidence was recorded, why a day needs attention and what follow-up has already happened.
 
 The end goal is a shared, auditable view of each teacher-day that reduces manual log searching and supports consistent investigation without making accusations or automated payroll decisions. The product is successful when administrators can understand discrepancies, inspect the underlying evidence, record an explanation and retain that review history across later synchronizations.
+
+### Permanent application and system boundary
+
+EE-CRM is the permanent product and must own the complete production Zoom evidence lifecycle: webhook endpoint, Zoom authentication and secrets, raw/normalized event persistence, occurrence reconstruction, host/date indexes, query APIs, authorization, observability, retention and recovery.
+
+`poc-zoom-report` is a temporary legacy proof of concept. It may be used as a read-only historical source for a separately controlled one-time migration, but it is not part of the target architecture and will eventually be decommissioned.
+
+The production EE-CRM implementation must therefore have:
+
+- its own deployable Zoom webhook route and Zoom event-subscription configuration;
+- its own database credentials and EE-CRM-owned data store;
+- no runtime imports from `poc-zoom-report`;
+- no runtime API calls to the POC;
+- no shared Redis/database dependency with the POC;
+- no ongoing dual-write, synchronization job or legacy read fallback; and
+- no operational requirement for the POC to remain deployed after cutover and historical migration.
+
+A temporary export/import tool may receive explicit read access to the POC and write access to EE-CRM during the historical migration. That access is removed after verification. Failure or shutdown of the POC must not affect live Zoom ingestion, teacher-day queries or any EE-CRM user journey.
 
 ### Spike artifact index
 
@@ -76,6 +95,8 @@ The supplied [Schoolmate CRM schedule export](../../spike/schoolmate_crm_schedul
 
 [Raw Zoom events](../../spike/zoom_raw_events.json) are the source evidence. The current [Zoom meeting telemetry aggregates](../../spike/zoom_meetings_telemetry.json) may omit IP information and mix instances sharing a permanent meeting ID. The new presentation must use occurrence-scoped reconstruction; do not assume existing aggregates are authoritative. The exploratory [reconstruction engine](../../spike/reconciliation/engine.ts) and its [tests](../../spike/reconciliation/engine.test.mjs) provide research context but do not override this PRD.
 
+The current POC webhook and telemetry implementation is reference material only. EE-CRM must reimplement the required Zoom ingestion and reconstruction behavior within its own application boundary, using its own schema and persistence. Reusing learned business rules and test cases is encouraged; depending on POC runtime code, deployment, credentials, keys or availability is prohibited.
+
 Required integration checks:
 
 - Confirm an accurate teacher-to-Zoom-host mapping; show unmapped teachers explicitly.
@@ -83,6 +104,8 @@ Required integration checks:
 - Preserve a meeting instance's UUID and all associated participant sessions.
 - Include waiting-room/admission and timestamped public-IP observations when received.
 - Record source refresh time and synchronization failures separately from attendance findings.
+- Verify Zoom webhook authenticity, replay safety and timestamp freshness at the EE-CRM boundary.
+- Verify that EE-CRM continues ingesting and serving Zoom evidence while the POC application and database are unavailable.
 
 ## 3. Core product concepts
 
@@ -342,6 +365,8 @@ Save failures must remain visible without claiming success. Concurrent edits mus
 
 ## 13. Data and reconstruction requirements
 
+- EE-CRM owns the authoritative raw/normalized Zoom event store and all derived occurrence projections.
+- The POC database is never queried by an EE-CRM page, API, worker or background task at runtime.
 - Meeting identity: Zoom account plus instance UUID. Permanent meeting ID is an index, not the instance storage key.
 - Preserve immutable raw events; make derived records reproducible.
 - Deduplicate webhook retries; process out-of-order arrivals using event timestamps.
@@ -394,12 +419,19 @@ The [earlier reference contract](../../spike/reconciliation/contract.ts) and [ex
 | Different days reuse one permanent meeting ID | Instance participants and durations remain separate |
 | Replayed duplicate events | Counts and durations do not increase |
 | Detail link opened directly | Correct teacher/date, full evidence and review record load |
+| Valid Zoom event is delivered to the EE-CRM webhook | EE-CRM authenticates, stores and projects it using only EE-CRM services and persistence |
+| Duplicate or out-of-order Zoom events are delivered to EE-CRM | Raw evidence is retained once and the occurrence projection converges without inflated duration or counts |
+| POC application and POC database are unavailable | EE-CRM live ingestion, occurrence queries and teacher-day pages continue to operate normally |
+| Repository/deployment boundary is inspected | No EE-CRM runtime import, request, shared credential, shared database or fallback dependency on `poc-zoom-report` exists |
+| Historical POC data is needed after EE-CRM cutover | It is transferred by an explicit one-time export/import process; EE-CRM does not add a permanent legacy reader or recurring synchronization job |
 
 ## 16. Delivery scope and success measures
 
 ### First release
 
 **First delivery increment:** [CRM-001 — Display tracked Zoom meetings on the teacher page](stories/CRM-001-display-tracked-zoom-meetings-on-teacher-page.md). This increment establishes UUID-scoped occurrence storage and presents factual meeting/participant data for the selected period. Meeting flags, tags and reconciliation conclusions are out of scope for this increment; the linked story records the architecture and UX decisions still required.
+
+**Independent backend foundation:** [CRM-002 — View teacher-day details](stories/CRM-002-teacher-day-details-page.md) begins the permanent EE-CRM Zoom backend. Before the teacher-day detail experience can be considered complete, EE-CRM must receive, authenticate, persist, reconstruct and query Zoom events using only EE-CRM-owned runtime components and storage. The POC may remain online temporarily during cutover, but it is not a dependency of this increment.
 
 1. Correct occurrence-based Zoom reconstruction and raw-event access.
 2. Compact teacher-day overview and dedicated day detail page.

@@ -19,4 +19,6 @@ Thumbs.db
 .idea/
 
 # Agent scratch logs
-.agents/
+.agents/*
+!.agents/skills/
+!.agents/rules/

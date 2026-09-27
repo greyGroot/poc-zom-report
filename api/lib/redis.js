@@ -4,9 +4,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Redis } from '@upstash/redis';
 
+import { toSafeOccurrenceId, deriveFactFingerprint } from './zoom-occurrence.js';
+
 export const MEETING_KEY_PREFIX = 'zoom:meeting:';
 export const MEETINGS_INDEX_KEY = 'zoom:meetings:index';
 export const WEBHOOK_LOGS_KEY = 'zoom:webhook:logs';
+export const OCCURRENCE_KEY_PREFIX = 'zoom:occurrence:';
+export const HOST_OCCURRENCES_KEY_PREFIX = 'zoom:host:occurrences:';
+export const OCCURRENCE_EVENTS_KEY_PREFIX = 'zoom:occurrence:events:';
+export const MIGRATION_STATE_KEY = 'zoom:migrations:crm-003';
 
 /**
  * Deep clone helper for in-memory isolation.
@@ -200,6 +206,96 @@ export class InMemoryRedis {
     this.store = new Map();
     this.zsets = new Map();
     this.lists = new Map();
+    this.hashes = new Map();
+  }
+
+  async hset(key, fieldOrObj, val) {
+    let hash = this.hashes.get(key);
+    if (!hash) {
+      hash = new Map();
+      this.hashes.set(key, hash);
+    }
+    if (typeof fieldOrObj === 'object' && fieldOrObj !== null) {
+      for (const [f, v] of Object.entries(fieldOrObj)) {
+        hash.set(String(f), cloneDeep(v));
+      }
+      return Object.keys(fieldOrObj).length;
+    }
+    const isNew = !hash.has(String(fieldOrObj));
+    hash.set(String(fieldOrObj), cloneDeep(val));
+    return isNew ? 1 : 0;
+  }
+
+  async hsetnx(key, field, val) {
+    let hash = this.hashes.get(key);
+    if (!hash) {
+      hash = new Map();
+      this.hashes.set(key, hash);
+    }
+    const fStr = String(field);
+    if (hash.has(fStr)) return 0;
+    hash.set(fStr, cloneDeep(val));
+    return 1;
+  }
+
+  async hget(key, field) {
+    const hash = this.hashes.get(key);
+    if (!hash || !hash.has(String(field))) return null;
+    return cloneDeep(hash.get(String(field)));
+  }
+
+  async hgetall(key) {
+    const hash = this.hashes.get(key);
+    if (!hash || hash.size === 0) return {};
+    const res = {};
+    for (const [f, v] of hash.entries()) {
+      res[f] = cloneDeep(v);
+    }
+    return res;
+  }
+
+  async hlen(key) {
+    const hash = this.hashes.get(key);
+    return hash ? hash.size : 0;
+  }
+
+  async hkeys(key) {
+    const hash = this.hashes.get(key);
+    return hash ? Array.from(hash.keys()) : [];
+  }
+
+  async scan(cursor = 0, options = {}) {
+    const allKeys = Array.from(new Set([
+      ...this.store.keys(),
+      ...this.zsets.keys(),
+      ...this.lists.keys(),
+      ...this.hashes.keys()
+    ]));
+    let matched = allKeys;
+    if (options.match && options.match !== '*') {
+      const regex = new RegExp('^' + options.match.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+      matched = matched.filter(k => regex.test(k));
+    }
+    return ['0', cloneDeep(matched)];
+  }
+
+  pipeline() {
+    const operations = [];
+    const proxy = {
+      set: (k, v) => { operations.push(() => this.set(k, v)); return proxy; },
+      get: (k) => { operations.push(() => this.get(k)); return proxy; },
+      zadd: (k, ...args) => { operations.push(() => this.zadd(k, ...args)); return proxy; },
+      hset: (k, f, v) => { operations.push(() => this.hset(k, f, v)); return proxy; },
+      del: (...args) => { operations.push(() => this.del(...args)); return proxy; },
+      exec: async () => {
+        const results = [];
+        for (const op of operations) {
+          results.push(await op());
+        }
+        return results;
+      }
+    };
+    return proxy;
   }
 
   async lpush(key, ...values) {
@@ -254,6 +350,7 @@ export class InMemoryRedis {
       if (this.store.delete(key)) count++;
       if (this.zsets.delete(key)) count++;
       if (this.lists.delete(key)) count++;
+      if (this.hashes.delete(key)) count++;
     }
     return count;
   }
@@ -430,6 +527,8 @@ export class InMemoryRedis {
   async flushdb() {
     this.store.clear();
     this.zsets.clear();
+    this.lists.clear();
+    this.hashes.clear();
     return 'OK';
   }
 
@@ -771,6 +870,130 @@ export async function getWebhookLogs(limit = 100) {
 }
 
 /**
+ * Save an immutable occurrence event fact under zoom:occurrence:events:{safeId}.
+ * Keyed by deterministic fact fingerprint to ensure idempotent storage.
+ * @param {string} safeId
+ * @param {object} fact
+ * @param {object} [customClient]
+ * @returns {Promise<string>} Fact fingerprint
+ */
+export async function saveOccurrenceFact(safeId, fact, customClient = null) {
+  if (!safeId || !fact) {
+    throw new Error('safeId and fact are required to save occurrence fact');
+  }
+  const redis = customClient || getRedisClient();
+  const factKey = `${OCCURRENCE_EVENTS_KEY_PREFIX}${safeId}`;
+  const fingerprint = deriveFactFingerprint(fact);
+
+  if (typeof redis.hset === 'function') {
+    await redis.hset(factKey, fingerprint, typeof fact === 'string' ? fact : JSON.stringify(fact));
+  } else {
+    // Fallback if hset is not available
+    const existing = (await redis.get(factKey)) || {};
+    const map = typeof existing === 'string' ? JSON.parse(existing) : existing;
+    map[fingerprint] = fact;
+    await redis.set(factKey, map);
+  }
+
+  return fingerprint;
+}
+
+/**
+ * Retrieve all occurrence event facts for a given safeId.
+ * @param {string} safeId
+ * @param {object} [customClient]
+ * @returns {Promise<Array<object>>}
+ */
+export async function getOccurrenceFacts(safeId, customClient = null) {
+  if (!safeId) return [];
+  const redis = customClient || getRedisClient();
+  const factKey = `${OCCURRENCE_EVENTS_KEY_PREFIX}${safeId}`;
+
+  if (typeof redis.hgetall === 'function') {
+    const rawMap = await redis.hgetall(factKey);
+    if (!rawMap || typeof rawMap !== 'object') return [];
+    return Object.values(rawMap).map(val => (typeof val === 'string' ? JSON.parse(val) : val));
+  }
+
+  const raw = await redis.get(factKey);
+  if (!raw) return [];
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  return Object.values(parsed);
+}
+
+/**
+ * Atomically publish an occurrence projection and maintain the host sorted set index.
+ * Enforces monotonic revision: will not overwrite an existing record that has a higher revision.
+ * @param {string} safeId
+ * @param {object} occurrence
+ * @param {string} [hostEmail]
+ * @param {number} [score]
+ * @param {object} [customClient]
+ * @returns {Promise<object>}
+ */
+export async function publishOccurrenceProjection(safeId, occurrence, hostEmail, score, customClient = null) {
+  if (!safeId || !occurrence) {
+    throw new Error('safeId and occurrence are required for publication');
+  }
+  const redis = customClient || getRedisClient();
+  const occKey = `${OCCURRENCE_KEY_PREFIX}${safeId}`;
+
+  // Read existing occurrence to verify revision monotonicity
+  const existingRaw = await redis.get(occKey);
+  if (existingRaw) {
+    const existing = typeof existingRaw === 'string' ? JSON.parse(existingRaw) : existingRaw;
+    if (
+      existing &&
+      typeof existing.revision === 'number' &&
+      typeof occurrence.revision === 'number' &&
+      existing.revision > occurrence.revision
+    ) {
+      // Stale reducer projection: ignore overwrite
+      return existing;
+    }
+  }
+
+  await redis.set(occKey, occurrence);
+
+  const effectiveHost = hostEmail || occurrence.host_email;
+  if (effectiveHost) {
+    const normEmail = String(effectiveHost).toLowerCase().trim();
+    const hostKey = `${HOST_OCCURRENCES_KEY_PREFIX}${normEmail}`;
+
+    let zScore = Date.now();
+    if (score !== undefined && score !== null && !Number.isNaN(Number(score))) {
+      zScore = Number(score);
+    } else if (occurrence.start_time) {
+      const parsed = Date.parse(occurrence.start_time);
+      if (!Number.isNaN(parsed)) zScore = parsed;
+    }
+
+    await redis.zadd(hostKey, { score: zScore, member: safeId });
+  }
+
+  return occurrence;
+}
+
+/**
+ * Retrieve occurrence by exact UUID or safeId.
+ * @param {string} uuidOrSafeId
+ * @param {object} [customClient]
+ * @returns {Promise<object|null>}
+ */
+export async function getZoomOccurrence(uuidOrSafeId, customClient = null) {
+  if (!uuidOrSafeId) return null;
+  const redis = customClient || getRedisClient();
+  const safeId = toSafeOccurrenceId(uuidOrSafeId);
+
+  let raw = await redis.get(`${OCCURRENCE_KEY_PREFIX}${safeId}`);
+  if (!raw && safeId !== uuidOrSafeId) {
+    raw = await redis.get(`${OCCURRENCE_KEY_PREFIX}${uuidOrSafeId}`);
+  }
+  if (!raw) return null;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
+/**
  * Clear all webhook event logs from Redis.
  * @returns {Promise<boolean>}
  */
@@ -786,5 +1009,30 @@ export async function clearWebhookLogs() {
     return false;
   }
 }
+
+/**
+ * Get the current migration state from target Redis.
+ * @param {object} [customClient]
+ * @returns {Promise<object|null>}
+ */
+export async function getMigrationState(customClient = null) {
+  const redis = customClient || getRedisClient();
+  const raw = await redis.get(MIGRATION_STATE_KEY);
+  if (!raw) return null;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
+/**
+ * Set or update the migration state in target Redis.
+ * @param {object} state
+ * @param {object} [customClient]
+ * @returns {Promise<object>}
+ */
+export async function setMigrationState(state, customClient = null) {
+  const redis = customClient || getRedisClient();
+  await redis.set(MIGRATION_STATE_KEY, state);
+  return state;
+}
+
 
 

@@ -26,10 +26,20 @@ export function resetOccurrenceMemoryStore() {
   memoryStore.reset();
 }
 
+let customRedisClient = null;
+
+export function setOccurrenceRedisClient(client) {
+  customRedisClient = client;
+}
+
 /**
  * Returns active Upstash Redis client if credentials are configured, otherwise null
  */
 function getRedisClient() {
+  if (customRedisClient) {
+    return customRedisClient;
+  }
+
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -309,12 +319,40 @@ export async function getZoomOccurrencesForTeacher({
   const redis = getRedisClient();
   if (redis) {
     try {
+      let minScore = '-inf';
+      let maxScore = '+inf';
+
+      if (fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+        minScore = new Date(`${fromDate}T00:00:00.000Z`).getTime() - 4 * 3600 * 1000;
+      }
+      if (toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+        maxScore = new Date(`${toDate}T23:59:59.999Z`).getTime() + 4 * 3600 * 1000;
+      }
+
       for (const host of targetHosts) {
         const hostKey = `${HOST_OCCURRENCES_PREFIX}${host}`;
-        const safeIds = await redis.zrange(hostKey, 0, -1);
+        let safeIds = [];
+
+        if (minScore !== '-inf' || maxScore !== '+inf') {
+          if (typeof redis.zrangebyscore === 'function') {
+            safeIds = await redis.zrangebyscore(hostKey, minScore, maxScore);
+          } else {
+            safeIds = await redis.zrange(hostKey, minScore, maxScore, { byScore: true });
+          }
+        } else {
+          safeIds = await redis.zrange(hostKey, 0, -1);
+        }
+
         if (Array.isArray(safeIds) && safeIds.length > 0) {
-          for (const sId of safeIds) {
-            const raw = await redis.get(`${OCCURRENCE_PREFIX}${sId}`);
+          const keys = safeIds.map(sId => `${OCCURRENCE_PREFIX}${sId}`);
+          let rawList = [];
+          if (typeof redis.mget === 'function') {
+            rawList = await redis.mget(...keys);
+          } else {
+            rawList = await Promise.all(keys.map(k => redis.get(k)));
+          }
+
+          for (const raw of rawList) {
             if (raw) {
               const occ = typeof raw === 'string' ? JSON.parse(raw) : raw;
               if (occ && occ.uuid && !seenUuids.has(occ.uuid)) {

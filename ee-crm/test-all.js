@@ -7,6 +7,7 @@ const tests = [
   { name: 'PDF Parser Test', file: 'test-parser.js' },
   { name: 'Database & Logging Test', file: 'test-db.js' },
   { name: 'Zoom Occurrences Test', file: 'test-zoom-occurrences.js' },
+  { name: 'CRM-003 Webhook & Migration Test', file: 'test-crm-003.js' },
   { name: 'Live Schoolmate API Test', file: 'test-schoolmate.js' }
 ];
 

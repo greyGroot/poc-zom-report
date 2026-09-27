@@ -1,0 +1,63 @@
+﻿========================================================================
+🧪 EE-CRM CUMULATIVE E2E VERIFICATION SUITE — CRM-001
+Local URL:  http://localhost:3000
+Vercel URL: https://poc-zom-report-2qvs.vercel.app
+Timestamp:  2026-09-26T18:46:44.199Z
+========================================================================
+
+
+--- Group 1: Service Availability & Health Probe ---
+✅ [PASS] HEALTH-LOCAL: Local server GET /api/health responds with 200 OK
+    ↳ Mode: in_memory_fallback
+✅ [PASS] HEALTH-VERCEL: Vercel deployment GET /api/health responds with 200 OK
+    ↳ X-Vercel-Id: arn1::iad1::x2jvk-1790448406446-986c83b478cc
+
+--- Group 2: Authentication Protection & Bypass Verification (AC-10, AC-11) ---
+✅ [PASS] AC-11-LOCAL: Authentication active: unauthenticated requests redirect to /login
+    ↳ HTTP 307 -> /login?callbackUrl=%2Fapi%2Fteachers
+✅ [PASS] AC-11-VERCEL: Vercel production enforces NextAuth protection redirect to /login
+    ↳ HTTP 307 -> /login?callbackUrl=%2Fapi%2Fteachers
+✅ [PASS] AC-10: Authentication bypass logic implemented in middleware for automated E2E
+    ↳ process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS checked in authorized callback
+
+--- Group 3: HTTP Teacher & API Route Contracts ---
+✅ [PASS] TEACHER-SETUP-01: POST /api/teachers creates mapped teacher
+    ↳ ID: t_7248154b
+✅ [PASS] AC-8-404: Non-existent teacher returns HTTP 404
+✅ [PASS] AC-8-MISSING-DATES: Missing date parameters returns HTTP 400
+✅ [PASS] AC-8-INVERTED-DATES: Inverted date range returns HTTP 400
+✅ [PASS] AC-7: Neutral empty result returned with HTTP 200 when no meetings in period
+    ↳ totalMeetings=0, meetings=[]
+
+--- Group 4: Authoritative Occurrence Storage & Business Rules ---
+✅ [PASS] AC-1: Scenario 1: Display meetings for selected period without reconciliation tags
+    ↳ 4 occurrences returned cleanly
+✅ [PASS] BUG-02-FIX: Unmapped teacher returns 0 meetings without leaking other teachers (BUG-02 resolved)
+✅ [PASS] AC-2: Scenario 2: Period change filters meetings strictly by selected inclusive range
+    ↳ Found 1 occurrence in Week 2
+✅ [PASS] AC-3: Scenario 3: Separate occurrences sharing numeric meeting ID are not merged
+    ↳ Shared numeric ID: 89411204451
+✅ [PASS] AC-4: Scenario 4: Replayed event does not duplicate sessions or inflate duration
+✅ [PASS] AC-5: Scenario 5: Participant connected time accurately unions reconnects and overlaps
+    ↳ 2700s reconnect union, 3000s overlap union
+✅ [PASS] AC-6-BUG-03: Scenario 6: Incomplete duration is null/incomplete, not wall-clock elapsed or zero
+    ↳ durationState=incomplete, durationMinutes=null
+✅ [PASS] BUG-04-FIX: Participants with identical names are kept distinct (Business Rule 3)
+    ↳ 2 participants preserved
+✅ [PASS] AC-9: Scenario 9: URL-sensitive UUID safely base64url encoded and restored losslessly
+    ↳ Encoded: em9vbV91dWlkX3RyaWNreSsvPTEyMw
+
+--- Group 5: Teacher Schedule Page SSR HTML Check ---
+✅ [PASS] PAGE-SSR-01: Teacher schedule page loads with HTTP 200 and renders Zoom telemetry column layout
+
+--- Group 6: Vercel Deployed Flow Check (AC-12) ---
+🚫 [BLOCKED] VERCEL-E2E-FLOW: Vercel teacher page redirected to /login by NextAuth middleware
+    ↳ NEXT_PUBLIC_EE_CRM_AUTH_BYPASS is not active on Vercel deployment; Google OAuth intercepts request.
+
+--- Test Cleanup ---
+🧹 Cleaned up test teachers via API.
+
+========================================================================
+SUMMARY: 20 PASSED, 0 FAILED, 1 BLOCKED out of 21 checks
+========================================================================
+

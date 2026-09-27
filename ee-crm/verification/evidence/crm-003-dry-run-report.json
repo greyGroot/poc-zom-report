@@ -1,0 +1,26 @@
+{
+  "mode": "dry-run",
+  "timestamp": "2026-09-26T19:58:00.814Z",
+  "sourceFingerprint": "in-memory-mock",
+  "targetFingerprint": "in-memory-mock",
+  "totalScanned": 6,
+  "candidates": 4,
+  "alreadyCurrent": 0,
+  "readyToMigrate": 4,
+  "migrated": 0,
+  "skippedMissingUuid": 1,
+  "skippedAmbiguousUuid": 0,
+  "skippedMissingHost": 1,
+  "skippedMissingStart": 0,
+  "errors": [],
+  "skippedDetails": [
+    {
+      "meetingId": "55544433322",
+      "reason": "missing_host"
+    },
+    {
+      "meetingId": "66655544433",
+      "reason": "missing_uuid"
+    }
+  ]
+}

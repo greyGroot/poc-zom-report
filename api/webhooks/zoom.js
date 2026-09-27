@@ -3,8 +3,18 @@
 // Supports Vercel Serverless (Node req, res) and Web Fetch API (request)
 
 import crypto from 'crypto';
-import { saveMeeting, getMeeting, withMeetingLock, recordWebhookLog } from '../lib/redis.js';
+import {
+  saveMeeting,
+  getMeeting,
+  withMeetingLock,
+  recordWebhookLog,
+  saveOccurrenceFact,
+  getOccurrenceFacts,
+  publishOccurrenceProjection
+} from '../lib/redis.js';
 import { fetchZoomMeetingQoS, enrichMeetingWithQoS } from '../lib/zoom.js';
+import { getHeader, verifyZoomWebhookSignature } from '../lib/zoom-signature.js';
+import { toSafeOccurrenceId, normalizeWebhookEventToFacts, reduceOccurrenceFacts } from '../lib/zoom-occurrence.js';
 
 /**
  * Calculate the union duration in seconds across session intervals,
@@ -180,6 +190,38 @@ function createResponder(reqOrRequest, optionalRes) {
 }
 
 /**
+ * Ingest an incoming webhook event into the authoritative EE-CRM occurrence store.
+ * @param {string} event
+ * @param {object} payload
+ * @returns {Promise<{ disposition: string, safeId?: string, revision?: number }>}
+ */
+async function ingestOccurrenceEvent(event, payload) {
+  const object = (payload && typeof payload.object === 'object' && payload.object !== null)
+    ? payload.object
+    : {};
+
+  const uuid = object.uuid ? String(object.uuid).trim() : null;
+  if (!uuid) {
+    return { disposition: 'legacy_only_missing_uuid' };
+  }
+
+  const safeId = toSafeOccurrenceId(uuid);
+  const facts = normalizeWebhookEventToFacts(event, payload);
+  for (const fact of facts) {
+    await saveOccurrenceFact(safeId, fact);
+  }
+
+  if (facts.length > 0) {
+    const allFacts = await getOccurrenceFacts(safeId);
+    const projection = reduceOccurrenceFacts(uuid, allFacts);
+    await publishOccurrenceProjection(safeId, projection);
+    return { disposition: 'projected', safeId, revision: projection.revision };
+  }
+
+  return { disposition: 'accepted', safeId };
+}
+
+/**
  * Zoom Webhook Handler
  * @param {object|Request} reqOrRequest
  * @param {object} [optionalRes]
@@ -189,6 +231,7 @@ export default async function handler(reqOrRequest, optionalRes) {
 
   let method = 'POST';
   let body = null;
+  let rawBody = '';
 
   try {
     if (responder.isNode) {
@@ -202,10 +245,16 @@ export default async function handler(reqOrRequest, optionalRes) {
         return responder.send(405, { error: 'Method Not Allowed' }, { Allow: 'POST, OPTIONS' });
       }
 
+      if (req.rawBody) {
+        rawBody = typeof req.rawBody === 'string' ? req.rawBody : req.rawBody.toString('utf-8');
+      }
+
       if (req.body !== undefined && req.body !== null) {
         if (typeof req.body === 'object') {
           body = req.body;
+          if (!rawBody) rawBody = JSON.stringify(req.body);
         } else if (typeof req.body === 'string') {
+          rawBody = req.body;
           if (req.body.trim().length > 0) {
             try {
               body = JSON.parse(req.body);
@@ -217,6 +266,7 @@ export default async function handler(reqOrRequest, optionalRes) {
       } else if (typeof req.on === 'function') {
         try {
           const raw = await readStream(req);
+          rawBody = raw;
           if (raw && raw.trim().length > 0) {
             body = JSON.parse(raw);
           }
@@ -237,7 +287,10 @@ export default async function handler(reqOrRequest, optionalRes) {
       }
 
       try {
-        body = await request.json();
+        rawBody = await request.text();
+        if (rawBody && rawBody.trim().length > 0) {
+          body = JSON.parse(rawBody);
+        }
       } catch {
         return responder.send(400, { error: 'Invalid JSON payload' });
       }
@@ -258,7 +311,7 @@ export default async function handler(reqOrRequest, optionalRes) {
       }
 
       const plainToken = String(payload.plainToken);
-      const secret = (process.env.ZOOM_WEBHOOK_SECRET_TOKEN || 'test_webhook_secret_token_12345').trim();
+      const secret = (process.env.ZOOM_WEBHOOK_SECRET_TOKEN || (process.env.NODE_ENV === 'test' ? 'test_webhook_secret_token_12345' : '')).trim();
 
       if (!secret) {
         return responder.send(500, { error: 'ZOOM_WEBHOOK_SECRET_TOKEN not configured' });
@@ -285,6 +338,23 @@ export default async function handler(reqOrRequest, optionalRes) {
       return responder.send(400, { error: 'Missing event field in request body' });
     }
 
+    // Verify HMAC-SHA256 signature for non-CRC events
+    const hasSignature = Boolean(getHeader(reqOrRequest, 'x-zm-signature'));
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (isProduction || hasSignature) {
+      const secret = (process.env.ZOOM_WEBHOOK_SECRET_TOKEN || (process.env.NODE_ENV === 'test' ? 'test_webhook_secret_token_12345' : '')).trim();
+      const sigResult = verifyZoomWebhookSignature({
+        req: reqOrRequest,
+        rawBody,
+        secret
+      });
+
+      if (!sigResult.valid) {
+        return responder.send(401, { error: 'Unauthorized: Invalid or missing Zoom webhook signature', reason: sigResult.reason });
+      }
+    }
+
     const object = (payload && typeof payload.object === 'object' && payload.object !== null)
       ? payload.object
       : {};
@@ -292,22 +362,39 @@ export default async function handler(reqOrRequest, optionalRes) {
     const rawMeetingId = object.id || object.meeting_id || object.uuid;
     const meetingId = rawMeetingId !== undefined && rawMeetingId !== null ? String(rawMeetingId) : null;
 
+    const isKnownEvent = [
+      'meeting.started',
+      'meeting.ended',
+      'meeting.participant_joined',
+      'meeting.participant_left',
+      'meeting.participant_admitted',
+      'meeting.participant_joined_waiting_room',
+      'meeting.participant_left_waiting_room',
+      'meeting.participant_data_connection_established',
+      'meeting.participant_connection_established',
+      'meeting.participant_jbh_waiting',
+      'meeting.participant_jbh_joined'
+    ].includes(event);
+
+    // Ingest authoritative occurrence if uuid is present
+    try {
+      const occResult = await ingestOccurrenceEvent(event, payload);
+      if (occResult.disposition === 'legacy_only_missing_uuid' && isKnownEvent) {
+        await recordWebhookLog({
+          event: 'metric.legacy_only_missing_uuid',
+          status: 'warning',
+          meeting_id: meetingId,
+          topic: 'Missing UUID in Zoom Webhook',
+          message: `Event ${event} has no object.uuid`
+        });
+      }
+    } catch (occErr) {
+      console.error('[Zoom Webhook] Occurrence ingestion failed:', occErr);
+      return responder.send(500, { error: 'Occurrence ingestion failed', message: occErr.message });
+    }
+
     // Log incoming webhook event to Redis for live monitoring and diagnostics
     try {
-      const isKnownEvent = [
-        'meeting.started',
-        'meeting.ended',
-        'meeting.participant_joined',
-        'meeting.participant_left',
-        'meeting.participant_admitted',
-        'meeting.participant_joined_waiting_room',
-        'meeting.participant_left_waiting_room',
-        'meeting.participant_data_connection_established',
-        'meeting.participant_connection_established',
-        'meeting.participant_jbh_waiting',
-        'meeting.participant_jbh_joined'
-      ].includes(event);
-
       await recordWebhookLog({
         event,
         status: isKnownEvent ? 'success' : 'unexpected_event',
