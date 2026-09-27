@@ -238,7 +238,7 @@ Pass with observations (Local: Pass | Vercel: Blocked by stale deployment)
 
 | File | Description |
 |---|---|
-| [`crm-003-zoom-migration.e2e.mjs`](file:///d:/2grow/poc-zoom-report/ee-crm/verification/tests/crm-003-zoom-migration.e2e.mjs) | Automated E2E verification suite (15 checks, 8 groups) |
+| `verification/archive/crm-003-zoom-migration.e2e.mjs.archived` | Historical E2E artifact (retired as non-runnable by CRM-006 because it depended on parent-POC modules and obsolete dual-write behavior) |
 | [`crm-003-zoom-fixtures.mjs`](file:///d:/2grow/poc-zoom-report/ee-crm/verification/fixtures/crm-003-zoom-fixtures.mjs) | Test fixtures: legacy meetings, webhook payloads, constants |
 | [`crm-003-dry-run-report.json`](file:///d:/2grow/poc-zoom-report/ee-crm/verification/evidence/crm-003-dry-run-report.json) | Migration dry-run output (6 scanned, 4 candidates, 0 writes) |
 | [`crm-003-live-report.json`](file:///d:/2grow/poc-zoom-report/ee-crm/verification/evidence/crm-003-live-report.json) | Migration live execution output (4 migrated) |

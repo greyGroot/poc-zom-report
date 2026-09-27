@@ -1,7 +1,7 @@
 # CRM-008 — Refactor EE-CRM to Target Vertical Slice Module Structure
 
 **Story ID:** CRM-008
-**Status:** Ready
+**Status:** In progress — implementation started 27 September 2026
 **Primary user:** Software Architect / Developers
 **Related PRD:** [PRD.md](../PRD.md)
 **UX specification:** Not required; this is an internal structural refactor with no intended user-interface change.
@@ -140,4 +140,5 @@ And it must remain focused purely on data transformation and business rules.
 |---|---|
 | 2026-09-27 | Story created based on architectural review recommendation to organize `lib/` into distinct domain and infrastructure slices. |
 | 2026-09-27 | Updated to include ADR-001 creation, weekly-lessons domain extraction into service (MED-2), dead QoS code pruning (LOW-3 Part B), and Next.js middleware-to-proxy migration (LOW-2). |
+| 2026-09-27 | Product stakeholder confirmed implementation has started. Status changed to In progress. |
 

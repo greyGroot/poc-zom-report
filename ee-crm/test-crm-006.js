@@ -9,7 +9,7 @@
 // 7. Webhook Audit Logging Redirected to ee:app:logs (Deprecate zoom:webhook:logs)
 // 8. Health Endpoint Connectivity Probe (HTTP 200 vs 503) & No-Store Header
 // 9. Health Endpoint Does Not Pollute ee:app:logs
-// 10. Codebase Decoupling: No ../api Imports in Active Suites & Pruned Dead APIs
+// 10. Codebase Decoupling: No Parent POC Imports in Runnable Suites & Pruned Dead APIs
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -615,7 +615,7 @@ await test('Scenario 9: /api/health probe does not write log entries to ee:app:l
 // ----------------------------------------------------------------------------
 console.log('\n--- 10. Codebase Decoupling & Dead API Pruning ---');
 
-await test('Scenario 10: test-all.js does not run CRM-003, no ../api imports in active tests, dead APIs pruned', () => {
+await test('Scenario 10: test-all.js does not run CRM-003, no parent POC imports in runnable tests, dead APIs pruned', () => {
   // 1. Verify test-all.js does not contain test-crm-003.js
   const testAllContent = fs.readFileSync(path.resolve(process.cwd(), 'test-all.js'), 'utf-8');
   assert.ok(!testAllContent.includes('test-crm-003.js'), 'test-all.js must not include test-crm-003.js');
@@ -642,27 +642,32 @@ await test('Scenario 10: test-all.js does not run CRM-003, no ../api imports in 
     );
   }
 
-  // 3. Verify active test files do not import ../api/...
-  const activeTestFiles = [
-    'test-all.js',
-    'test-parser.js',
-    'test-db.js',
-    'test-zoom-occurrences.js',
-    'test-crm-002.js',
-    'test-crm-004.js',
-    'test-crm-005.js',
-    'test-crm-006.js',
-    'test-schoolmate.js'
-  ];
+  // 3. Discover every developer test and QA verification suite instead of
+  // maintaining a list that can silently omit newly added runnable files.
+  const rootTestFiles = fs.readdirSync(process.cwd(), { withFileTypes: true })
+    .filter(entry => entry.isFile() && /^test.*\.(?:js|mjs|cjs)$/.test(entry.name))
+    .map(entry => entry.name);
+  const verificationTestsDirectory = path.resolve(process.cwd(), 'verification', 'tests');
+  const verificationTestFiles = fs.existsSync(verificationTestsDirectory)
+    ? fs.readdirSync(verificationTestsDirectory, { withFileTypes: true })
+      .filter(entry => entry.isFile() && /\.(?:js|mjs|cjs)$/.test(entry.name))
+      .map(entry => path.join('verification', 'tests', entry.name))
+    : [];
+  const runnableTestFiles = [...new Set([...rootTestFiles, ...verificationTestFiles])].sort();
 
-  for (const file of activeTestFiles) {
-    const filePath = path.resolve(process.cwd(), file);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const hasParentPocImport = /(?:from\s+['"][^'"]*\.\.\/api|import\s+['"][^'"]*\.\.\/api)/.test(content);
-      assert.ok(!hasParentPocImport, `Active test file ${file} must not import from parent ../api/`);
-    }
-  }
+  assert.ok(runnableTestFiles.length > 0, 'Expected to discover runnable EE-CRM test files');
+
+  const parentPocImportPattern = /(?:from\s*|import\s*\(|require\s*\()\s*['"](?:\.\.\/)+api(?:\/|['"])/;
+  const violatingFiles = runnableTestFiles.filter(file => {
+    const content = fs.readFileSync(path.resolve(process.cwd(), file), 'utf-8');
+    return parentPocImportPattern.test(content);
+  });
+
+  assert.deepEqual(
+    violatingFiles,
+    [],
+    `Runnable EE-CRM tests must not import parent POC modules: ${violatingFiles.join(', ')}`
+  );
 });
 
 console.log('\n====================================================');

@@ -1,0 +1,88 @@
+{
+  "suite": "CRM-006 Persistence Fallbacks & Reliability E2E Verification",
+  "timestamp": "2026-09-27T18:37:34.931Z",
+  "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "totalScenarios": 11,
+  "passed": 11,
+  "failed": 0,
+  "productionFailureModeCoverage": "not_executed_requires_isolated_preview_with_invalid_redis_configuration",
+  "results": [
+    {
+      "executionScope": "vercel_production",
+      "id": "E2E-PROD-HEALTH",
+      "description": "Vercel /api/health returns 200 OK with upstash_cloud mode, connected: true, and no-store header",
+      "status": "PASS",
+      "details": "Status: 200, Mode: upstash_cloud, Cache-Control: no-store, max-age=0"
+    },
+    {
+      "executionScope": "vercel_production",
+      "id": "E2E-PROD-CRC",
+      "description": "Vercel /api/webhooks/zoom responds to CRC validation with 200 OK and encrypted token",
+      "status": "PASS",
+      "details": "Encrypted Token: 0f971d6f6da046ff..."
+    },
+    {
+      "executionScope": "vercel_production",
+      "id": "E2E-PROD-AUTH-REJECT",
+      "description": "Vercel /api/webhooks/zoom rejects unsigned webhook requests with 401 Unauthorized",
+      "status": "PASS",
+      "details": "Status: 401, Error: Unauthorized: Invalid or missing Zoom webhook signature"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "AC-1/AC-3-MODE-RESOLUTION",
+      "description": "resolvePersistenceMode correctly enforces production invariants and development fallback rules",
+      "status": "PASS",
+      "details": "Production rejects missing creds & mock flag; dev allows opt-in in_memory"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "FR3-DB-PROPAGATION",
+      "description": "Database repositories (teachers, logs, weekly cache, reports) propagate Redis command failures without silent memory fallback",
+      "status": "PASS",
+      "details": "All 10 DB operations rejected with ECONNREFUSED"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "FR3-OCCURRENCE-PROPAGATION",
+      "description": "Zoom occurrence repositories propagate Redis errors without silent dual-write fallback",
+      "status": "PASS",
+      "details": "All 6 occurrence operations rejected with ECONNREFUSED"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "AC-2/FR4-WEBHOOK-500",
+      "description": "Zoom webhook returns HTTP 500 with sanitized response when occurrence persistence fails",
+      "status": "PASS",
+      "details": "Status: 500, error: ZOOM_PERSISTENCE_FAILED, sanitized payload without leaked details"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "AC-2-AUTHORITATIVE-WRITE",
+      "description": "Webhook acknowledges 200 OK after authoritative occurrence persistence even if secondary audit logging fails",
+      "status": "PASS",
+      "details": "Status: 200, occurrence saved in durable store"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "AC-5/FR6-AUDIT-LOG-TARGET",
+      "description": "Webhook audit logging correctly writes to ee:app:logs and writes zero records to legacy zoom:webhook:logs",
+      "status": "PASS",
+      "details": "Target: ee:app:logs verified, zoom:webhook:logs count: 0"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "FR-HEALTH-PROBE",
+      "description": "/api/health performs read-only PING, returns 200 or 503 with Cache-Control: no-store, and does not pollute ee:app:logs",
+      "status": "PASS",
+      "details": "200 (ok) / 503 (degraded) status and headers verified"
+    },
+    {
+      "executionScope": "local_or_repository",
+      "id": "AC-4/HIGH-1/LOW-3-DECOUPLING",
+      "description": "All runnable test suites decoupled from root POC and dead APIs pruned from lib/redis.js",
+      "status": "PASS",
+      "details": "Scanned 27 runnable files; all 10 dead symbols pruned"
+    }
+  ]
+}

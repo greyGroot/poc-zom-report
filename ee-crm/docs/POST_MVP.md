@@ -69,3 +69,30 @@ EE-CRM currently lives inside the `poc-zoom-report` monorepo. Turbopack detects 
 - Extract `ee-crm/` into its own standalone Git repository.
 - Remove root monorepo configuration in `.vercel/repo.json` and set project root directory to `.`.
 - Verify standalone CI/CD pipeline builds and tests pass cleanly without parent repository files.
+
+---
+
+## 5. Mandatory Redis Failure-Mode Verification in an Isolated Vercel Preview (CRM-006)
+
+### Context & Risk
+CRM-006 removed silent production fallback to process-local memory when Redis is unavailable. Local tests verify this behavior with injected failures, but launch readiness also requires production-equivalent evidence from Vercel's actual serverless runtime. Without this check, a deployment could still acknowledge Zoom webhooks that were not durably persisted, causing silent and unrecoverable data loss when the function instance terminates.
+
+### Mandatory Launch Gate
+This check **must pass before production launch or final CRM-006 acceptance**. It must run in a disposable Vercel Preview deployment, never against Production or real Zoom traffic.
+
+### Procedure
+1. Create a temporary branch and its Vercel Preview deployment.
+2. Add a Preview-only, branch-scoped invalid Redis token for the credential pair used by the application (`KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_TOKEN`). Do not change Production variables, and do not enable `USE_IN_MEMORY_REDIS`.
+3. Redeploy the preview so the branch-scoped environment override takes effect.
+4. Verify `GET /api/health` returns HTTP `503` with `status: "degraded"`, `connected: false`, and `mode: "unavailable"`.
+5. Send a correctly signed, non-production Zoom webhook fixture to the preview and verify it returns HTTP `500` with `error: "ZOOM_PERSISTENCE_FAILED"`, never HTTP `200`.
+6. Confirm responses and deployment logs do not expose Redis URLs, tokens, raw payloads, or stack traces.
+7. Record sanitized request/response evidence in `verification/evidence/` and update the CRM-006 QA report to distinguish this Vercel Preview result from local simulated failures.
+8. Remove the branch-specific environment override and delete the disposable preview/branch. Never promote the broken-Redis preview to Production.
+
+### Exit Criteria
+- [ ] Isolated Preview health probe returns the expected sanitized HTTP `503` response.
+- [ ] Correctly signed webhook returns the expected sanitized HTTP `500` response.
+- [ ] No in-memory fallback or successful webhook acknowledgement occurs.
+- [ ] Sanitized Vercel evidence is attached to the CRM-006 QA report.
+- [ ] Temporary environment overrides and preview resources are removed.

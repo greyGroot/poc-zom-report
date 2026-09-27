@@ -1,7 +1,7 @@
 # CRM-007 — Add Network Reliability Abstractions to Schoolmate Client
 
 **Story ID:** CRM-007
-**Status:** Ready
+**Status:** Done — completion confirmed 27 September 2026
 **Primary user:** Teachers / Managers (indirectly through UI responsiveness)
 **Related PRD:** [PRD.md](../PRD.md)
 
@@ -163,3 +163,4 @@ And the response must not contain the raw exception message, stack trace, creden
 |---|---|
 | 2026-09-27 | Story created based on architectural review findings regarding network resilience. |
 | 2026-09-27 | Clarified that timeouts cover response bodies, complete group-detail failure cannot become cached empty success, partial results require at least one successful group, and unexpected errors must be sanitized. |
+| 2026-09-27 | Product stakeholder confirmed CRM-007 is complete. Status changed to Done. |

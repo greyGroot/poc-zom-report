@@ -1,0 +1,112 @@
+{
+  "suite": "CRM-007 Network Reliability Abstractions E2E Verification",
+  "timestamp": "2026-09-27T18:06:16.092Z",
+  "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "totalScenarios": 17,
+  "passed": 17,
+  "failed": 0,
+  "results": [
+    {
+      "id": "E2E-PROD-HEALTH",
+      "description": "Vercel /api/health returns 200 OK with upstash_cloud mode, Schoolmate configured, and no-store header",
+      "status": "PASS",
+      "details": "Status: 200, Redis Mode: upstash_cloud, SM Configured: true"
+    },
+    {
+      "id": "E2E-PROD-REPORT-VALIDATION",
+      "description": "Vercel /api/schoolmate/report validates request body and returns HTTP 400 for missing fields",
+      "status": "PASS",
+      "details": "Empty body -> 400, Missing fromDate -> 400 verified"
+    },
+    {
+      "id": "E2E-PROD-WEEKLY-LESSONS",
+      "description": "Vercel /api/teachers/weekly-lessons returns 200 OK and aggregates weekly summary for teacher 17251",
+      "status": "PASS",
+      "details": "Teacher 17251 lessons: 20, minutes: 1200"
+    },
+    {
+      "id": "E2E-PROD-LIVE-REPORT",
+      "description": "Vercel live Schoolmate report query executes successfully via group class detail pipeline with real data",
+      "status": "PASS",
+      "details": "Lessons: 20, Minutes: 1200, Wage: 6000.00 ₴, Duration: 4787ms"
+    },
+    {
+      "id": "E2E-PROD-TEACHER-DAY",
+      "description": "Vercel /api/teachers/17251/days/2026-09-18 returns 200 OK with both Schoolmate and Zoom evidence available",
+      "status": "PASS",
+      "details": "Schoolmate: 5 lessons (300m), Zoom: 1 meetings"
+    },
+    {
+      "id": "AC-1/FR2-TIMEOUT-ABORT",
+      "description": "Hanging Schoolmate request is aborted by AbortController and wrapped in SchoolmateTimeoutError",
+      "status": "PASS",
+      "details": "Timeout duration: 35ms, Cause: SchoolmateTimeoutError with pathname /admin"
+    },
+    {
+      "id": "FR2-PDF-TIMEOUT-POLICY",
+      "description": "PDF generation and download endpoints enforce dedicated 25-second timeout policy",
+      "status": "PASS",
+      "details": "Print request: 25000ms, Download request: 25000ms"
+    },
+    {
+      "id": "AC-2/FR3-502-RETRY-SUCCESS",
+      "description": "Transient HTTP 502 automatically retries with exponential backoff (200ms -> 400ms) and recovers on attempt 3",
+      "status": "PASS",
+      "details": "3 attempts executed, delays [200ms, 400ms] verified"
+    },
+    {
+      "id": "AC-2-EXHAUSTED-503",
+      "description": "Exhausted HTTP 503 across all 3 attempts throws SchoolmateUnavailableError with HTTP cause",
+      "status": "PASS",
+      "details": "Attempts: 3, Error code: SCHOOLMATE_UNAVAILABLE, Cause status: 503"
+    },
+    {
+      "id": "FR3-ALLOWLISTED-NETWORK-ERRORS",
+      "description": "All 7 transient network error codes (ECONNRESET, ETIMEDOUT, EAI_AGAIN, UND_ERR_SOCKET, ECONNREFUSED, ENOTFOUND, EPIPE) trigger retry",
+      "status": "PASS",
+      "details": "Verified retry behavior across all 7 codes"
+    },
+    {
+      "id": "FR4-NON-ALLOWLISTED-FAIL-FAST",
+      "description": "Non-allow-listed unexpected exceptions (TypeError, SyntaxError) fail immediately without retry",
+      "status": "PASS",
+      "details": "1 attempt executed, zero retries"
+    },
+    {
+      "id": "AC-3/FR4-CLIENT-ERRORS-NO-RETRY",
+      "description": "HTTP 400, 403, and 404 client errors terminate immediately on attempt 1 without exponential backoff",
+      "status": "PASS",
+      "details": "Tested 400, 403, 404 -> each executed exactly 1 attempt"
+    },
+    {
+      "id": "AC-3-SESSION-REAUTHENTICATION",
+      "description": "HTTP 401 triggers one-time session invalidation, re-login, and replay without backoff sleep",
+      "status": "PASS",
+      "details": "1 login, 2 endpoint attempts, 0 backoff sleeps"
+    },
+    {
+      "id": "AC-3-BOUNDED-REPEATED-401",
+      "description": "Repeated HTTP 401 halts after exactly 1 re-login replay and throws SchoolmateHttpError(401)",
+      "status": "PASS",
+      "details": "Bounded to 1 login and 2 attempts"
+    },
+    {
+      "id": "SEC-SAFE-DIAGNOSTICS",
+      "description": "Retry warning diagnostics redact query strings, file paths, credentials, and session cookies",
+      "status": "PASS",
+      "details": "Safe warning logged: pathname and status preserved, query parameters stripped"
+    },
+    {
+      "id": "CONTRACT-503-MAPPING",
+      "description": "toPublicSchoolmateError correctly maps SchoolmateUnavailableError & TimeoutError to HTTP 503 and safe copy",
+      "status": "PASS",
+      "details": "Status: 503, error: External service unavailable, code: SCHOOLMATE_UNAVAILABLE"
+    },
+    {
+      "id": "OBSERVABILITY-PARTIAL-DEGRADATION",
+      "description": "getTeacherClassesSchedule handles individual group failure with warning log and returns aggregate of healthy groups",
+      "status": "PASS",
+      "details": "Healthy group lessons: 1, Failing group logged with warning"
+    }
+  ]
+}

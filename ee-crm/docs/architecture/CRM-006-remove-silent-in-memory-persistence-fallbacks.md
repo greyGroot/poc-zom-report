@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready
+Approved — Done with stakeholder waiver for isolated-preview failure verification
 
 ## Related documents
 
@@ -329,7 +329,11 @@ Before production promotion, an operator with Vercel access must verify the Upst
 
 ## Open questions
 
-None blocking. The story's health question is resolved in favor of an active, read-only `PING` with `503` on failure.
+The story's health question is resolved in favor of an active, read-only `PING` with `503` on failure.
+
+The parent-POC test dependency found during implementation review was resolved: the obsolete CRM-003 E2E suite is now a non-runnable archived artifact, and CRM-006 scans all supported developer and verification test directories. QA evidence now distinguishes local injected failures from live Vercel checks.
+
+The isolated Vercel preview with deliberately invalid Redis credentials was not executed. On 27 September 2026, the product stakeholder explicitly waived that verification step and accepted the residual risk. Architect approval therefore relies on passing local production-mode/injected-failure coverage, aggregate regressions, build verification, and healthy live Vercel probes without claiming deployed negative-path execution.
 
 ## Out of scope
 

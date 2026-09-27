@@ -14,15 +14,24 @@ ee-crm/verification/
 ├── tests/                  # Automated E2E test suites (organized by story / feature)
 │   ├── crm-001-zoom-meetings.e2e.mjs
 │   ├── crm-002-teacher-day-details.e2e.mjs
-│   └── crm-003-zoom-migration.e2e.mjs
+│   ├── crm-004-activity-comparison.e2e.mjs
+│   ├── crm-006-persistence-fallbacks.e2e.mjs
+│   └── crm-007-network-reliability.e2e.mjs
+├── archive/                # Non-runnable historical verification artifacts
+│   ├── README.md
+│   └── crm-003-zoom-migration.e2e.mjs.archived
 ├── fixtures/               # Test data fixtures, mocks, and seed data
 │   ├── crm-001-zoom-fixtures.mjs
 │   ├── crm-002-day-details-fixtures.mjs
-│   └── crm-003-zoom-fixtures.mjs
+│   ├── crm-003-zoom-fixtures.mjs
+│   └── crm-004-comparison-fixtures.mjs
 ├── reports/                # Formal markdown QA verification reports
 │   ├── CRM-001-e2e-report.md
 │   ├── CRM-002-e2e-report.md
-│   └── CRM-003-e2e-report.md
+│   ├── CRM-003-e2e-report.md
+│   ├── CRM-004-e2e-report.md
+│   ├── CRM-006-e2e-report.md
+│   └── CRM-007-e2e-report.md
 └── evidence/               # Raw test logs, HTTP request/response payloads, and probe records
     ├── crm-001-local-e2e.log
     ├── crm-002-local-e2e.log
@@ -30,8 +39,9 @@ ee-crm/verification/
     ├── crm-003-dry-run-report.json
     ├── crm-003-live-report.json
     ├── crm-003-vercel-evidence.json
-    ├── crm-003-poc-zoom-sep25-savchuk.png
-    ├── crm-003-eecrm-empty-sep25-savchuk.png
+    ├── crm-004-vercel-evidence.json
+    ├── crm-006-vercel-evidence.json
+    ├── crm-007-vercel-evidence.json
     └── vercel-smoke-evidence.json
 ```
 
@@ -45,7 +55,7 @@ ee-crm/verification/
   - `NEXTAUTH_SECRET`
   - `NEXTAUTH_URL=http://localhost:3000`
   - Live Schoolmate integration variables (optional for offline occurrence tests)
-  - Upstash Redis credentials (or falls back to in-memory store)
+  - Upstash Redis credentials, or explicit in-memory mode for local/test execution only
 
 ---
 
@@ -79,13 +89,6 @@ node verification/tests/crm-001-zoom-meetings.e2e.mjs
 node verification/tests/crm-002-teacher-day-details.e2e.mjs
 ```
 
-### Run CRM-003 E2E Verification Suite
-
-```bash
-# No dev server required — runs against in-memory Redis mocks:
-node verification/tests/crm-003-zoom-migration.e2e.mjs
-```
-
 ### Run CRM-004 E2E Verification Suite
 
 ```bash
@@ -102,6 +105,38 @@ node verification/tests/crm-004-activity-comparison.e2e.mjs
 npm run test:crm-004    # CRM-004 comparison domain & acceptance unit tests (15 checks)
 ```
 
+### Run CRM-006 E2E Verification Suite
+
+```bash
+# In ee-crm directory (runs against local assertions and live Vercel deployment):
+npm run test:crm-006:e2e
+# Or:
+node verification/tests/crm-006-persistence-fallbacks.e2e.mjs
+```
+
+### Run CRM-006 Developer Tests
+
+```bash
+# In ee-crm directory:
+npm run test:crm-006    # CRM-006 persistence fallbacks & fail-fast tests (10 checks)
+```
+
+### Run CRM-007 E2E Verification Suite
+
+```bash
+# In ee-crm directory (runs against local assertions and live Vercel deployment):
+npm run test:crm-007:e2e
+# Or:
+node verification/tests/crm-007-network-reliability.e2e.mjs
+```
+
+### Run CRM-007 Developer Tests
+
+```bash
+# In ee-crm directory:
+npm run test:crm-007    # CRM-007 network reliability & retry tests (13 checks)
+```
+
 ---
 
 ## Story Coverage Index
@@ -110,8 +145,10 @@ npm run test:crm-004    # CRM-004 comparison domain & acceptance unit tests (15 
 |---|---|---|---|---|
 | **CRM-001** | Display tracked Zoom meetings on teacher page | **Pass locally / Blocked on Vercel (Auth)** | [`tests/crm-001-zoom-meetings.e2e.mjs`](./tests/crm-001-zoom-meetings.e2e.mjs) | [`reports/CRM-001-e2e-report.md`](./reports/CRM-001-e2e-report.md) |
 | **CRM-002** | View teacher-day details page and API | **Pass locally & on Vercel** | [`tests/crm-002-teacher-day-details.e2e.mjs`](./tests/crm-002-teacher-day-details.e2e.mjs) | [`reports/CRM-002-e2e-report.md`](./reports/CRM-002-e2e-report.md) |
-| **CRM-003** | Migrate legacy Zoom meetings and connect webhook ingestion | **Pass locally / Blocked on Vercel (Stale deployment)** | [`tests/crm-003-zoom-migration.e2e.mjs`](./tests/crm-003-zoom-migration.e2e.mjs) | [`reports/CRM-003-e2e-report.md`](./reports/CRM-003-e2e-report.md) |
+| **CRM-003** | Migrate legacy Zoom meetings and connect webhook ingestion | **Historical suite archived; current contracts covered by CRM-005** | [`test-crm-005.js`](../test-crm-005.js) | [`reports/CRM-003-e2e-report.md`](./reports/CRM-003-e2e-report.md) |
 | **CRM-004** | Compare Schoolmate and Zoom activity for a teacher-day | **Pass locally & on Vercel** | [`tests/crm-004-activity-comparison.e2e.mjs`](./tests/crm-004-activity-comparison.e2e.mjs) | [`reports/CRM-004-e2e-report.md`](./reports/CRM-004-e2e-report.md) |
+| **CRM-006** | Remove silent in-memory persistence fallbacks | **Pass locally & on Vercel** | [`tests/crm-006-persistence-fallbacks.e2e.mjs`](./tests/crm-006-persistence-fallbacks.e2e.mjs) | [`reports/CRM-006-e2e-report.md`](./reports/CRM-006-e2e-report.md) |
+| **CRM-007** | Add network reliability abstractions to Schoolmate client | **Pass locally & on Vercel** | [`tests/crm-007-network-reliability.e2e.mjs`](./tests/crm-007-network-reliability.e2e.mjs) | [`reports/CRM-007-e2e-report.md`](./reports/CRM-007-e2e-report.md) |
 
 ---
 
@@ -132,7 +169,9 @@ npm run test:crm-004    # CRM-004 comparison domain & acceptance unit tests (15 
 13. **AC-11 / Scenario 11**: Normal NextAuth protection redirect to `/login` enforced when bypass variable is absent or `false`.
 14. **AC-12 / Scenario 12**: Deployment verification on `https://poc-zom-report-2qvs.vercel.app/`.
 
-## CRM-003 Test Scenarios Covered
+## CRM-003 Historical Test Scenarios (Archived)
+
+The original CRM-003 E2E script is retained under `archive/` as a non-runnable historical artifact. It depended on parent-POC modules and asserted the legacy dual-write contract removed by CRM-005/CRM-006. Current signature, CRC, occurrence, migration, and POC-independence behavior is covered by `test-crm-005.js` and the CRM-006 verification suites.
 
 **Group 1 — Middleware Webhook Exemption (Scenario 1)**
 
@@ -219,3 +258,74 @@ npm run test:crm-004    # CRM-004 comparison domain & acceptance unit tests (15 
 **Group 7 — Internationalization & Localized Routes**
 22. **I18N-COVERAGE**: Full `dayDetails` translations across English (`en`), Ukrainian (`uk`), and Polish (`pl`); localized routes `/uk/...` and `/pl/...` verified.
 
+---
+
+## CRM-006 Test Scenarios Covered
+
+**Group 1 — Live Deployment Verification (Vercel Production)**
+1. **E2E-PROD-HEALTH**: Vercel `/api/health` returns 200 OK with `mode: 'upstash_cloud'`, `connected: true`, and `Cache-Control: no-store, max-age=0`.
+2. **E2E-PROD-CRC**: Vercel `/api/webhooks/zoom` responds to CRC validation challenge with 200 OK and valid HMAC-SHA256 encrypted token.
+3. **E2E-PROD-AUTH-REJECT**: Vercel `/api/webhooks/zoom` strictly rejects unsigned or invalid webhook payloads with 401 Unauthorized.
+
+**Group 2 — Persistence Mode Resolution & Invariant Policy**
+4. **AC-1/AC-3-MODE-RESOLUTION**: `resolvePersistenceMode()` enforces production invariants (throws on missing credentials or mock flag) and allows explicit `in_memory` mode in dev/test.
+
+**Group 3 — Command Failure Propagation in Database Repositories**
+5. **FR3-DB-PROPAGATION**: All database repository functions (`getTeachers`, `getTeacherById`, `createTeacher`, `deleteTeacher`, `addAppLog`, `getAppLogs`, `getWeeklyLessonsCache`, `setWeeklyLessonsCache`, `saveCachedReport`, `getCachedReport`) propagate Redis command errors (`ECONNREFUSED`) without catching to local memory.
+
+**Group 4 — Command Failure Propagation in Zoom Occurrence Repositories**
+6. **FR3-OCCURRENCE-PROPAGATION**: Zoom occurrence persistence functions (`saveZoomOccurrence`, `getZoomOccurrence`, `getZoomOccurrencesForTeacher`, `saveOccurrenceFact`, `getOccurrenceFacts`, `publishOccurrenceProjection`) bubble Redis command failures without silent dual-write memory fallback.
+
+**Group 5 — Webhook Ingestion Failure Sanitization**
+7. **AC-2/FR4-WEBHOOK-500**: Webhook handler returns HTTP 500 (`ZOOM_PERSISTENCE_FAILED`) when occurrence storage fails, omitting connection strings, credentials, and internal stack traces.
+
+**Group 6 — Authoritative Write Acknowledgement vs Best-Effort Audit Logging**
+8. **AC-2-AUTHORITATIVE-WRITE**: Webhook acknowledges HTTP 200 OK after authoritative occurrence persistence even if secondary application logging fails.
+
+**Group 7 — Webhook Audit Logging Redirection**
+9. **AC-5/FR6-AUDIT-LOG-TARGET**: Webhook audit logs are written to standard `ee:app:logs` via `lib/logger.js`, and zero records are written to legacy key `zoom:webhook:logs`.
+
+**Group 8 — Health Endpoint Connectivity Probe**
+10. **FR-HEALTH-PROBE**: `/api/health` executes a read-only PING probe, returning HTTP 200 (`status: ok`) or HTTP 503 (`status: degraded`), sets `Cache-Control: no-store, max-age=0`, and does not pollute `ee:app:logs`.
+
+**Group 9 — Codebase Decoupling & Dead API Pruning**
+11. **AC-4/HIGH-1/LOW-3-DECOUPLING**: `test-all.js` does not execute superseded CRM-003 tests, active tests contain zero `../api` parent POC imports, and dead legacy meeting CRUD/log functions and constants are pruned from `lib/redis.js`.
+
+---
+
+## CRM-007 Test Scenarios Covered
+
+**Group 1 — Live Deployment Verification (Vercel Production)**
+1. **E2E-PROD-HEALTH**: Vercel `/api/health` returns 200 OK with `mode: 'upstash_cloud'`, Schoolmate integration configured, and `Cache-Control: no-store`.
+2. **E2E-PROD-REPORT-VALIDATION**: Vercel `/api/schoolmate/report` validates body parameters and returns HTTP 400 for missing `teacherId` and `fromDate`.
+3. **E2E-PROD-WEEKLY-LESSONS**: Vercel `/api/teachers/weekly-lessons` aggregates weekly summary for teacher 17251 (20 lessons, 1200 min).
+4. **E2E-PROD-LIVE-REPORT**: Vercel live report query executes successfully via `schoolmate_group_class_detail` with 20 lessons (1200m, 6000.00 ₴) in 4.7s.
+5. **E2E-PROD-TEACHER-DAY**: Vercel `/api/teachers/17251/days/2026-09-18` returns 200 OK with both Schoolmate (5 lessons, 300m) and Zoom (1 meeting) evidence.
+
+**Group 2 — Timeout & AbortController Bounds**
+6. **AC-1/FR2-TIMEOUT-ABORT**: Hanging Schoolmate request aborts via `AbortController` and is wrapped in `SchoolmateTimeoutError` with pathname and timeoutMs.
+7. **FR2-PDF-TIMEOUT-POLICY**: PDF schedule generation and binary download calls enforce dedicated 25-second timeout policy.
+
+**Group 3 — Transient HTTP 502/503/504 Retry with Backoff**
+8. **AC-2/FR3-502-RETRY-SUCCESS**: Transient HTTP 502 automatically retries with exponential backoff (200ms -> 400ms) and recovers on attempt 3 with `cache: no-store`.
+9. **AC-2-EXHAUSTED-503**: Exhausted HTTP 503 across all 3 attempts terminates with `SchoolmateUnavailableError` and HTTP status cause.
+
+**Group 4 — Allow-Listed Network Errors vs Unexpected Errors**
+10. **FR3-ALLOWLISTED-NETWORK-ERRORS**: All 7 allow-listed transient network error codes (`ECONNRESET`, `ETIMEDOUT`, `EAI_AGAIN`, `UND_ERR_SOCKET`, `ECONNREFUSED`, `ENOTFOUND`, `EPIPE`) trigger automatic retry.
+11. **FR4-NON-ALLOWLISTED-FAIL-FAST**: Non-allow-listed unexpected exceptions (`TypeError`, `SyntaxError`) fail immediately on attempt 1 without retry.
+
+**Group 5 — Non-Retryable Client Errors (400, 403, 404)**
+12. **AC-3/FR4-CLIENT-ERRORS-NO-RETRY**: HTTP 400, 403, and 404 client errors fail fast on attempt 1 with `SchoolmateHttpError` and zero delay.
+
+**Group 6 — Session Expiration & Re-Authentication**
+13. **AC-3-SESSION-REAUTHENTICATION**: HTTP 401 triggers one-time session invalidation, re-login, and replay without backoff sleep.
+14. **AC-3-BOUNDED-REPEATED-401**: Repeated HTTP 401 halts after exactly 1 re-login replay and throws `SchoolmateHttpError(401)`.
+
+**Group 7 — Safe Logging & Privacy / Security Invariants**
+15. **SEC-SAFE-DIAGNOSTICS**: Retry warning diagnostics log sanitized pathnames and status codes while redacting query strings, file paths, credentials, and session cookies.
+
+**Group 8 — Error Mapping & Clean Service-Unavailable Contract**
+16. **CONTRACT-503-MAPPING**: `toPublicSchoolmateError()` maps `SchoolmateUnavailableError` and `SchoolmateTimeoutError` to HTTP 503 `{ error: 'External service unavailable', code: 'SCHOOLMATE_UNAVAILABLE' }`.
+
+**Group 9 — Partial Schedule Degradation Observability**
+17. **OBSERVABILITY-PARTIAL-DEGRADATION**: In `getTeacherClassesSchedule`, when an individual group detail fails, a warning is logged and healthy groups are aggregated successfully.

@@ -1,7 +1,7 @@
 # CRM-006 — Remove Silent In-Memory Persistence Fallbacks
 
 **Story ID:** CRM-006
-**Status:** Implemented — ready for QA validation 27 September 2026
+**Status:** Done — Architect approved with stakeholder verification waiver on 27 September 2026
 **Primary user:** System Administrator / Operations
 **Related PRD:** [PRD.md](../PRD.md)
 **UX specification:** Not required; this story changes backend persistence and operational health behavior only.
@@ -126,6 +126,14 @@ And it must NOT write entries to the legacy POC key `zoom:webhook:logs`.
 - [x] Open questions are resolved or explicitly accepted
 - [x] Required UX or technical dependencies are linked
 
+## Completion review
+
+The blocking parent-POC dependency was resolved by archiving the obsolete CRM-003 E2E suite as a non-runnable historical artifact and removing it from runnable verification documentation. The CRM-006 decoupling checks now discover every developer test and verification suite under the supported test directories.
+
+Local failure-mode tests, the aggregate regression suite, the production build, and healthy live Vercel probes passed. Redis-unavailable behavior was proven with injected failure tests but was not repeated on a disposable Vercel preview with invalid credentials.
+
+On 27 September 2026, the product stakeholder explicitly accepted that missing isolated-preview check as a residual verification risk. The waiver does not claim that the negative path was executed on Vercel; it accepts the local production-mode and injected-client evidence as sufficient for CRM-006 completion. Architect approval is recorded with no remaining implementation blocker.
+
 ## Audit trail
 
 | Date | Decision |
@@ -134,4 +142,7 @@ And it must NOT write entries to the legacy POC key `zoom:webhook:logs`.
 | 2026-09-27 | Updated to include test runner decoupling (HIGH-1, removing obsolete test-crm-003 from test-all.js), webhook log redirection away from legacy POC key (MED-1), and dead legacy meeting method pruning from lib/redis.js (LOW-3). |
 | 2026-09-27 | Product stakeholder confirmed implementation is in progress. Status changed from Ready to In Progress. |
 | 2026-09-27 | Implementation completed: strict mode policy, health endpoint ping & 503 status, failure propagation, webhook 500 status on failure, audit log redirection to ee:app:logs, dead API pruning, test decoupling, test:crm-006 suite passing. |
+| 2026-09-27 | Product stakeholder confirmed CRM-006 is complete. Status changed to Done. |
+| 2026-09-27 | Final Architect review rejected `Done`: the documented CRM-003 E2E suite still imports the parent POC, and QA evidence overstates production failure-mode coverage. Status changed to Blocked pending correction, repeat verification, and re-review. |
+| 2026-09-27 | The CRM-003 E2E suite was archived as non-runnable, runnable-test discovery was expanded, and QA evidence was corrected to distinguish local simulations from live Vercel checks. The stakeholder explicitly waived isolated-preview Redis-failure verification and accepted the residual risk. Architect approved CRM-006 as Done. |
 
