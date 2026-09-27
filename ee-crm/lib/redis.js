@@ -887,7 +887,12 @@ export async function saveOccurrenceFact(safeId, fact, customClient = null) {
   const fingerprint = deriveFactFingerprint(fact);
 
   if (typeof redis.hset === 'function') {
-    await redis.hset(factKey, fingerprint, typeof fact === 'string' ? fact : JSON.stringify(fact));
+    // @upstash/redis accepts an object map. The positional Redis signature is
+    // supported by the in-memory fake but is interpreted incorrectly by the
+    // production client (it stores the fingerprint string character-by-character).
+    await redis.hset(factKey, {
+      [fingerprint]: typeof fact === 'string' ? fact : JSON.stringify(fact)
+    });
   } else {
     // Fallback if hset is not available
     const existing = (await redis.get(factKey)) || {};
@@ -913,7 +918,18 @@ export async function getOccurrenceFacts(safeId, customClient = null) {
   if (typeof redis.hgetall === 'function') {
     const rawMap = await redis.hgetall(factKey);
     if (!rawMap || typeof rawMap !== 'object') return [];
-    return Object.values(rawMap).map(val => (typeof val === 'string' ? JSON.parse(val) : val));
+    const facts = [];
+    for (const val of Object.values(rawMap)) {
+      try {
+        const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+        if (parsed && typeof parsed === 'object' && parsed.type) facts.push(parsed);
+      } catch {
+        // CRM-003/early CRM-005 used the wrong Upstash HSET signature and may
+        // have left character-valued hash fields. They are not valid facts;
+        // guarded migration execution replaces the hash from source evidence.
+      }
+    }
+    return facts;
   }
 
   const raw = await redis.get(factKey);

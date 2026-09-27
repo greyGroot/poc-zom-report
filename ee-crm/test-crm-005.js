@@ -273,6 +273,96 @@ await test('Scenario 2: Distinct occurrences sharing numeric room ID are partiti
   assert.equal(occ2.topic, 'Evening Session');
 });
 
+await test('Regression: late participant joins inside an occurrence do not create phantom legacy occurrences', async () => {
+  const roomId = '5445746456';
+  const uuid = 'SAVCHUK-LATE-JOIN-REGRESSION';
+  const teacherEmail = 'yuliasavchuk03@gmail.com';
+  const src = new InMemoryRedis();
+
+  await src.set(`zoom:meeting:${roomId}`, {
+    meeting_id: roomId,
+    uuid,
+    topic: "Yuliia Savchuk's Personal Meeting Room",
+    host_email: teacherEmail,
+    start_time: '2026-09-24T15:03:20Z',
+    end_time: '2026-09-24T17:04:11Z',
+    participants: {
+      lateStudent: {
+        user_id: 'late-student',
+        name: 'Late Student',
+        sessions: [
+          { join_time: '2026-09-24T15:39:29Z', leave_time: '2026-09-24T17:04:09Z' }
+        ]
+      }
+    }
+  });
+  await src.zadd('zoom:meetings:index', { score: Date.parse('2026-09-24T15:03:20Z'), member: roomId });
+
+  for (const [event, object] of [
+    ['meeting.started', { id: roomId, uuid, topic: 'Savchuk class', host_email: teacherEmail, start_time: '2026-09-24T15:03:20Z' }],
+    ['meeting.ended', { id: roomId, uuid, host_email: teacherEmail, start_time: '2026-09-24T15:03:20Z', end_time: '2026-09-24T17:04:11Z' }]
+  ]) {
+    await src.lpush('zoom:webhook:logs', {
+      event,
+      timestamp: object.start_time,
+      payload_raw: JSON.stringify({ event, payload: { object } })
+    });
+  }
+
+  const manifest = planMigration(await exportSnapshot({ client: src }));
+  assert.equal(manifest.occurrences.length, 1, 'Late join belongs to the exact UUID occurrence');
+  assert.equal(manifest.occurrences[0].identity_kind, 'exact_uuid');
+});
+
+await test('Regression: retained events without meeting.started preserve occurrence host and start evidence', async () => {
+  const src = new InMemoryRedis();
+  await src.lpush('zoom:webhook:logs', {
+    event: 'meeting.participant_joined_waiting_room',
+    timestamp: '2026-09-27T06:05:18Z',
+    payload_raw: JSON.stringify({
+      event: 'meeting.participant_joined_waiting_room',
+      payload: {
+        object: {
+          id: '5558680499',
+          uuid: 'WAITING-ROOM-ONLY-UUID',
+          topic: 'Historical occurrence',
+          host_id: 'gYfCkJl0SkSzhXNurZQtWg',
+          start_time: '2026-09-27T06:02:32Z',
+          timezone: 'Europe/Kyiv',
+          participant: { user_id: 'waiting-user', date_time: '2026-09-27T06:05:18Z' }
+        }
+      }
+    })
+  });
+
+  const manifest = planMigration(await exportSnapshot({ client: src }));
+  assert.equal(manifest.blocking_errors.length, 0);
+  assert.equal(manifest.occurrences.length, 1);
+  assert.equal(manifest.occurrences[0].start_time, '2026-09-27T06:02:32Z');
+  assert.equal(manifest.occurrences[0].host_email, 'zhur.zhur.irene@gmail.com');
+  assert.equal(Object.keys(manifest.occurrences[0].projection.participants).length, 0, 'Waiting-room participant is not attendance');
+});
+
+await test('Regression: malformed legacy Upstash hash fields are ignored and repaired facts remain readable', async () => {
+  const redis = new InMemoryRedis();
+  const safeId = toSafeOccurrenceId('UPSTASH-HSET-REGRESSION');
+  await redis.hset(`zoom:occurrence:events:${safeId}`, { 0: 0, 1: 'f' });
+
+  assert.deepEqual(await getOccurrenceFacts(safeId, redis), [], 'Malformed character fields are not facts');
+
+  await saveOccurrenceFact(safeId, {
+    type: 'meeting.started',
+    occurrence_id: 'UPSTASH-HSET-REGRESSION',
+    uuid: 'UPSTASH-HSET-REGRESSION',
+    start_time: '2026-09-25T10:00:00Z',
+    source_timestamp: '2026-09-25T10:00:00Z'
+  }, redis);
+
+  const repairedFacts = await getOccurrenceFacts(safeId, redis);
+  assert.equal(repairedFacts.length, 1);
+  assert.equal(repairedFacts[0].type, 'meeting.started');
+});
+
 // ----------------------------------------------------------------------------
 // 3. Deterministic Replay & Shuffled Event Invariance (AC-3)
 // ----------------------------------------------------------------------------
@@ -331,6 +421,25 @@ await test('Scenario 3: Shuffled or replayed event order produces identical proj
   assert.equal(proj1.projection_hash, proj2.projection_hash, 'Chronological and shuffled must yield identical hash');
   assert.equal(proj1.projection_hash, proj3.projection_hash, 'Duplicate facts must be idempotent and yield identical hash');
   assert.equal(proj1.duration_seconds, 2700);
+});
+
+await test('Regression: participant key is deterministic when duplicate facts inconsistently include email', () => {
+  const base = {
+    type: 'participant.joined',
+    occurrence_id: 'IDENTITY-ORDER-UUID',
+    uuid: 'IDENTITY-ORDER-UUID',
+    user_id: 'stable-user-1',
+    join_time: '2026-09-22T07:01:20Z',
+    source_timestamp: '2026-09-22T07:01:20Z'
+  };
+  const withoutEmail = { ...base, email: null };
+  const withEmail = { ...base, email: 'stable@example.com' };
+
+  const first = reduceOccurrenceFacts('IDENTITY-ORDER-UUID', [withoutEmail, withEmail]);
+  const second = reduceOccurrenceFacts('IDENTITY-ORDER-UUID', [withEmail, withoutEmail]);
+
+  assert.deepEqual(first.participants, second.participants);
+  assert.ok(first.participants['user_stable-user-1']);
 });
 
 // ----------------------------------------------------------------------------

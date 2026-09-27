@@ -33,6 +33,32 @@ function normEmail(email) {
   return (email || '').trim().toLowerCase();
 }
 
+function occurrenceRoomId(occurrence) {
+  return String(
+    occurrence?.projection?.numeric_meeting_id ||
+    occurrence?.facts?.find(fact => fact.numeric_meeting_id)?.numeric_meeting_id ||
+    ''
+  ).trim();
+}
+
+function sessionOverlapsOccurrence(session, occurrence, toleranceMs = 30 * 60 * 1000) {
+  const occurrenceStartMs = occurrence?.start_time ? Date.parse(occurrence.start_time) : NaN;
+  if (Number.isNaN(occurrenceStartMs) || !session?.join_time) return false;
+
+  const joinMs = Date.parse(session.join_time);
+  if (Number.isNaN(joinMs)) return false;
+
+  const leaveMs = session.leave_time ? Date.parse(session.leave_time) : joinMs;
+  const sessionEndMs = Number.isNaN(leaveMs) ? joinMs : leaveMs;
+  const parsedOccurrenceEndMs = occurrence?.end_time ? Date.parse(occurrence.end_time) : NaN;
+  const occurrenceEndMs = Number.isNaN(parsedOccurrenceEndMs)
+    ? occurrenceStartMs
+    : parsedOccurrenceEndMs;
+
+  return joinMs <= occurrenceEndMs + toleranceMs &&
+    sessionEndMs >= occurrenceStartMs - toleranceMs;
+}
+
 /**
  * Plans migration from an immutable snapshot object.
  * Pure and deterministic: running twice against the same snapshot produces identical manifest and hashes.
@@ -248,9 +274,6 @@ export function planMigration(snapshot) {
 
       // Check for participant sessions in this legacy record that belong to OTHER times/dates
       const existingOcc = plannedOccurrences.get(rawUuid);
-      const occStartMs = existingOcc.start_time ? Date.parse(existingOcc.start_time) : null;
-      const occEndMs = existingOcc.end_time ? Date.parse(existingOcc.end_time) : null;
-
       // Extract sessions that are separated by hours/days from this occurrence window
       const orphanedSessionsByDate = new Map();
 
@@ -261,15 +284,17 @@ export function planMigration(snapshot) {
           const sJoinMs = Date.parse(s.join_time);
           if (Number.isNaN(sJoinMs)) continue;
 
-          // Check if session falls within occurrence window (+/- 30 min tolerance)
-          const inWindow = occStartMs && Math.abs(sJoinMs - occStartMs) <= 30 * 60 * 1000;
+          // A participant may join long after the meeting starts. Match using
+          // interval overlap with the full occurrence window, not distance from
+          // the start timestamp alone.
+          const inWindow = sessionOverlapsOccurrence(s, existingOcc);
           if (!inWindow) {
             // Check if this session matches ANY other planned raw occurrence
             let matchedOther = false;
             for (const otherOcc of plannedOccurrences.values()) {
               if (otherOcc.uuid === rawUuid) continue;
-              const oStart = otherOcc.start_time ? Date.parse(otherOcc.start_time) : null;
-              if (oStart && Math.abs(sJoinMs - oStart) <= 30 * 60 * 1000) {
+              if (occurrenceRoomId(otherOcc) !== numericMeetingId) continue;
+              if (sessionOverlapsOccurrence(s, otherOcc)) {
                 matchedOther = true;
                 break;
               }
@@ -294,8 +319,15 @@ export function planMigration(snapshot) {
       for (const [dateKey, sessionEntries] of orphanedSessionsByDate.entries()) {
         const sortedEntries = sessionEntries.sort((a, b) => Date.parse(a.session.join_time) - Date.parse(b.session.join_time));
         const firstJoinTime = sortedEntries[0].session.join_time;
+        let invalidLeaveBoundaryCount = 0;
         const lastLeaveTime = sortedEntries.reduce((latest, e) => {
           if (!e.session.leave_time) return latest;
+          const joinMs = Date.parse(e.session.join_time);
+          const leaveMs = Date.parse(e.session.leave_time);
+          if (Number.isNaN(leaveMs) || (!Number.isNaN(joinMs) && leaveMs < joinMs)) {
+            invalidLeaveBoundaryCount++;
+            return latest;
+          }
           if (!latest) return e.session.leave_time;
           return e.session.leave_time > latest ? e.session.leave_time : latest;
         }, null);
@@ -346,7 +378,12 @@ export function planMigration(snapshot) {
             source_timestamp: s.join_time
           });
 
-          if (s.leave_time) {
+          const joinMs = Date.parse(s.join_time);
+          const leaveMs = s.leave_time ? Date.parse(s.leave_time) : NaN;
+          const hasValidLeave = s.leave_time && !Number.isNaN(leaveMs) &&
+            (Number.isNaN(joinMs) || leaveMs >= joinMs);
+
+          if (hasValidLeave) {
             derivedFacts.push({
               type: 'participant.left',
               occurrence_id: derivedId,
@@ -367,7 +404,8 @@ export function planMigration(snapshot) {
           numeric_meeting_id: numericMeetingId,
           start_time: firstJoinTime,
           derivation_version: 1,
-          reason: 'Historical session without retained raw Zoom UUID'
+          reason: 'Historical session without retained raw Zoom UUID',
+          invalid_leave_boundaries_ignored: invalidLeaveBoundaryCount
         };
 
         const identityObj = {

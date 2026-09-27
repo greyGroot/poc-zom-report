@@ -22,3 +22,9 @@ Thumbs.db
 .agents/*
 !.agents/skills/
 !.agents/rules/
+.env*
+.codex-remote-attachments/
+ee-crm/scripts/crm-005/backups/
+ee-crm/scripts/crm-005/snapshot*.json
+ee-crm/scripts/crm-005/manifest*.json
+ee-crm/test-*-report.json

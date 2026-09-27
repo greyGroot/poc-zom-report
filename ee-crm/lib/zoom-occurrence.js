@@ -164,21 +164,24 @@ export function normalizeWebhookEventToFacts(event, payload) {
 
   const numericMeetingId = object.id || object.meeting_id ? String(object.id || object.meeting_id).trim() : null;
   const sourceTimestamp = payload.event_ts ? new Date(payload.event_ts).toISOString() : null;
+  const commonMeetingEvidence = {
+    occurrence_id: uuid,
+    uuid,
+    identity_kind: 'exact_uuid',
+    numeric_meeting_id: numericMeetingId,
+    topic: object.topic || 'Zoom Meeting',
+    host_id: object.host_id || null,
+    host_email: object.host_email ? object.host_email.toLowerCase().trim() : null,
+    start_time: object.start_time || null,
+    timezone: object.timezone || 'Europe/Kyiv'
+  };
 
   if (event === 'meeting.started') {
     return [
       {
+        ...commonMeetingEvidence,
         type: 'meeting.started',
-        occurrence_id: uuid,
-        uuid,
-        identity_kind: 'exact_uuid',
-        numeric_meeting_id: numericMeetingId,
-        topic: object.topic || 'Zoom Meeting',
-        host_id: object.host_id || null,
-        host_email: object.host_email ? object.host_email.toLowerCase().trim() : null,
         host_name: object.host_name || null,
-        start_time: object.start_time || null,
-        timezone: object.timezone || 'Europe/Kyiv',
         source_timestamp: sourceTimestamp || object.start_time || null
       }
     ];
@@ -187,11 +190,8 @@ export function normalizeWebhookEventToFacts(event, payload) {
   if (event === 'meeting.ended') {
     return [
       {
+        ...commonMeetingEvidence,
         type: 'meeting.ended',
-        occurrence_id: uuid,
-        uuid,
-        identity_kind: 'exact_uuid',
-        numeric_meeting_id: numericMeetingId,
         end_time: object.end_time || null,
         duration: object.duration !== undefined ? Number(object.duration) : null,
         source_timestamp: sourceTimestamp || object.end_time || null
@@ -217,11 +217,8 @@ export function normalizeWebhookEventToFacts(event, payload) {
 
     return [
       {
+        ...commonMeetingEvidence,
         type: 'participant.joined',
-        occurrence_id: uuid,
-        uuid,
-        identity_kind: 'exact_uuid',
-        numeric_meeting_id: numericMeetingId,
         user_id: rawUserId,
         zoom_user_id: rawZoomId,
         email: rawEmail,
@@ -246,11 +243,8 @@ export function normalizeWebhookEventToFacts(event, payload) {
 
     return [
       {
+        ...commonMeetingEvidence,
         type: 'participant.left',
-        occurrence_id: uuid,
-        uuid,
-        identity_kind: 'exact_uuid',
-        numeric_meeting_id: numericMeetingId,
         user_id: rawUserId,
         zoom_user_id: rawZoomId,
         email: rawEmail,
@@ -261,7 +255,18 @@ export function normalizeWebhookEventToFacts(event, payload) {
     ];
   }
 
-  return [];
+  // Some retained Zoom evidence (for example waiting-room events) is not a
+  // participant attendance fact, but still carries exact occurrence identity,
+  // room, host and meeting boundaries. Preserve that factual anchor without
+  // treating the waiting-room participant as an attendee.
+  return [
+    {
+      ...commonMeetingEvidence,
+      type: 'meeting.observed',
+      source_event: event,
+      source_timestamp: sourceTimestamp || object.start_time || null
+    }
+  ];
 }
 
 /**
@@ -320,6 +325,13 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
       numericMeetingId = fact.numeric_meeting_id;
     }
 
+    // Zoom repeats occurrence metadata on many event types. Retain it even
+    // when meeting.started was not present in the capped historical log.
+    if (fact.topic && topic === 'Zoom Meeting') topic = fact.topic;
+    if (fact.host_id && !hostId) hostId = fact.host_id;
+    if (fact.host_email && !hostEmail) hostEmail = fact.host_email.toLowerCase().trim();
+    if (fact.start_time && !startTime) startTime = fact.start_time;
+
     if (fact.type === 'meeting.started') {
       topic = fact.topic || topic;
       hostId = fact.host_id || hostId;
@@ -341,8 +353,11 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
 
       if (!pKey) {
         // Strong stable key if ID or email present, else unique key
-        if (em) pKey = `email_${em}`;
-        else if (uId) pKey = `user_${uId}`;
+        // Prefer Zoom's stable user ID when both ID and email are present.
+        // This keeps the canonical key independent of Redis hash iteration
+        // order when duplicate facts alternately include/omit email.
+        if (uId) pKey = `user_${uId}`;
+        else if (em) pKey = `email_${em}`;
         else pKey = `anon_${deriveFactFingerprint(fact)}`;
       }
 
@@ -351,14 +366,15 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
           user_id: uId,
           zoom_user_id: fact.zoom_user_id || null,
           email: em,
-          name: fact.name || em || (uId ? `User ${uId}` : 'Guest'),
+          name: fact.name || null,
           is_host: Boolean(fact.is_host),
           sessions: []
         };
       }
 
       const p = participants[pKey];
-      if (fact.name && !p.name) p.name = fact.name;
+      if (em && (!p.email || em.localeCompare(p.email) < 0)) p.email = em;
+      if (fact.name && (!p.name || fact.name.localeCompare(p.name) < 0)) p.name = fact.name;
       if (fact.is_host) p.is_host = true;
 
       if (fact.join_time) {
@@ -382,8 +398,8 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
       let pKey = findParticipantKey(uId, em);
 
       if (!pKey) {
-        if (em) pKey = `email_${em}`;
-        else if (uId) pKey = `user_${uId}`;
+        if (uId) pKey = `user_${uId}`;
+        else if (em) pKey = `email_${em}`;
         else pKey = `anon_${deriveFactFingerprint(fact)}`;
       }
 
@@ -392,13 +408,16 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
           user_id: uId,
           zoom_user_id: fact.zoom_user_id || null,
           email: em,
-          name: fact.name || em || (uId ? `User ${uId}` : 'Guest'),
+          name: fact.name || null,
           is_host: Boolean(fact.is_host),
           sessions: []
         };
       }
 
       const p = participants[pKey];
+      if (em && (!p.email || em.localeCompare(p.email) < 0)) p.email = em;
+      if (fact.name && (!p.name || fact.name.localeCompare(p.name) < 0)) p.name = fact.name;
+      if (fact.is_host) p.is_host = true;
       if (fact.leave_time) {
         // Find most recent session with open leave_time
         const openSession = p.sessions.slice().reverse().find(s => !s.leave_time);
@@ -446,7 +465,7 @@ export function reduceOccurrenceFacts(occurrenceIdentity, facts, options = {}) {
     canonicalParticipants[k] = {
       user_id: p.user_id,
       email: p.email,
-      name: p.name,
+      name: p.name || p.email || (p.user_id ? `User ${p.user_id}` : 'Guest'),
       is_host: p.is_host,
       sessions: p.sessions,
       duration_seconds: durationSec,

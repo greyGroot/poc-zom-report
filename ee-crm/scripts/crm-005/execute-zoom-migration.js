@@ -181,6 +181,21 @@ export async function executeMigration({
 
     for (const item of batch) {
       const safeId = item.safeId || toSafeOccurrenceId(item.occurrence_id);
+      const factKey = `${OCCURRENCE_EVENTS_KEY_PREFIX}${safeId}`;
+
+      // Read and retain only valid live facts, then rebuild the hash. This
+      // removes malformed Upstash hash fields and stale historical migration
+      // facts without discarding post-cutover live evidence.
+      const existingFacts = await getOccurrenceFacts(safeId, tgt);
+      const retainedLiveFacts = existingFacts.filter(fact =>
+        fact.migration_id !== MIGRATION_ID &&
+        fact.type !== 'migration.historical'
+      );
+      await tgt.del(factKey);
+
+      for (const liveFact of retainedLiveFacts) {
+        await saveOccurrenceFact(safeId, liveFact, tgt);
+      }
 
       // Save imported facts tagged with migration metadata
       for (const f of item.facts || []) {
@@ -193,7 +208,7 @@ export async function executeMigration({
         importedFactFingerprints.push(fp);
       }
 
-      // Read ALL facts for this safeId (merges migration facts + concurrent live facts)
+      // Read all repaired facts for this safeId (migration + retained live facts)
       const allFacts = await getOccurrenceFacts(safeId, tgt);
 
       // Reduce fresh projection to overwrite any contaminated legacy projection
