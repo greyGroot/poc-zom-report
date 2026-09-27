@@ -185,19 +185,10 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
         throw new Error(data?.error || text || `Server error (${res.status} ${res.statusText})`);
       }
 
-      setReport(data);
-
-      // Expand all lessons by default for convenience
-      const allIds = new Set();
-      if (Array.isArray(data.days)) {
-        data.days.forEach(d => {
-          if (Array.isArray(d.lessons)) {
-            d.lessons.forEach(l => allIds.add(l.id));
-          }
-        });
-      }
-      setExpandedLessons(allIds);
-    } catch (err) {
+        setReport(data);
+        // Start with all lesson cards collapsed by default
+        setExpandedLessons(new Set());
+      } catch (err) {
       setReportError(err.message);
     } finally {
       setLoadingReport(false);
