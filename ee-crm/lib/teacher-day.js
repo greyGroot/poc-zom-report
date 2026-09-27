@@ -157,6 +157,9 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
             await saveCachedReport(smTeacherId, `${normalizedDate}_${normalizedDate}`, schedule).catch(() => {});
           }
         } catch (fetchErr) {
+          if (isSchoolmateUnavailableError(fetchErr)) {
+            throw fetchErr;
+          }
           // If classes schedule fails, try direct scheduler
           try {
             const fallbackSchedule = await client.getTeacherWeeklySchedule({
@@ -211,7 +214,7 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
     await logger.warn('TEACHER_DAY_SCHOOLMATE_ERROR', `Schoolmate fetch failed for ${teacherId} on ${normalizedDate}: ${smErr.message}`);
     const errorMessage = isSchoolmateUnavailableError(smErr)
       ? 'External service unavailable'
-      : (smErr.message || 'Failed to retrieve Schoolmate lessons');
+      : 'Failed to retrieve Schoolmate lessons';
     schoolmateResult = {
       state: 'error',
       totalLessons: 0,

@@ -58,7 +58,7 @@ export function toPublicSchoolmateError(err) {
   return {
     status: 500,
     body: {
-      error: err?.message || 'Internal server error',
+      error: 'Internal server error',
       code: 'INTERNAL_ERROR'
     }
   };
@@ -138,7 +138,8 @@ export class SchoolmateClient {
    * @param {object} [policy]
    * @param {number} [policy.timeoutMs]
    * @param {number} [policy.maxAttempts]
-   * @returns {Promise<Response>}
+   * @param {(response: Response) => Promise<unknown>} [policy.consume]
+   * @returns {Promise<unknown>}
    */
   async _request(url, init = {}, policy = {}) {
     const maxAttempts = policy.maxAttempts || this.maxAttempts || 3;
@@ -192,6 +193,13 @@ export class SchoolmateClient {
             statusText: res.statusText,
             pathname
           });
+        }
+
+        // Consume the response before clearing the timeout. This keeps slow or
+        // disconnected response bodies inside the same bounded retry policy as
+        // the initial fetch instead of treating received headers as success.
+        if (typeof policy.consume === 'function') {
+          return await policy.consume(res);
         }
 
         return res;
@@ -282,11 +290,20 @@ export class SchoolmateClient {
     const startTime = Date.now();
 
     // 1. Acquire initial ASP.NET_SessionId from /admin
-    const initRes = await this._request(`${this.baseUrl}/admin`, { method: 'GET' });
-    let initCookieHeader = initRes.headers.get('set-cookie') || '';
-    if (typeof initRes.headers.getSetCookie === 'function') {
-      initCookieHeader = initRes.headers.getSetCookie().join('; ');
-    }
+    const initCookieHeader = await this._request(
+      `${this.baseUrl}/admin`,
+      { method: 'GET' },
+      {
+        consume: async (response) => {
+          let cookieHeader = response.headers.get('set-cookie') || '';
+          if (typeof response.headers.getSetCookie === 'function') {
+            cookieHeader = response.headers.getSetCookie().join('; ');
+          }
+          await response.text();
+          return cookieHeader;
+        }
+      }
+    );
 
     const match = initCookieHeader.match(/ASP\.NET_SessionId=([^;]+)/);
     if (!match) {
@@ -298,24 +315,26 @@ export class SchoolmateClient {
 
     // 2. Authenticate session via POST /security/index
     const loginUrl = `${this.baseUrl}/security/index`;
-    const res = await this._request(loginUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
+    const loginData = await this._request(
+      loginUrl,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': cookieHeader,
+          'Accept': 'application/json, text/plain, */*'
+        },
+        body: JSON.stringify({
+          UserName: userName,
+          Password: password,
+          SchoolPrefix: this.schoolPrefix,
+          IsRemember: false,
+          requestUserId: 0,
+          roleId: 0
+        })
       },
-      body: JSON.stringify({
-        UserName: userName,
-        Password: password,
-        SchoolPrefix: this.schoolPrefix,
-        IsRemember: false,
-        requestUserId: 0,
-        roleId: 0
-      })
-    });
-
-    const loginData = await res.json();
+      { consume: (response) => response.json() }
+    );
     if (!loginData.IsSuccess) {
       throw new Error(`Schoolmate login failed: ${loginData.Message || 'Invalid credentials'}`);
     }
@@ -349,7 +368,7 @@ export class SchoolmateClient {
 
     // 1. Request report generation
     const genUrl = `${this.baseUrl}/teacher/printemployeeschedule`;
-    const genRes = await this._requestAuthenticated(
+    const genData = await this._requestAuthenticated(
       genUrl,
       (sessionId) => ({
         method: 'POST',
@@ -368,10 +387,8 @@ export class SchoolmateClient {
           roleId: 2
         })
       }),
-      { timeoutMs: this.pdfTimeoutMs }
+      { timeoutMs: this.pdfTimeoutMs, consume: (response) => response.json() }
     );
-
-    const genData = await genRes.json();
     if (!genData.IsSuccess || !genData.Data || !genData.Data.AbsolutePath) {
       throw new Error(`Schoolmate schedule generation rejected: ${genData.Message || 'Unknown error'}`);
     }
@@ -382,7 +399,7 @@ export class SchoolmateClient {
     // Note: AbsolutePath is already URL-encoded or contains encoded slashes (%5c)
     const downloadUrl = `${this.baseUrl}/common/download?fpath=${AbsolutePath}&fname=${FileName}&d=true`;
 
-    const downloadRes = await this._requestAuthenticated(
+    const arrayBuffer = await this._requestAuthenticated(
       downloadUrl,
       (sessionId) => ({
         method: 'GET',
@@ -390,10 +407,8 @@ export class SchoolmateClient {
           'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`
         }
       }),
-      { timeoutMs: this.pdfTimeoutMs }
+      { timeoutMs: this.pdfTimeoutMs, consume: (response) => response.arrayBuffer() }
     );
-
-    const arrayBuffer = await downloadRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const durationMs = Date.now() - overallStartTime;
 
@@ -414,7 +429,7 @@ export class SchoolmateClient {
   async getSchedulerEvents({ date }) {
     const startTime = Date.now();
     const url = `${this.baseUrl}/calendar/getschedulerevents`;
-    const res = await this._requestAuthenticated(
+    const json = await this._requestAuthenticated(
       url,
       (sessionId) => ({
         method: 'POST',
@@ -432,10 +447,9 @@ export class SchoolmateClient {
             IsPrevious: false
           }
         })
-      })
+      }),
+      { consume: (response) => response.json() }
     );
-
-    const json = await res.json();
     if (!json.IsSuccess) {
       throw new Error(`Schoolmate scheduler error: ${json.Message || 'Unknown error'}`);
     }
@@ -598,7 +612,7 @@ export class SchoolmateClient {
       roleId: 2
     };
 
-    const res = await this._requestAuthenticated(
+    const json = await this._requestAuthenticated(
       url,
       (sessionId) => ({
         method: 'POST',
@@ -608,10 +622,9 @@ export class SchoolmateClient {
           'Accept': 'application/json, text/plain, */*'
         },
         body: JSON.stringify(payload)
-      })
+      }),
+      { consume: (response) => response.json() }
     );
-
-    const json = await res.json();
     if (!json.IsSuccess) {
       throw new Error(`Schoolmate getteachergroupclasslist error: ${json.Message || 'Unknown error'}`);
     }
@@ -645,7 +658,7 @@ export class SchoolmateClient {
       roleId: 2
     };
 
-    const res = await this._requestAuthenticated(
+    const json = await this._requestAuthenticated(
       url,
       (sessionId) => ({
         method: 'POST',
@@ -655,10 +668,9 @@ export class SchoolmateClient {
           'Accept': 'application/json, text/plain, */*'
         },
         body: JSON.stringify(payload)
-      })
+      }),
+      { consume: (response) => response.json() }
     );
-
-    const json = await res.json();
     if (!json.IsSuccess) {
       throw new Error(`Schoolmate getteachergroupclassdetail error: ${json.Message || 'Unknown error'}`);
     }
@@ -729,17 +741,28 @@ export class SchoolmateClient {
               fromDate,
               toDate
             });
-            return { group, detail };
+            return { group, detail, succeeded: true };
           } catch (err) {
             this.logger.warn(`[Schoolmate] Warning: group ${group.GroupId} (${group.GroupName}) failed: ${err.message}`);
             return {
               group,
-              detail: { lessons: [], wageSum: '0.00', totalWage: '0.00 ₴', currencySymbol: '₴' }
+              error: err,
+              succeeded: false
             };
           }
         })
       );
       allGroupResults.push(...batchResults);
+    }
+
+    const successfulGroupResults = allGroupResults.filter(result => result.succeeded);
+    if (groups.length > 0 && successfulGroupResults.length === 0) {
+      const firstError = allGroupResults.find(result => result.error)?.error;
+      throw new SchoolmateUnavailableError('All Schoolmate group-detail requests failed', {
+        attempts: groups.length,
+        lastError: firstError,
+        cause: firstError
+      });
     }
 
     // 3. Flatten and standardize all lessons
@@ -748,7 +771,7 @@ export class SchoolmateClient {
     let totalWageNumeric = 0;
     let currencySymbol = '₴';
 
-    for (const { group, detail } of allGroupResults) {
+    for (const { group, detail } of successfulGroupResults) {
       if (detail.currencySymbol) {
         currencySymbol = detail.currencySymbol;
       }
@@ -889,7 +912,10 @@ export class SchoolmateClient {
       source: 'schoolmate_group_class_detail',
       days: sortedDays,
       lessons: allLessons,
-      groups: groups.map(g => ({ groupId: g.GroupId, groupName: g.GroupName })),
+      groups: successfulGroupResults.map(({ group }) => ({
+        groupId: group.GroupId,
+        groupName: group.GroupName
+      })),
       durationMs
     };
   }
@@ -906,7 +932,7 @@ export class SchoolmateClient {
     const pageIndex = options.pageIndex || 1;
     const url = `${this.baseUrl}/teacher/teacherlist`;
 
-    const res = await this._requestAuthenticated(
+    const data = await this._requestAuthenticated(
       url,
       (sessionId) => ({
         method: 'POST',
@@ -930,10 +956,9 @@ export class SchoolmateClient {
           requestuserId: this.requestUserId,
           roleId: 2
         })
-      })
+      }),
+      { consume: (response) => response.json() }
     );
-
-    const data = await res.json();
     if (!data.IsSuccess) {
       throw new Error(`Schoolmate teacherlist returned error: ${data.Message || 'Unknown error'}`);
     }

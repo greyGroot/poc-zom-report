@@ -89,6 +89,9 @@ export async function POST(req) {
             return schedule;
           }
         } catch (groupErr) {
+          if (isSchoolmateUnavailableError(groupErr)) {
+            throw groupErr;
+          }
           console.warn('Group classes schedule error, falling back to JSON scheduler:', groupErr.message);
         }
 
@@ -150,16 +153,16 @@ export async function POST(req) {
       { teacherId: numericTeacherId, periodKey, errorCode: err.code || err.name }
     );
 
-    if (isSchoolmateUnavailableError(err)) {
-      const pub = toPublicSchoolmateError(err);
-      return NextResponse.json(pub.body, { status: pub.status });
+    const isBadRequest =
+      typeof err?.message === 'string' && (
+        err.message.toLowerCase().includes('required') ||
+        err.message.toLowerCase().includes('invalid date')
+      );
+    if (isBadRequest) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
-    const isBadRequest =
-      err.message.toLowerCase().includes('required') ||
-      err.message.toLowerCase().includes('invalid date');
-    const status = isBadRequest ? 400 : 500;
-
-    return NextResponse.json({ error: err.message }, { status });
+    const pub = toPublicSchoolmateError(err);
+    return NextResponse.json(pub.body, { status: pub.status });
   }
 }

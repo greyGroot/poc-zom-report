@@ -130,6 +130,82 @@ await test('Scenario 2: Transient 502 Bad Gateway retries up to 3 attempts with 
   assert(warnings[1].includes('Retry 2/3') && warnings[1].includes('502'));
 });
 
+// --- Test 2a: timeout remains active while the response body is consumed ---
+await test('Scenario 1b: Response-body hang is aborted and exhausted as unavailable', async () => {
+  let attempts = 0;
+  const client = new SchoolmateClient({
+    defaultTimeoutMs: 25,
+    maxAttempts: 1,
+    fetch: async (url, init) => {
+      attempts++;
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: () => new Promise((resolve, reject) => {
+          init.signal.addEventListener('abort', () => {
+            const abortError = new Error('Body read aborted');
+            abortError.name = 'AbortError';
+            reject(abortError);
+          });
+        })
+      };
+    }
+  });
+
+  await assert.rejects(
+    () => client._request(
+      'https://empireenglish.schoolmate.eu/body-hang',
+      {},
+      { consume: (response) => response.json() }
+    ),
+    (err) => {
+      assert(err instanceof SchoolmateUnavailableError);
+      assert(err.cause instanceof SchoolmateTimeoutError);
+      assert.equal(err.cause.pathname, '/body-hang');
+      return true;
+    }
+  );
+  assert.equal(attempts, 1);
+});
+
+await test('Scenario 1c: Transient response-body disconnect is retried inside the request boundary', async () => {
+  let attempts = 0;
+  const sleeps = [];
+  const client = new SchoolmateClient({
+    maxAttempts: 2,
+    baseDelayMs: 10,
+    jitterRatio: 0,
+    sleep: async (ms) => sleeps.push(ms),
+    fetch: async () => {
+      attempts++;
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => {
+          if (attempts === 1) {
+            const err = new Error('Socket closed while reading body');
+            err.code = 'ECONNRESET';
+            throw err;
+          }
+          return { IsSuccess: true };
+        }
+      };
+    }
+  });
+
+  const data = await client._request(
+    'https://empireenglish.schoolmate.eu/body-disconnect',
+    {},
+    { consume: (response) => response.json() }
+  );
+
+  assert.deepEqual(data, { IsSuccess: true });
+  assert.equal(attempts, 2);
+  assert.deepEqual(sleeps, [10]);
+});
+
 // --- Test 3: Exhausted 502 throws SchoolmateUnavailableError ---
 await test('Scenario 2b: Exhausted 502 throws SchoolmateUnavailableError with HTTP cause', async () => {
   let callCount = 0;
@@ -440,6 +516,11 @@ await test('Scenario 9: Error mapping toPublicSchoolmateError maps availability 
 
   const pubGeneric = toPublicSchoolmateError(new Error('Some generic error'));
   assert.equal(pubGeneric.status, 500);
+  assert.deepEqual(pubGeneric.body, {
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR'
+  });
+  assert(!JSON.stringify(pubGeneric.body).includes('Some generic error'));
 });
 
 // --- Test 12: Teacher Day resilience when Schoolmate is unavailable ---
@@ -522,7 +603,44 @@ await test('Scenario 11: getTeacherClassesSchedule handles individual group fail
 
   assert.equal(res.totalLessonsCount, 1);
   assert.equal(res.totalGroupsCount, 2);
+  assert.deepEqual(res.groups, [{ groupId: 101, groupName: 'Group A' }], 'Failed groups must not be represented as confirmed empty group data');
   assert.equal(warnings.some(w => w.includes('group 102 (Group B) failed')), true, 'Must warn on group 102 failure');
+});
+
+await test('Scenario 12: Complete group-detail failure rejects instead of returning an empty schedule', async () => {
+  const warnings = [];
+  const client = new SchoolmateClient({
+    logger: {
+      warn: (msg) => warnings.push(msg),
+      info: () => {},
+      error: () => {}
+    }
+  });
+  client.getTeacherGroupClassList = async () => [
+    { GroupId: 201, GroupName: 'Group One' },
+    { GroupId: 202, GroupName: 'Group Two' }
+  ];
+  client.getSchedulerEvents = async () => ({ events: [] });
+  client.getTeacherGroupClassDetail = async ({ groupId }) => {
+    const err = new Error(`detail unavailable for ${groupId}`);
+    err.code = 'ECONNRESET';
+    throw err;
+  };
+
+  await assert.rejects(
+    () => client.getTeacherClassesSchedule({
+      teacherId: 17251,
+      fromDate: '2026-09-14',
+      toDate: '2026-09-20'
+    }),
+    (err) => {
+      assert(err instanceof SchoolmateUnavailableError);
+      assert.equal(err.code, 'SCHOOLMATE_UNAVAILABLE');
+      assert.equal(err.message, 'All Schoolmate group-detail requests failed');
+      return true;
+    }
+  );
+  assert.equal(warnings.filter(w => w.includes('group 20')).length, 2);
 });
 
 console.log('\n====================================================');
