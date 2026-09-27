@@ -6,6 +6,16 @@ import { runMigration, getRedactedFingerprint } from '@/scripts/migrate-poc-zoom
 
 export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    if (searchParams.get('inspect') === 'true') {
+      const url = process.env.EE_CRM_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+      const token = process.env.EE_CRM_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+      const { Redis } = await import('@upstash/redis');
+      const client = new Redis({ url, token });
+      const allKeys = await client.keys('*');
+      return NextResponse.json({ success: true, allKeys });
+    }
+
     const report = await runMigration({
       cliArgs: {
         isDryRun: true,

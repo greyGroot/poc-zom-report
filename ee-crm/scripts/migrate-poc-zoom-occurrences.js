@@ -172,11 +172,22 @@ export async function runMigration({
 
   // B. Scan zoom:meeting:* keys
   let scanKeys = [];
-  if (typeof src.scan === 'function') {
-    const [_, keys] = await src.scan(0, { match: `${MEETING_KEY_PREFIX}*` });
-    if (Array.isArray(keys)) scanKeys = keys;
-  } else if (typeof src.keys === 'function') {
-    scanKeys = await src.keys(`${MEETING_KEY_PREFIX}*`);
+  if (typeof src.keys === 'function') {
+    try {
+      const found = await src.keys(`${MEETING_KEY_PREFIX}*`);
+      if (Array.isArray(found)) scanKeys = found;
+    } catch (e) {
+      console.warn('keys() failed, falling back to scan:', e.message);
+    }
+  }
+
+  if (scanKeys.length === 0 && typeof src.scan === 'function') {
+    let cursor = 0;
+    do {
+      const [nextCursor, keys] = await src.scan(cursor, { match: `${MEETING_KEY_PREFIX}*`, count: 100 });
+      if (Array.isArray(keys)) scanKeys.push(...keys);
+      cursor = Number(nextCursor);
+    } while (cursor !== 0 && !Number.isNaN(cursor));
   }
 
   for (const k of scanKeys) {
