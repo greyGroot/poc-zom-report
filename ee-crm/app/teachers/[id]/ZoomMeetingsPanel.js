@@ -6,7 +6,7 @@ import { getKyivDateString, formatKyivDateHeader } from '@/lib/timezone';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
 
-export default function ZoomMeetingsPanel({ teacherId, fromDate, toDate }) {
+export default function ZoomMeetingsPanel({ teacherId, fromDate, toDate, initialMeetings = [] }) {
   const { t, locale } = useLanguage();
 
   const {
@@ -21,7 +21,8 @@ export default function ZoomMeetingsPanel({ teacherId, fromDate, toDate }) {
   } = useZoomMeetings({
     teacherId,
     fromDate,
-    toDate
+    toDate,
+    initialMeetings
   });
 
   const isRefreshing = status === 'refreshing';

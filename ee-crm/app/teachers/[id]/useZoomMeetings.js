@@ -6,13 +6,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * Custom React hook for managing Zoom meetings state, deduplication,
  * request abortion, same-period refresh retention, and error handling.
  */
-export function useZoomMeetings({ teacherId, fromDate, toDate }) {
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'empty' | 'unmapped' | 'error' | 'refreshing'
-  const [meetings, setMeetings] = useState([]);
-  const [totalMeetings, setTotalMeetings] = useState(0);
+export function useZoomMeetings({ teacherId, fromDate, toDate, initialMeetings = [] }) {
+  const hasInitial = Array.isArray(initialMeetings) && initialMeetings.length > 0;
+  const [status, setStatus] = useState(hasInitial ? 'success' : 'idle'); // 'idle' | 'loading' | 'success' | 'empty' | 'unmapped' | 'error' | 'refreshing'
+  const [meetings, setMeetings] = useState(hasInitial ? initialMeetings : []);
+  const [totalMeetings, setTotalMeetings] = useState(hasInitial ? initialMeetings.length : 0);
   const [error, setError] = useState(null);
   const [refreshError, setRefreshError] = useState(null);
-  const [responsePeriod, setResponsePeriod] = useState(null);
+  const [responsePeriod, setResponsePeriod] = useState(hasInitial ? { from: fromDate, to: toDate } : null);
 
   const abortControllerRef = useRef(null);
   const currentRequestedPeriodRef = useRef({ from: null, to: null });
