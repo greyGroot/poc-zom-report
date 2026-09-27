@@ -439,16 +439,21 @@ export default function TeacherDayDetailsClient({
                     ? `${lesson.startTime} – ${lesson.endTime}`
                     : (lesson.startTime || null);
 
+                  const safeRate = lesson.teacherRate || `${parseFloat(String(lesson.teacherRatePerLesson || 0)).toFixed(2)} ${lesson.currencySymbol || '₴'}`;
+                  const isIndividual = (Number(lesson.enrolledStudents) || 1) <= 1;
+                  const rawGroupName = lesson.groupName || lesson.groupOrStudent || '';
+                  const cleanStudentName = rawGroupName.replace(/\s+(NovaPay|Grammarly|EPAM|SoftServe|Genesis|MacPaw|Ciklum|Luxoft|Ajax|Sigma|DOU|B1|B2|A1|A2|C1|C2|Speaking Club).*$/i, '').trim() || rawGroupName;
+
                   return (
                     <article
                       key={lesson.id || `lesson_${idx}`}
                       className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
                       style={statusColor ? { borderLeftColor: statusColor } : {}}
-                      aria-label={`${lesson.groupName || lesson.groupOrStudent || 'Class'}, ${lesson.durationMinutes} min`}
+                      aria-label={`${rawGroupName || 'Class'}, ${lesson.durationMinutes} min`}
                     >
-                      {/* Summary Bar */}
+                      {/* Summary Bar - 2-row layout */}
                       <div
-                        className="lesson-summary-bar"
+                        className="lesson-summary-bar-vertical"
                         onClick={() => toggleLesson(lesson.id || idx)}
                         role="button"
                         tabIndex={0}
@@ -460,123 +465,127 @@ export default function TeacherDayDetailsClient({
                             toggleLesson(lesson.id || idx);
                           }
                         }}
+                        style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
                       >
-                        <div className="lesson-left-meta">
-                          {/* Ribbon Bookmarks */}
-                          <div className="ribbon-bookmarks-wrapper">
-                            {lesson.classDetailsAdded && (
-                              <div className="sm-tooltip-wrapper">
-                                <span className="ribbon-bookmark ribbon-green" />
-                                <span className="sm-tooltip-text">{t('dayDetails.classNotesAdded')}</span>
-                              </div>
-                            )}
-                            {lesson.attendanceChecked && (
-                              <div className="sm-tooltip-wrapper">
-                                <span className="ribbon-bookmark ribbon-blue" />
-                                <span className="sm-tooltip-text">{t('dayDetails.attendanceMarked')}</span>
-                              </div>
-                            )}
+                        {/* Row 1: Title & Expand Chevron */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {/* Ribbon Bookmarks */}
+                            <div className="ribbon-bookmarks-wrapper">
+                              {lesson.classDetailsAdded && (
+                                <div className="sm-tooltip-wrapper">
+                                  <span className="ribbon-bookmark ribbon-green" />
+                                  <span className="sm-tooltip-text">{t('dayDetails.classNotesAdded')}</span>
+                                </div>
+                              )}
+                              {lesson.attendanceChecked && (
+                                <div className="sm-tooltip-wrapper">
+                                  <span className="ribbon-bookmark ribbon-blue" />
+                                  <span className="sm-tooltip-text">{t('dayDetails.attendanceMarked')}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {idx + 1}. {rawGroupName || t('dayDetails.groupClass')}
+                            </h4>
                           </div>
 
-                          {/* Time Badge (Symmetrical) */}
+                          <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {isExpanded ? '▲' : '▼'}
+                          </span>
+                        </div>
+
+                        {/* Row 2: Labels and Badges */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+                          {/* Time Badge */}
                           {timeDisplay && (
-                            <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+                            <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: 'var(--text-primary)' }}>
                               {timeDisplay}
                             </span>
                           )}
 
-                          {/* Student/Group Title */}
-                          <span className="lesson-student" style={{ fontWeight: 600 }}>
-                            {idx + 1}. {lesson.groupName || lesson.groupOrStudent || t('dayDetails.groupClass')}
-                          </span>
-
                           {/* Duration Badge */}
-                          <span className="lesson-duration">
+                          <span className="lesson-duration" style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: 'var(--text-secondary)' }}>
                             ⏱️ {lesson.durationMinutes} min
                           </span>
 
                           {/* Status Badge */}
                           {hasStatus ? (
-                            <span className="lesson-status-chip chip-last-minute">
+                            <span className="lesson-status-chip chip-last-minute" style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, fontWeight: 600 }}>
                               {lesson.lessonStatusName}
                             </span>
                           ) : (
-                            <span className="lesson-status-chip chip-completed">
+                            <span className="lesson-status-chip chip-completed" style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, fontWeight: 600 }}>
                               Completed
                             </span>
                           )}
-                        </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {/* Rate Tag */}
-                          <span className={`lesson-rate-tag ${isZeroRate ? 'zero-rate' : ''}`}>
-                            {lesson.teacherRate || `${lesson.teacherRatePerLesson || 0} ${lesson.currencySymbol || '₴'}`}
+                          <span className={`lesson-rate-tag ${isZeroRate ? 'zero-rate' : ''}`} style={{ fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                            {safeRate}
                           </span>
 
-                          <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                          {/* Lesson Type */}
+                          <span className="badge badge-neutral" style={{ fontSize: 11, padding: '2px 6px' }}>
                             {lesson.className || lesson.lessonType || 'GE'}
                           </span>
 
-                          <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`}>
-                            ▼
+                          {/* Planned Students */}
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            👥 {t('dayDetails.plannedStudents', { count: lesson.enrolledStudents || 1 })}
+                            {lesson.attendanceChecked && (
+                              <span>· {t('dayDetails.attendedStudents', { attended: lesson.attendedCount || lesson.enrolledStudents || 1, planned: lesson.enrolledStudents || 1 })}</span>
+                            )}
+                          </span>
+
+                          {/* Attendance Status */}
+                          <span style={{ fontSize: 11, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
+                            {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
                           </span>
                         </div>
                       </div>
 
-                      {/* Symmetrical Sub-Bar (Planned / Attended Students & Attendance Marker) */}
-                      <div className="lesson-sub-meta" style={{ padding: '4px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span>
-                          👥 {t('dayDetails.plannedStudents', { count: lesson.enrolledStudents || 1 })}
-                          {lesson.attendanceChecked && (
-                            <span style={{ marginLeft: 4 }}>
-                              · {t('dayDetails.attendedStudents', { attended: lesson.attendedCount || lesson.enrolledStudents || 1, planned: lesson.enrolledStudents || 1 })}
-                            </span>
-                          )}
-                        </span>
-                        <span>
-                          {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
-                        </span>
-                      </div>
-
-                      {/* Detail Drawer */}
+                      {/* Detail Drawer (Expanded) */}
                       {isExpanded && (
-                        <div id={`lesson-drawer-${lesson.id || idx}`} className="lesson-details-drawer">
-                          <div className="lesson-detail-item">
-                            <span className="lesson-detail-label">{t('dayDetails.groupOrClass')}</span>
-                            <span className="lesson-detail-val">
-                              {lesson.groupName || lesson.groupOrStudent || 'N/A'}{' '}
-                              {lesson.groupId ? `(ID: ${lesson.groupId})` : ''}
-                            </span>
+                        <div id={`lesson-drawer-${lesson.id || idx}`} style={{ padding: '12px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
+                          <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>👥</span>
+                            <span>{t('dayDetails.plannedStudentsTitle') || 'Planned Students from Schoolmate'}:</span>
                           </div>
 
-                          <div className="lesson-detail-item">
-                            <span className="lesson-detail-label">{t('schedule.lessonType')}</span>
-                            <span className="lesson-detail-val">
-                              <span className="badge badge-info">{lesson.className || lesson.lessonType || 'GE'}</span>
-                            </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                            {isIndividual ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cleanStudentName}</span>
+                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>1 {t('dayDetails.enrolledStudent') || 'student enrolled'}</span>
+                                </div>
+                                <span style={{ fontSize: 12 }}>
+                                  {lesson.attendanceChecked ? `✅ ${t('dayDetails.attended') || 'Attended'}` : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                                </span>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rawGroupName}</span>
+                                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{lesson.enrolledStudents || 1} {t('dayDetails.enrolledStudentsPlural') || 'students planned'}</span>
+                                </div>
+                                <span style={{ fontSize: 12 }}>
+                                  {lesson.attendanceChecked
+                                    ? `✅ ${lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1} ${t('dayDetails.attended') || 'Attended'}`
+                                    : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="lesson-detail-item">
-                            <span className="lesson-detail-label">{t('dayDetails.internalLessonId')}</span>
-                            <span className="lesson-detail-val" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                              {lesson.groupLessonId || lesson.id || 'N/A'}
-                            </span>
-                          </div>
-
-                          <div className="lesson-detail-item">
-                            <span className="lesson-detail-label">{t('dayDetails.reportedWage')}</span>
-                            <span className="lesson-detail-val" style={{ fontWeight: 600 }}>
-                              {lesson.teacherRate || `${lesson.teacherRatePerLesson || 0} ₴`}
-                            </span>
-                          </div>
-
-                          <div className="lesson-detail-item">
-                            <span className="lesson-detail-label">{t('dayDetails.statusLabel')}</span>
-                            <span className="lesson-detail-val">
-                              {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
-                              {lesson.classDetailsAdded ? ` • 📝 ${t('dayDetails.classNotesAdded')}` : ` • ⚪ ${t('dayDetails.noClassNotes')}`}
-                            </span>
-                          </div>
+                          {/* Class Notes / Additional Details if present */}
+                          {(lesson.classDetailsAdded || lesson.notes) && (
+                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
+                              📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded') || 'Added classes details'}
+                            </div>
+                          )}
                         </div>
                       )}
                     </article>

@@ -70,89 +70,83 @@ export default function ZoomMeetingCard({ occurrence }) {
     <article
       className={`zoom-meeting-card ${participantsOpen ? 'expanded' : ''}`}
       aria-label={`${topic}, ${timeDisplay}`}
+      style={{ padding: 0, overflow: 'hidden' }}
     >
-      {/* Symmetrical Summary Bar */}
+      {/* Symmetrical 2-Row Primary Bar */}
       <div
-        className="zoom-card-primary"
+        className="zoom-card-primary-vertical"
         onClick={() => pCount > 0 && setParticipantsOpen(prev => !prev)}
-        style={{ cursor: pCount > 0 ? 'pointer' : 'default' }}
+        style={{ padding: '12px 14px', cursor: pCount > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', gap: 8 }}
       >
-        <div className="zoom-card-time-topic">
-          {/* Symmetrical Time Range Badge */}
-          <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
-            {timeDisplay}
-          </span>
-
-          <h3 className="zoom-meeting-topic" style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+        {/* Row 1: Topic Title & Action Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <h3 className="zoom-meeting-topic" style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
             {topic}
           </h3>
 
-          {/* Duration Badge */}
-          <span className="lesson-duration" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            ⏱️ {durationDisplay}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 11, padding: '2px 6px', height: 22, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTechOpen(prev => !prev);
+              }}
+              aria-expanded={techOpen}
+              aria-controls={`tech-${safeId}`}
+              title={t('schedule.technicalDetails')}
+            >
+              <span>⚙️</span>
+            </button>
+
+            {pCount > 0 && (
+              <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {participantsOpen ? '▲' : '▼'}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Row 2: Badges and Metadata */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+          {/* Time Badge */}
+          <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: 'var(--text-primary)' }}>
+            {timeDisplay}
+          </span>
+
+          {/* Duration Badge */}
+          <span className="lesson-duration" style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: 'var(--text-secondary)' }}>
+            ⏱️ {durationDisplay}
+          </span>
+
+          {/* Meeting ID Badge */}
           {occurrence.numericMeetingId && (
-            <span className="badge badge-neutral" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+            <span className="badge badge-neutral" style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '2px 6px' }}>
               ID: {occurrence.numericMeetingId}
             </span>
           )}
 
-          {pCount > 0 && (
-            <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-              {participantsOpen ? '▲' : '▼'}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Symmetrical Sub-Bar (Participants Count, Host Info & Actions) */}
-      <div className="lesson-sub-meta" style={{ padding: '4px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span>
+          {/* Participants Count */}
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             👥 {participantsCountLabel}
           </span>
+
+          {/* Host Email */}
           {occurrence.hostEmail && (
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               🎥 {occurrence.hostEmail}
             </span>
           )}
         </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {pCount > 0 && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: 11, padding: '2px 8px', height: 24 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setParticipantsOpen(prev => !prev);
-              }}
-              aria-expanded={participantsOpen}
-              aria-controls={`participants-${safeId}`}
-            >
-              <span>{participantsOpen ? '▲ ' + (t('schedule.hideParticipants') || 'Hide') : '▼ ' + (t('schedule.showParticipants', { count: pCount }) || 'Show participants')}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            style={{ fontSize: 11, padding: '2px 8px', height: 24 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setTechOpen(prev => !prev);
-            }}
-            aria-expanded={techOpen}
-            aria-controls={`tech-${safeId}`}
-          >
-            <span>⚙️ {t('schedule.technicalDetails') || 'Debug'}</span>
-          </button>
-        </div>
       </div>
+
+      {/* Participants Drawer */}
+      {participantsOpen && (
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+          <ZoomParticipants occurrence={occurrence} />
+        </div>
+      )}
 
       {/* Technical Details Disclosure */}
       {techOpen && (
