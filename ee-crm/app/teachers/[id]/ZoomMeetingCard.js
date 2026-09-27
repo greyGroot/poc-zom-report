@@ -141,13 +141,6 @@ export default function ZoomMeetingCard({ occurrence }) {
         </div>
       </div>
 
-      {/* Participants Drawer */}
-      {participantsOpen && (
-        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
-          <ZoomParticipants occurrence={occurrence} />
-        </div>
-      )}
-
       {/* Technical Details Disclosure */}
       {techOpen && (
         <div id={`tech-${safeId}`} className="zoom-tech-details" role="region" aria-label="Technical Details">

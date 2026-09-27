@@ -353,8 +353,8 @@ export default function TeacherDayDetailsClient({
         </p>
       </section>
 
-      {/* Two-Panel Body (Schoolmate left ~40%, Zoom right ~60%) */}
-      <div className="day-details-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 4.5fr) minmax(380px, 6.5fr)', gap: 20 }}>
+      {/* Two-Panel Body (50% Schoolmate left, 50% Zoom right) */}
+      <div className="day-details-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(320px, 1fr)', gap: 20 }}>
         {/* ========================================================= */}
         {/* LEFT COLUMN: Schoolmate Lessons                           */}
         {/* ========================================================= */}

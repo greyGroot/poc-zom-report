@@ -241,6 +241,10 @@ export const translations = {
       statusLabel: 'Status',
       groupClass: 'Group Class',
       individualClass: 'Individual Class',
+      plannedStudentsTitle: 'Planned Students & Participants',
+      enrolledStudent: 'student enrolled',
+      enrolledStudentsPlural: 'students planned',
+      attended: 'Attended',
       factualNotice: 'Factual evidence review — sources displayed independently without inferred reconciliation.'
     },
     datePicker: {
@@ -531,6 +535,10 @@ export const translations = {
       statusLabel: 'Статус',
       groupClass: 'Групове заняття',
       individualClass: 'Індивідуальне заняття',
+      plannedStudentsTitle: 'Заплановані учні та учасники',
+      enrolledStudent: 'учень записаний',
+      enrolledStudentsPlural: 'учнів заплановано',
+      attended: 'Був присутній',
       factualNotice: 'Огляд фактичних даних — джерела відображаються незалежно без автоматичного зіставлення.'
     },
     datePicker: {
@@ -820,6 +828,10 @@ export const translations = {
       statusLabel: 'Status',
       groupClass: 'Zajęcia grupowe',
       individualClass: 'Zajęcia indywidualne',
+      plannedStudentsTitle: 'Zaplanowani uczniowie i uczestnicy',
+      enrolledStudent: 'uczeń zapisany',
+      enrolledStudentsPlural: 'uczniów zaplanowanych',
+      attended: 'Obecny',
       factualNotice: 'Przegląd danych faktycznych — źródła wyświetlane niezależnie, bez wnioskowania powiązań.'
     },
     datePicker: {
