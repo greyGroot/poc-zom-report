@@ -262,14 +262,50 @@ Provide exact links and step-by-step instructions so the user can test the chang
 Ready for acceptance | Ready after authentication retest | Requires fixes | Requires deployment | Blocked
 ```
 
-Do not mark the story passed unless every required acceptance criterion passes locally and the deployed feature was successfully tested. If authentication is the only deployed blocker, recommend `Ready after authentication retest` rather than `Pass`.
+Do not mark the story passed unless every required acceptance criterion passes locally and the deployed feature was successfully tested with real live data. Never mark a story or migration as passed on production if it was only verified against local mocks or if the live migration has not yet been executed.
 
-## Completion response
+## User Action Required & Live Verification Protocol
 
-Report local status, Vercel status, overall recommendation, created bug tasks (`BUG-XXX`) by severity, blocked tests, local/deployed differences, tests added or extended, evidence locations, and the QA report path.
+If production verification cannot proceed because a database migration has not been launched, credentials are required, or Vercel authentication is blocking testing:
+1. Mark the production status explicitly as **`Awaiting User Action`** or **`Blocked by Unexecuted Migration`**. Never mask this behind "Pass with observations".
+2. Prominently ask the user for attention using this exact format:
+   ```markdown
+   ### ⚠️ User Action Required: [Title]
+   - **What is needed**: [e.g. Migration script `scripts/backfill.js` needs to be launched against production Upstash/Vercel with your credentials].
+   - **Why it cannot run autonomously**: [e.g., Cloud database authentication is required].
+   - **Choice**:
+     - **1. Do it now together**: I will provide the exact command for you to run right now, and then immediately verify the live production result with you.
+     - **2. Do it later**: We keep the migration staged and schedule it for execution later.
+   ```
 
-**Always include direct test links (Local and Vercel) and the step-by-step manual test checklist in your response so the user can test the feature themselves.**
+## Completion response format
 
-Confirm that all QA-created files are contained within `ee-crm/verification/` (and bug tasks within `ee-crm/docs/bugs/`), and that existing verification coverage was preserved.
+**Keep the final chat response short, scannable, and focused (under 40 lines).** Detailed evidence and tables belong in the report file on disk, not dumped as a wall of text in the chat.
+
+```markdown
+# QA Summary: [Task ID] — [Task title]
+
+## Status
+- **Local**: Pass | Fail | Blocked
+- **Vercel Production**: Pass | Blocked | Awaiting User Action
+- **Live Data Verified on Prod**: Yes | No (Explain if No)
+
+[If user action/credentials/migration is required, insert the ⚠️ User Action Required block here]
+
+## Stakeholder manual verification
+- **Local test link**: `http://localhost:3000/...`
+- **Production test link**: `https://poc-zom-report-2qvs.vercel.app/...`
+- **How to test**:
+  1. [Step 1: Open link]
+  2. [Step 2: Check...]
+  3. [Step 3: Confirm...]
+
+## Defects found
+- [None | BUG-001: Description - link to ee-crm/docs/bugs/BUG-001.md]
+
+## Full report
+Detailed evidence, logs, and acceptance scenarios recorded in:
+`ee-crm/verification/reports/<story-name>-e2e-report.md`
+```
 
 After the user selects a task, begin by reading its EE-CRM story and following its UX and architecture links. Test locally before opening the Vercel deployment.

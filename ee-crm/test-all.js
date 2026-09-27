@@ -9,6 +9,7 @@ const tests = [
   { name: 'Zoom Occurrences Test', file: 'test-zoom-occurrences.js' },
   { name: 'CRM-002 Teacher-Day Details Test', file: 'test-crm-002.js' },
   { name: 'CRM-003 Webhook & Migration Test', file: 'test-crm-003.js' },
+  { name: 'CRM-004 Teacher-Day Comparison Test', file: 'test-crm-004.js' },
   { name: 'CRM-005 Zoom Migration & Ingestion Test', file: 'test-crm-005.js' },
   { name: 'Live Schoolmate API Test', file: 'test-schoolmate.js' }
 ];

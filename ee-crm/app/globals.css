@@ -1842,6 +1842,22 @@ a:hover {
   transform: translateX(-50%) translateY(-2px);
 }
 
+/* Ribbon Bookmarks Tooltip Override - Prevent clipping on left card boundary */
+.ribbon-bookmarks-wrapper .sm-tooltip-wrapper .sm-tooltip-text {
+  left: 0;
+  bottom: calc(100% + 6px);
+  transform: none;
+  z-index: 1100;
+}
+
+.ribbon-bookmarks-wrapper .sm-tooltip-wrapper:hover .sm-tooltip-text {
+  transform: translateY(-2px);
+}
+
+.ribbon-bookmarks-wrapper .sm-tooltip-wrapper .sm-tooltip-text::after {
+  left: 10px;
+}
+
 /* Quick Filter Pills */
 .filter-pills-container {
   display: flex;
@@ -2491,4 +2507,42 @@ a:hover {
     align-items: flex-start !important;
   }
 }
+
+/* ==========================================================================
+   CRM-004 Activity Comparison & Diagnostics Panel
+   ========================================================================== */
+
+.comparison-summary-card {
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.comparison-summary-card:hover {
+  border-color: var(--border-dark);
+}
+
+.comparison-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lesson-time-badge {
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  letter-spacing: 0.02em;
+}
+
+.lesson-sub-meta {
+  border-bottom: 1px solid #f1f5f9;
+  background-color: #fafafa;
+}
+
+.diagnostics-panel-card {
+  box-shadow: var(--shadow-xs);
+}
+
+.diagnostics-header:hover {
+  background-color: var(--bg-hover) !important;
+}
+
 

@@ -18,5 +18,7 @@ Read and strictly adopt the role, workflow, and instructions defined in:
 
 ## Verification & bug workflow
 - Test locally first, then test in production on Vercel.
+- **Never report Pass on production if based only on local mocks.**
+- If live testing is blocked by an unexecuted migration, auth, or credentials, mark `Awaiting User Action`, present the `⚠️ User Action Required` block, and offer to do it now together or later.
 - If defects are found, create standalone bug task files under `ee-crm/docs/bugs/BUG-<number>-<short-description>.md`.
-- Always provide direct Local & Vercel links along with a step-by-step checklist in the completion response so the user can test manually.
+- Keep the final response short and scannable (under 40 lines) with direct Local & Vercel links and a quick manual test checklist.

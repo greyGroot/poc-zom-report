@@ -21,6 +21,11 @@ export default function TeacherDayDetailsClient({
   const [isRefreshingZoom, setIsRefreshingZoom] = useState(false);
   const [expandedLessons, setExpandedLessons] = useState(new Set());
 
+  // Diagnostics panel state
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [activeDiagnosticsTab, setActiveDiagnosticsTab] = useState('schoolmate'); // 'schoolmate' | 'zoom' | 'comparison'
+  const [copyStatus, setCopyStatus] = useState(null); // null | 'copied' | 'error'
+
   // Construct return URL that preserves overview filters and date range
   const backUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -68,7 +73,9 @@ export default function TeacherDayDetailsClient({
         const fresh = await res.json();
         setData(prev => ({
           ...prev,
-          schoolmate: fresh.schoolmate
+          schoolmate: fresh.schoolmate,
+          comparison: fresh.comparison,
+          diagnostics: fresh.diagnostics
         }));
       }
     } catch (err) {
@@ -87,7 +94,9 @@ export default function TeacherDayDetailsClient({
         const fresh = await res.json();
         setData(prev => ({
           ...prev,
-          zoom: fresh.zoom
+          zoom: fresh.zoom,
+          comparison: fresh.comparison,
+          diagnostics: fresh.diagnostics
         }));
       }
     } catch (err) {
@@ -96,6 +105,30 @@ export default function TeacherDayDetailsClient({
       setIsRefreshingZoom(false);
     }
   }, [teacherId, date]);
+
+  // Handle Diagnostics JSON copying
+  const handleCopyDiagnosticsJson = useCallback(async (jsonString) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(jsonString);
+        setCopyStatus('copied');
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = jsonString;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setCopyStatus('copied');
+      }
+    } catch {
+      setCopyStatus('error');
+    }
+
+    setTimeout(() => {
+      setCopyStatus(null);
+    }, 3000);
+  }, []);
 
   // Handle Invalid Date or Missing Teacher State
   if (!data || data.error || !data.teacher) {
@@ -125,8 +158,21 @@ export default function TeacherDayDetailsClient({
     );
   }
 
-  const { teacher, schoolmate, zoom, previousDate, nextDate, timezone } = data;
+  const { teacher, schoolmate, zoom, comparison, diagnostics, previousDate, nextDate, timezone } = data;
   const formattedDate = formatKyivDateHeader(date, locale);
+
+  // Determine active diagnostics JSON string
+  const activeJsonString = useMemo(() => {
+    let payload = {};
+    if (activeDiagnosticsTab === 'schoolmate') {
+      payload = diagnostics?.schoolmateRaw || schoolmate || {};
+    } else if (activeDiagnosticsTab === 'zoom') {
+      payload = diagnostics?.zoomRaw || zoom?.meetings || [];
+    } else {
+      payload = diagnostics?.comparisonEngine || comparison || {};
+    }
+    return JSON.stringify(payload, null, 2);
+  }, [activeDiagnosticsTab, diagnostics, schoolmate, zoom, comparison]);
 
   return (
     <main className="main-content day-details-workspace" style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
@@ -180,7 +226,7 @@ export default function TeacherDayDetailsClient({
         </nav>
       </div>
 
-      {/* Main Header */}
+      {/* Main Profile Header */}
       <header className="day-details-header card" style={{ padding: '20px 24px', marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
@@ -210,63 +256,102 @@ export default function TeacherDayDetailsClient({
             )}
           </div>
         </div>
+      </header>
 
-        {/* Factual Summary Bar (No Reconciliation / Matching) */}
-        <div
-          className="factual-summary-banner"
-          style={{
-            marginTop: 18,
-            paddingTop: 16,
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 16
-          }}
-        >
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-            {/* Schoolmate Total */}
-            <div className="factual-stat-group">
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>
+      {/* ========================================================= */}
+      {/* FACTUAL ACTIVITY COMPARISON SUMMARY BANNER (CRM-004)      */}
+      {/* ========================================================= */}
+      <section className="card comparison-summary-card" aria-label={t('dayDetails.comparisonTitle')} style={{ padding: '20px 24px', marginBottom: 20, backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-xs)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 22 }}>📊</span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+              {t('dayDetails.comparisonTitle')}
+            </h2>
+          </div>
+
+          {/* Status Badge */}
+          {comparison && (
+            <div>
+              {comparison.status === 'match' && (
+                <span className="badge badge-success" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ✅ {t('dayDetails.preliminaryMatch')}
+                </span>
+              )}
+              {comparison.status === 'difference' && (
+                <span className="badge badge-warning" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ⚖️ {t('dayDetails.differenceLabel', { diff: comparison.differenceFormatted })}
+                </span>
+              )}
+              {comparison.status === 'no_conducted_activity' && (
+                <span className="badge badge-neutral" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ⚪ {t('dayDetails.noConductedActivity')}
+                </span>
+              )}
+              {comparison.status === 'in_progress' && (
+                <span className="badge badge-info" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ⏳ {t('dayDetails.comparisonInProgress')}
+                </span>
+              )}
+              {comparison.status === 'unavailable' && (
+                <span className="badge badge-danger" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ⚠️ {t('dayDetails.comparisonUnavailable')}
+                </span>
+              )}
+              {comparison.status === 'provisional' && (
+                <span className="badge badge-warning" style={{ fontSize: 13, padding: '5px 12px', fontWeight: 600 }}>
+                  ⚠️ {t('dayDetails.comparisonProvisional')}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Independent Metrics Comparison Row */}
+        {comparison && (
+          <div className="comparison-metrics-row" style={{ marginTop: 16, display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Conducted Schoolmate Lessons */}
+            <div className="comparison-stat-item">
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {t('dayDetails.schoolmateSectionTitle')}
               </span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {schoolmate?.state === 'available'
-                  ? t('dayDetails.schoolmateFactualCount', {
-                      count: schoolmate.totalLessons,
-                      duration: schoolmate.totalMinutes
-                    })
-                  : schoolmate?.state === 'empty'
-                    ? `0 ${t('schedule.lessonsCount').toLowerCase()}`
-                    : '—'}
-                {schoolmate?.totalWage ? ` • ${schoolmate.totalWage}` : ''}
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {comparison.conductedLessonsCount === 1
+                  ? t('dayDetails.conductedCountSingular')
+                  : t('dayDetails.conductedCount', { count: comparison.conductedLessonsCount })}
+                {comparison.cancellationsCount > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6 }}>
+                    {t('dayDetails.cancellationsExcluded', { count: comparison.cancellationsCount })}
+                  </span>
+                )}
               </span>
             </div>
 
-            {/* Zoom Total */}
-            <div className="factual-stat-group">
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>
+            <div style={{ color: 'var(--border-dark)', fontSize: 18 }}>•</div>
+
+            {/* Qualifying Zoom Meetings */}
+            <div className="comparison-stat-item">
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {t('dayDetails.zoomSectionTitle')}
               </span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {zoom?.state === 'available'
-                  ? t('dayDetails.zoomFactualCount', {
-                      count: zoom.totalMeetings,
-                      duration: zoom.totalMinutes
-                    })
-                  : zoom?.state === 'empty'
-                    ? `0 ${t('schedule.zoomMeetingCountPlural', { count: 0 })}`
-                    : '—'}
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {comparison.qualifyingMeetingsCount === 1
+                  ? t('dayDetails.qualifyingMeetingCountSingular')
+                  : t('dayDetails.qualifyingMeetingsCount', { count: comparison.qualifyingMeetingsCount })}
+                {comparison.trackedMeetingsCount !== comparison.qualifyingMeetingsCount && (
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6 }}>
+                    ({t('schedule.zoomMeetingCountPlural', { count: comparison.trackedMeetingsCount })})
+                  </span>
+                )}
               </span>
             </div>
           </div>
+        )}
 
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            ℹ️ {t('dayDetails.factualNotice')}
-          </p>
-        </div>
-      </header>
+        <p style={{ margin: '14px 0 0 0', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-color)', paddingTop: 10 }}>
+          ℹ️ {t('dayDetails.factualNotice')}
+        </p>
+      </section>
 
       {/* Two-Panel Body (Schoolmate left ~40%, Zoom right ~60%) */}
       <div className="day-details-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 4.5fr) minmax(380px, 6.5fr)', gap: 20 }}>
@@ -300,8 +385,17 @@ export default function TeacherDayDetailsClient({
               </button>
             </div>
 
-            {/* Schoolmate States */}
-            {schoolmate?.state === 'error' && (
+            {/* Skeletons when refreshing Schoolmate */}
+            {isRefreshingSchoolmate && (
+              <div className="skeleton-container" role="status" aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                <span className="sr-only">{t('schedule.loadingZoomMeetings', { period: date })}</span>
+                <div className="zoom-card-skeleton" />
+                <div className="zoom-card-skeleton" />
+              </div>
+            )}
+
+            {/* Schoolmate Error State */}
+            {!isRefreshingSchoolmate && schoolmate?.state === 'error' && (
               <div className="zoom-error-card" style={{ padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>⚠️</div>
                 <h3 className="zoom-error-title" style={{ fontSize: 14 }}>
@@ -321,7 +415,8 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {schoolmate?.state === 'empty' && (
+            {/* Schoolmate Empty State */}
+            {!isRefreshingSchoolmate && schoolmate?.state === 'empty' && (
               <div className="zoom-empty-card" style={{ padding: 24 }}>
                 <div className="zoom-state-icon">📋</div>
                 <h3 className="zoom-state-title" style={{ fontSize: 15 }}>
@@ -330,13 +425,19 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {schoolmate?.state === 'available' && (
+            {/* Schoolmate Lessons List */}
+            {!isRefreshingSchoolmate && schoolmate?.state === 'available' && (
               <div className="lesson-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {schoolmate.lessons.map((lesson, idx) => {
                   const isExpanded = expandedLessons.has(lesson.id || idx);
                   const hasStatus = Boolean(lesson.lessonStatusName);
                   const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
                   const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
+
+                  // Symmetrical Time Display
+                  const timeDisplay = (lesson.startTime && lesson.endTime)
+                    ? `${lesson.startTime} – ${lesson.endTime}`
+                    : (lesson.startTime || null);
 
                   return (
                     <article
@@ -377,6 +478,13 @@ export default function TeacherDayDetailsClient({
                             )}
                           </div>
 
+                          {/* Time Badge (Symmetrical) */}
+                          {timeDisplay && (
+                            <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+                              {timeDisplay}
+                            </span>
+                          )}
+
                           {/* Student/Group Title */}
                           <span className="lesson-student" style={{ fontWeight: 600 }}>
                             {idx + 1}. {lesson.groupName || lesson.groupOrStudent || t('dayDetails.groupClass')}
@@ -413,6 +521,21 @@ export default function TeacherDayDetailsClient({
                             ▼
                           </span>
                         </div>
+                      </div>
+
+                      {/* Symmetrical Sub-Bar (Planned / Attended Students & Attendance Marker) */}
+                      <div className="lesson-sub-meta" style={{ padding: '4px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span>
+                          👥 {t('dayDetails.plannedStudents', { count: lesson.enrolledStudents || 1 })}
+                          {lesson.attendanceChecked && (
+                            <span style={{ marginLeft: 4 }}>
+                              · {t('dayDetails.attendedStudents', { attended: lesson.attendedCount || lesson.enrolledStudents || 1, planned: lesson.enrolledStudents || 1 })}
+                            </span>
+                          )}
+                        </span>
+                        <span>
+                          {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
+                        </span>
                       </div>
 
                       {/* Detail Drawer */}
@@ -494,8 +617,17 @@ export default function TeacherDayDetailsClient({
               </button>
             </div>
 
-            {/* Zoom States */}
-            {zoom?.state === 'error' && (
+            {/* Skeletons when refreshing Zoom */}
+            {isRefreshingZoom && (
+              <div className="skeleton-container" role="status" aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                <span className="sr-only">{t('schedule.loadingZoomMeetings', { period: date })}</span>
+                <div className="zoom-card-skeleton" />
+                <div className="zoom-card-skeleton" />
+              </div>
+            )}
+
+            {/* Zoom Error State */}
+            {!isRefreshingZoom && zoom?.state === 'error' && (
               <div className="zoom-error-card" style={{ padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>⚠️</div>
                 <h3 className="zoom-error-title" style={{ fontSize: 14 }}>
@@ -515,7 +647,8 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {zoom?.state === 'unmapped' && (
+            {/* Zoom Unmapped State */}
+            {!isRefreshingZoom && zoom?.state === 'unmapped' && (
               <div className="zoom-unmapped-card" style={{ padding: 24 }}>
                 <div className="zoom-state-icon">📡</div>
                 <h3 className="zoom-state-title" style={{ fontSize: 15 }}>
@@ -527,7 +660,8 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {zoom?.state === 'stale' && (
+            {/* Zoom Stale Notice */}
+            {!isRefreshingZoom && zoom?.state === 'stale' && (
               <div className="zoom-error-card" style={{ padding: 16, marginBottom: 12, backgroundColor: '#fef3c7', borderColor: '#fde68a' }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>⚠️</div>
                 <h3 className="zoom-error-title" style={{ fontSize: 14, color: '#92400e' }}>
@@ -539,7 +673,8 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {zoom?.state === 'empty' && (
+            {/* Zoom Empty State */}
+            {!isRefreshingZoom && zoom?.state === 'empty' && (
               <div className="zoom-empty-card" style={{ padding: 24 }}>
                 <div className="zoom-state-icon">📹</div>
                 <h3 className="zoom-state-title" style={{ fontSize: 15 }}>
@@ -551,7 +686,8 @@ export default function TeacherDayDetailsClient({
               </div>
             )}
 
-            {zoom?.state === 'available' && (
+            {/* Zoom Meeting Cards */}
+            {!isRefreshingZoom && zoom?.state === 'available' && (
               <div className="zoom-meeting-cards-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {zoom.meetings.map(occ => (
                   <ZoomMeetingCard key={occ.id} occurrence={occ} />
@@ -561,6 +697,113 @@ export default function TeacherDayDetailsClient({
           </div>
         </section>
       </div>
+
+      {/* ========================================================= */}
+      {/* RAW JSON & TECHNICAL DIAGNOSTICS PANEL (CRM-004)          */}
+      {/* ========================================================= */}
+      <section className="card diagnostics-panel-card" style={{ marginTop: 24, border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        <div
+          className="diagnostics-header"
+          onClick={() => setIsDiagnosticsOpen(prev => !prev)}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isDiagnosticsOpen}
+          aria-controls="diagnostics-drawer-body"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsDiagnosticsOpen(prev => !prev);
+            }
+          }}
+          style={{
+            padding: '14px 20px',
+            backgroundColor: 'var(--bg-subtle)',
+            borderBottom: isDiagnosticsOpen ? '1px solid var(--border-color)' : 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>⚙️</span>
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+              {t('dayDetails.rawJsonDiagnostics')}
+            </h3>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
+            <span>{isDiagnosticsOpen ? '▲ ' + (t('dayDetails.collapseDiagnostics') || 'Collapse') : '▼ ' + (t('dayDetails.expandDiagnostics') || 'Expand')}</span>
+          </div>
+        </div>
+
+        {isDiagnosticsOpen && (
+          <div id="diagnostics-drawer-body" className="diagnostics-body" style={{ padding: '16px 20px', backgroundColor: '#f8fafc' }}>
+            {/* Tab Controls & Copy Action */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeDiagnosticsTab === 'schoolmate' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActiveDiagnosticsTab('schoolmate')}
+                >
+                  {t('dayDetails.tabSchoolmate')}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeDiagnosticsTab === 'zoom' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActiveDiagnosticsTab('zoom')}
+                >
+                  {t('dayDetails.tabZoom')}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeDiagnosticsTab === 'comparison' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActiveDiagnosticsTab('comparison')}
+                >
+                  {t('dayDetails.tabComparison')}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleCopyDiagnosticsJson(activeJsonString)}
+                  aria-label={t('dayDetails.copyActiveJson')}
+                >
+                  <span>📋</span>
+                  <span>{t('dayDetails.copyActiveJson')}</span>
+                </button>
+                {copyStatus && (
+                  <span style={{ fontSize: 12, color: copyStatus === 'copied' ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                    {copyStatus === 'copied' ? t('dayDetails.jsonCopied') : t('dayDetails.couldNotCopyJson')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Dark Syntax Code Display */}
+            <pre
+              style={{
+                backgroundColor: '#0f172a',
+                color: '#f8fafc',
+                padding: '16px',
+                borderRadius: 'var(--radius-sm)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 12,
+                lineHeight: 1.5,
+                maxHeight: 420,
+                overflow: 'auto',
+                margin: 0
+              }}
+            >
+              <code>{activeJsonString}</code>
+            </pre>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

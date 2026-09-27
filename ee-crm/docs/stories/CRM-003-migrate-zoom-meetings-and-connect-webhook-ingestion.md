@@ -1,7 +1,7 @@
 # CRM-003 — Migrate legacy Zoom meetings and connect live webhook ingestion
 
 **Story ID:** CRM-003  
-**Status:** Ready for implementation  
+**Status:** Done — completion confirmed 27 September 2026  
 **Primary user:** School administrator / Integrations engineer  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Depends on:** [CRM-001 — Display tracked Zoom meetings on the teacher page](./CRM-001-display-tracked-zoom-meetings-on-teacher-page.md)  
@@ -219,3 +219,4 @@ And existing records remain identical.
 | 26 September 2026 | Explicitly skipped UX specification as this is a backend, data pipeline, and infrastructure task utilizing the existing CRM-001 UI. |
 | 26 September 2026 | Assigned technical implementation and migration plan to Software Architect. |
 | 26 September 2026 | Architecture plan completed. Historical migration is a one-time guarded copy that may run only after live EE-CRM webhook ingestion is verified; runtime legacy fallback was rejected. |
+| 27 September 2026 | Product stakeholder confirmed CRM-003 is complete. Status changed to Done; migrated and live Zoom occurrence data are available to dependent stories. |

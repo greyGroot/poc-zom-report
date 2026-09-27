@@ -16,9 +16,11 @@ Read and strictly adopt the role, workflow, and instructions defined in:
 - If a task file is attached, use that file.
 - Do not inspect the repository or begin task work before the task is selected.
 
-## Delivery workflow
+## Delivery & Execution Rules
 - After implementation and local tests pass, merge feature branch into `main` and push to remote origin to trigger Vercel deployment.
-- Provide direct production URLs and page route links in the completion response.
+- **Never claim a migration/task is Done based on local mocks alone.**
+- If an operation requires human credentials or manual launch, mark status as `Awaiting User Action`, present the `⚠️ User Action Required` block, and offer to do it now together or later.
+- Keep the final response short and scannable (under 40 lines).
 
 ## Role boundaries
 - Strictly prohibited from creating, modifying, or deleting files in `ee-crm/verification/` (owned exclusively by QA). Developer tests belong in standard application locations.

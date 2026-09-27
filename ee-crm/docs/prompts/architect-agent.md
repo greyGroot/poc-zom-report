@@ -151,9 +151,27 @@ List only repository commands that were verified to exist.
 - Avoid speculative abstractions, unrelated refactoring, and unnecessary dependencies.
 - Preserve backward compatibility unless explicitly authorized otherwise.
 - Design for secure defaults, accessibility, testability, observability, and rollback.
+- **Operational & Migration Pre-Identification**: Whenever a plan requires database migrations, data backfills, production environment variables, or third-party authentication, explicitly state whether it can run autonomously or strictly requires human credentials/launch. If human action is required, highlight it as an actionable decision block (Do it together now vs Do it later).
 
 If information is incomplete, produce all non-blocked parts, mark assumptions and questions, and use `Blocked` only when implementation cannot safely begin.
 
-## Completion response
+## Completion response format
 
-Report the plan file, story update, UX reviewed, recommended approach, important risks/questions, status, and verification performed.
+**Keep the final chat response short, scannable, and focused (under 30 lines).** Link to the architecture document for deep technical details.
+
+```markdown
+# Architecture: [Task ID] — [Task title]
+
+## Status
+Ready | Blocked | Awaiting Operational Decision
+
+[If manual migrations, credentials, or user actions are needed during rollout, insert the ⚠️ User Action Required block here]
+
+## Key decisions
+- **Approach**: [1-2 sentence summary of selected technical solution]
+- **Affected layers**: [Frontend / Backend / DB / API]
+
+## Plan file
+Technical details, file changes, and verification commands recorded in:
+`ee-crm/docs/architecture/<task-id>-<short-description>.md`
+```

@@ -517,9 +517,40 @@ export class SchoolmateClient {
           isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
 
-        const durationMinutes = parseInt(item.LengthOfLesson, 10) || 60;
-        const rateNumeric = parseFloat(String(item.TeacherRatePerLesson || '0').replace(/[^0-9.]/g, '')) || 0;
-        totalWageNumeric += rateNumeric;
+        let startTime = null;
+        let endTime = null;
+        if (item.LessonTime && item.LessonTime.includes('-')) {
+          const [s, e] = item.LessonTime.split('-');
+          startTime = s.trim();
+          endTime = e.trim();
+        } else if (item.StrLessonFromTime || item.StrLessonToTime) {
+          startTime = item.StrLessonFromTime || null;
+          endTime = item.StrLessonToTime || null;
+        }
+
+        const enrolledStudents = Number(item.EnrolledStudents) || 1;
+        const attendanceChecked = Boolean(item.AttendanceChecked);
+        const classDetailsAdded = Boolean(item.ClassDetailsAdded);
+        const statusName = item.LessonStatusName || null;
+        const statusLower = (statusName || '').trim().toLowerCase();
+        
+        let isConducted = true;
+        let statusCategory = 'completed';
+        if (statusLower.includes('advance')) {
+          isConducted = false;
+          statusCategory = 'cancelled_advance';
+        } else if (statusLower.includes('last')) {
+          isConducted = false;
+          statusCategory = 'last_minute';
+        } else if (statusLower.includes('late')) {
+          isConducted = false;
+          statusCategory = 'late_cancellation';
+        } else if (statusLower && !statusLower.includes('trial success')) {
+          isConducted = false;
+          statusCategory = 'other';
+        }
+
+        const attendedCount = attendanceChecked ? enrolledStudents : 0;
 
         const lessonObj = {
           id: `lesson_${item.GroupLessonId}`,
@@ -529,10 +560,16 @@ export class SchoolmateClient {
           className: item.ClassName || 'GE',
           date: isoDate,
           strLessonDate: item.StrLessonDate,
+          startTime,
+          endTime,
           durationMinutes,
-          attendanceChecked: Boolean(item.AttendanceChecked),
-          classDetailsAdded: Boolean(item.ClassDetailsAdded),
-          lessonStatusName: item.LessonStatusName || null,
+          enrolledStudents,
+          attendedCount,
+          isConducted,
+          statusCategory,
+          attendanceChecked,
+          classDetailsAdded,
+          lessonStatusName: statusName,
           lessonStatusColor: item.LessonStatusColor || null,
           lessonFunctionId: item.LessonFunctionId || 0,
           teacherRatePerLesson: item.TeacherRatePerLesson || '0.00',

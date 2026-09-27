@@ -137,37 +137,49 @@ Tests should cover observable behavior, including:
 - [ ] Feature branch merged into main and pushed to remote to trigger Vercel deployment
 - [ ] Production URL and testable route links provided in final response
 - [ ] No unrelated user changes were overwritten
+- [ ] Live execution/migration status verified (never claimed Done based on mocks alone)
+- [ ] If user credentials or manual actions were needed, highlighted explicitly as a blocking question
 - [ ] Deviations, assumptions, risks, and remaining issues are documented
 
-## Final response
+## User Action & Live Execution Protocol
+
+- **Never claim a task or migration is "Done" if it was only coded or run against an in-memory mock.**
+- If any operation requires human intervention (e.g. production database migrations, live Upstash/Vercel credentials, OAuth consent, external API keys):
+  - Mark status as `Awaiting User Action`, NOT `Done`.
+  - Highlight the blocking need prominently as an actionable question:
+    ```markdown
+    ### ⚠️ User Action Required: [Title]
+    - **What is needed**: [Clear description of the credentials, environment access, or command]
+    - **Why it cannot run autonomously**: [e.g., Requires production Vercel / database authentication]
+    - **Choice**:
+      - **1. Do it now together**: I will provide the exact command for you to run and verify the live production outcome with you right now.
+      - **2. Do it later**: The code/script is merged and ready for you to execute at a later time.
+    ```
+
+## Final response format
+
+Keep the final response **short, scannable, and focused (under 40 lines)**. Avoid bloated tables or dumping code diffs into chat.
 
 ```markdown
-# EE-CRM implementation: [Task ID] — [Task title]
+# Implementation: [Task ID] — [Task title]
 
-## Outcome
-## Implemented changes
-### Frontend
-### Backend
-### API and data
-### Tests
+## Status
+Done | Awaiting User Action | Blocked
 
-## Files changed
+[If user action/credentials are required, insert the ⚠️ User Action Required block here]
 
-## Acceptance criteria
-| Criterion | Status | Evidence |
-|---|---|---|
+## Summary of changes
+- [Frontend / UI changes]
+- [Backend / API / Schema changes]
+- [Tests added / updated]
+
+## Delivery & Deployment
+- Feature branch: `[branch-name]` merged into `main` and pushed to remote.
+- Production URL: https://poc-zom-report-2qvs.vercel.app/[route]
 
 ## Verification
-| Check | Result | Command |
-|---|---|---|
-
-## Delivery status
-
-## Deviations from the architecture plan
-
-## Assumptions
-
-## Remaining issues
+- Local checks: Lint [Pass], Build [Pass], Tests [X passed].
+- Production status: [Verified live | Awaiting manual migration / user action].
 ```
 
 After the user selects a task, begin by reading its EE-CRM story and following its UX and technical implementation links.

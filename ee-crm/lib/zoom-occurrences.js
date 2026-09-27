@@ -456,40 +456,119 @@ export function formatOccurrenceForDisplay(occ) {
     ? rawParticipants
     : Object.entries(rawParticipants).map(([key, p]) => ({ key, ...p }));
 
-  const formattedParticipants = participantsArray.map(p => {
+  // Group participants by canonical identity (user_id -> email -> normalized display name)
+  const groupedMap = new Map();
+
+  for (const p of participantsArray) {
+    if (!p) continue;
+    const userId = p.user_id ? String(p.user_id).trim() : null;
+    const email = p.email ? p.email.toLowerCase().trim() : null;
+    const rawName = (p.name || p.user_name || 'Unnamed participant').trim();
+    const normalizedName = rawName.toLowerCase();
+
+    let groupKey = '';
+    if (userId) {
+      groupKey = `user_${userId}`;
+    } else if (email) {
+      groupKey = `email_${email}`;
+    } else {
+      groupKey = `name_${normalizedName}`;
+    }
+
+    if (!groupedMap.has(groupKey)) {
+      groupedMap.set(groupKey, {
+        id: p.key || userId || email || groupKey,
+        name: rawName,
+        email: email || null,
+        is_host: Boolean(p.is_host),
+        sessions: [],
+        rawDurations: [],
+        firstJoinTimes: [],
+        lastLeaveTimes: []
+      });
+    }
+
+    const group = groupedMap.get(groupKey);
+    if (p.is_host) group.is_host = true;
+    if (p.email && !group.email) group.email = p.email;
+    if (rawName && (!group.name || group.name === 'Unnamed participant')) group.name = rawName;
+
+    if (Array.isArray(p.sessions) && p.sessions.length > 0) {
+      for (const s of p.sessions) {
+        if (!s || !s.join_time) continue;
+        const exists = group.sessions.some(
+          es => es.join_time === s.join_time && (es.leave_time === s.leave_time || (!es.leave_time && !s.leave_time))
+        );
+        if (!exists) {
+          group.sessions.push(s);
+        }
+      }
+    } else {
+      if (p.first_join_time || p.join_time) {
+        const jt = p.first_join_time || p.join_time;
+        const lt = p.last_leave_time || p.leave_time || null;
+        const exists = group.sessions.some(
+          es => es.join_time === jt && (es.leave_time === lt || (!es.leave_time && !lt))
+        );
+        if (!exists) {
+          group.sessions.push({ join_time: jt, leave_time: lt });
+        }
+      }
+      if (typeof p.duration_seconds === 'number' && p.duration_seconds > 0) {
+        group.rawDurations.push(p.duration_seconds);
+      }
+    }
+
+    if (p.first_join_time) group.firstJoinTimes.push(p.first_join_time);
+    if (p.last_leave_time) group.lastLeaveTimes.push(p.last_leave_time);
+  }
+
+  const formattedParticipants = Array.from(groupedMap.values()).map(g => {
     let pDurationSeconds = 0;
     let pState = 'unavailable';
 
-    if (Array.isArray(p.sessions) && p.sessions.length > 0) {
-      pDurationSeconds = calculateIntervalUnionSeconds(p.sessions);
-      const hasOpenSession = p.sessions.some(s => s.join_time && !s.leave_time);
+    if (g.sessions.length > 0) {
+      pDurationSeconds = calculateIntervalUnionSeconds(g.sessions);
+      const hasOpenSession = g.sessions.some(s => s.join_time && !s.leave_time);
       pState = hasOpenSession ? 'incomplete' : 'complete';
-    } else if (typeof p.duration_seconds === 'number' && p.duration_seconds > 0) {
-      pDurationSeconds = p.duration_seconds;
+    } else if (g.rawDurations.length > 0) {
+      pDurationSeconds = Math.max(...g.rawDurations);
       pState = 'complete';
-    } else if (p.first_join_time && p.last_leave_time) {
-      const j = Date.parse(p.first_join_time);
-      const l = Date.parse(p.last_leave_time);
+    }
+
+    // Determine earliest join time and latest leave time
+    const allJoins = [...g.firstJoinTimes, ...g.sessions.map(s => s.join_time)].filter(Boolean);
+    const allLeaves = [...g.lastLeaveTimes, ...g.sessions.map(s => s.leave_time)].filter(Boolean);
+
+    allJoins.sort((a, b) => Date.parse(a) - Date.parse(b));
+    allLeaves.sort((a, b) => Date.parse(a) - Date.parse(b));
+
+    const firstJoinTime = allJoins[0] || null;
+    const lastLeaveTime = allLeaves[allLeaves.length - 1] || null;
+
+    if (pDurationSeconds === 0 && firstJoinTime && lastLeaveTime) {
+      const j = Date.parse(firstJoinTime);
+      const l = Date.parse(lastLeaveTime);
       if (!Number.isNaN(j) && !Number.isNaN(l) && l >= j) {
         pDurationSeconds = Math.round((l - j) / 1000);
         pState = 'complete';
       }
-    } else if (p.first_join_time && !p.last_leave_time) {
-      pState = 'incomplete';
     }
 
     return {
-      id: p.key || p.user_id || p.email || 'p',
-      name: p.name || 'Unnamed participant',
-      email: p.email || null,
-      is_host: Boolean(p.is_host),
-      role: p.is_host ? 'Host' : 'Participant',
-      firstJoinTime: p.first_join_time || (p.sessions?.[0]?.join_time) || null,
-      lastLeaveTime: p.last_leave_time || (p.sessions?.[p.sessions.length - 1]?.leave_time) || null,
+      id: g.id,
+      name: g.name || 'Unnamed participant',
+      email: g.email || null,
+      is_host: Boolean(g.is_host),
+      role: g.is_host ? 'Host' : 'Participant',
+      firstJoinTime,
+      lastLeaveTime,
       connectedDurationSeconds: pDurationSeconds,
       connectedDurationMinutes: Math.round(pDurationSeconds / 60),
+      durationMinutes: Math.round(pDurationSeconds / 60),
+      sessionsCount: g.sessions.length,
       connectionState: pState,
-      sessions: Array.isArray(p.sessions) ? p.sessions : []
+      sessions: g.sessions
     };
   });
 

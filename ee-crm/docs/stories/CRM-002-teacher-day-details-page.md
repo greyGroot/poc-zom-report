@@ -1,7 +1,7 @@
 # CRM-002 — View teacher-day details
 
 **Story ID:** CRM-002  
-**Status:** Draft — architecture direction defined; UX decisions pending  
+**Status:** Done — completion confirmed 27 September 2026  
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Depends on:** CRM-001 — Display tracked Zoom meetings on the teacher page
@@ -382,3 +382,4 @@ POC runtime   -- no runtime connection ------> EE-CRM
 | 26 September 2026 | Defined CRM-002 as a dedicated teacher-day details page. |
 | 26 September 2026 | Kept the first version factual and read-only, without matching, flags, tags or review workflow. |
 | 26 September 2026 | Expanded CRM-002 to start the permanent independent EE-CRM Zoom backend. The POC is temporary, has no runtime role, and may supply history only through a separate one-time export/import. |
+| 27 September 2026 | Product stakeholder confirmed CRM-002 is complete. Status changed to Done; implementation behavior is the delivered baseline for dependent stories. |

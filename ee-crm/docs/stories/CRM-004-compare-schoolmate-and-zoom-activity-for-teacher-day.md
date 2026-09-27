@@ -1,10 +1,11 @@
 # CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day
 
 **Story ID:** CRM-004  
-**Status:** Draft — UX decisions pending  
+**Status:** Ready  
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
-**Depends on:** CRM-002 — View teacher-day details; completed CRM-001 and CRM-003 Zoom evidence capabilities
+**UX Specification:** [UX: CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day](../ux/CRM-004-compare-schoolmate-and-zoom-activity-for-teacher-day.md)  
+**Depends on:** Completed CRM-001, CRM-002 and CRM-003 capabilities
 
 ## Summary
 
@@ -179,6 +180,14 @@ And the overlap is shown as unknown, not zero.
 2. What exact source-freshness age changes a comparison from current to stale/provisional?
 3. Should UX display the signed difference when unknown Schoolmate statuses exist, or only label the comparison provisional?
 
+## UX
+
+- Specification: [UX: CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day](../ux/CRM-004-compare-schoolmate-and-zoom-activity-for-teacher-day.md)
+
+## Technical implementation
+
+- Architecture plan: [Architecture: CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day](../architecture/CRM-004-compare-schoolmate-and-zoom-activity-for-teacher-day.md)
+
 ## Definition of Ready checklist
 
 - [x] Business objective and primary user are clear
@@ -187,7 +196,7 @@ And the overlap is shown as unknown, not zero.
 - [x] Permissions, data, dependencies and exclusions are documented
 - [ ] Companion-endpoint rule is confirmed
 - [ ] Source-freshness rule is confirmed
-- [ ] UX specification is approved
+- [x] UX specification is approved
 - [ ] Open questions are resolved or accepted
 
 ## Audit trail

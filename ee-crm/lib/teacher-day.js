@@ -6,6 +6,7 @@
 import { getTeacherById, getCachedReport, saveCachedReport } from './db.js';
 import { SchoolmateClient } from './schoolmate.js';
 import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from './zoom-occurrences.js';
+import { computeTeacherDayComparison, isConductedLesson } from './comparison-engine.js';
 import { logger } from './logger.js';
 import { TIMEZONE } from './timezone.js';
 
@@ -57,10 +58,22 @@ export function getAdjacentDates(dateStr) {
  * @param {string} params.date - YYYY-MM-DD
  * @returns {Promise<object>} Factual teacher-day payload
  */
-export async function getTeacherDayData({ teacherId, date }) {
-  if (!teacherId || typeof teacherId !== 'string') {
+export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
+  let teacherId;
+  let date;
+
+  if (paramsOrTeacherId && typeof paramsOrTeacherId === 'object' && !Array.isArray(paramsOrTeacherId)) {
+    teacherId = paramsOrTeacherId.teacherId;
+    date = paramsOrTeacherId.date;
+  } else {
+    teacherId = paramsOrTeacherId;
+    date = dateParam;
+  }
+
+  if (teacherId === undefined || teacherId === null || teacherId === '') {
     return { error: 'Teacher ID is required', status: 400 };
   }
+  teacherId = String(teacherId).trim();
 
   const normalizedDate = (date || '').trim();
   if (!validateDateString(normalizedDate)) {
@@ -164,7 +177,20 @@ export async function getTeacherDayData({ teacherId, date }) {
       if (cachedSchedule && Array.isArray(cachedSchedule.days)) {
         const targetDay = cachedSchedule.days.find(d => d.date === normalizedDate);
         if (targetDay && Array.isArray(targetDay.lessons)) {
-          dayLessons = targetDay.lessons;
+          dayLessons = targetDay.lessons.map(l => {
+            const conductedInfo = isConductedLesson(l);
+            const enrolled = Number(l.enrolledStudents) || 1;
+            const attended = l.attendedCount !== undefined ? Number(l.attendedCount) : (Boolean(l.attendanceChecked) ? enrolled : 0);
+            return {
+              ...l,
+              startTime: l.startTime || null,
+              endTime: l.endTime || null,
+              enrolledStudents: enrolled,
+              attendedCount: attended,
+              isConducted: l.isConducted !== undefined ? Boolean(l.isConducted) : conductedInfo.isConducted,
+              statusCategory: l.statusCategory || conductedInfo.statusCategory
+            };
+          });
           subtotalMinutes = targetDay.subtotalMinutes || 0;
           subtotalWage = targetDay.subtotalWageFormatted || null;
           subtotalWageNumeric = targetDay.subtotalWageNumeric || 0;
@@ -257,6 +283,36 @@ export async function getTeacherDayData({ teacherId, date }) {
     }
   }
 
+  // 4. Compute Factual Comparison
+  const comparison = computeTeacherDayComparison({
+    schoolmate: schoolmateResult,
+    zoom: zoomResult,
+    date: normalizedDate,
+    teacher: teacherProfile,
+    timezone: TIMEZONE
+  });
+
+  // 5. Build Collapsible Diagnostics Payload
+  const diagnostics = {
+    teacherId: teacherProfile.id,
+    date: normalizedDate,
+    schoolmateRaw: {
+      state: schoolmateResult.state,
+      totalLessons: schoolmateResult.totalLessons,
+      totalMinutes: schoolmateResult.totalMinutes,
+      totalWage: schoolmateResult.totalWage,
+      totalWageNumeric: schoolmateResult.totalWageNumeric,
+      lessons: schoolmateResult.lessons
+    },
+    zoomRaw: {
+      state: zoomResult.state,
+      totalMeetings: zoomResult.totalMeetings,
+      totalMinutes: zoomResult.totalMinutes,
+      meetings: zoomResult.meetings
+    },
+    comparisonEngine: comparison
+  };
+
   const adjacent = getAdjacentDates(normalizedDate);
 
   return {
@@ -266,7 +322,9 @@ export async function getTeacherDayData({ teacherId, date }) {
     previousDate: adjacent?.prevDate || null,
     nextDate: adjacent?.nextDate || null,
     timezone: TIMEZONE,
+    comparison,
     schoolmate: schoolmateResult,
-    zoom: zoomResult
+    zoom: zoomResult,
+    diagnostics
   };
 }

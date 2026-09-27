@@ -615,6 +615,10 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                             const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
                             const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
 
+                            const timeDisplay = (lesson.startTime && lesson.endTime && lesson.startTime !== '00:00')
+                              ? `${lesson.startTime} – ${lesson.endTime}`
+                              : (lesson.startTime && lesson.startTime !== '00:00' ? lesson.startTime : null);
+
                             return (
                               <div
                                 key={lesson.id}
@@ -642,6 +646,13 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                         </div>
                                       )}
                                     </div>
+
+                                    {/* Time Badge */}
+                                    {timeDisplay && (
+                                      <span className="lesson-time-badge" style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+                                        {timeDisplay}
+                                      </span>
+                                    )}
 
                                     {/* Group/Student Title */}
                                     <span className="lesson-student">
@@ -687,6 +698,21 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                       ▼
                                     </span>
                                   </div>
+                                </div>
+
+                                {/* Symmetrical Sub-Bar (Planned / Attended Students & Attendance Marker) */}
+                                <div className="lesson-sub-meta" style={{ padding: '2px 14px 8px', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                                  <span>
+                                    👥 Planned: {lesson.enrolledStudents || 1}
+                                    {lesson.attendanceChecked && (
+                                      <span style={{ marginLeft: 4 }}>
+                                        · Attended: {lesson.attendedCount || lesson.enrolledStudents || 1}/{lesson.enrolledStudents || 1}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span>
+                                    {lesson.attendanceChecked ? '✅ Attendance marked' : '⚪ Attendance not marked'}
+                                  </span>
                                 </div>
 
                                 {/* Accordion Detail Drawer */}
