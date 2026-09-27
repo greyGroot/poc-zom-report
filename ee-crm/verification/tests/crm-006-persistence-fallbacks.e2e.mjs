@@ -20,9 +20,9 @@ import {
   saveOccurrenceFact,
   getOccurrenceFacts,
   publishOccurrenceProjection
-} from '../../lib/redis.js';
+} from '../../lib/infrastructure/redis.js';
 
-import * as redisModule from '../../lib/redis.js';
+import * as redisModule from '../../lib/infrastructure/redis.js';
 
 import {
   getTeachers,
@@ -36,7 +36,7 @@ import {
   saveCachedReport,
   getCachedReport,
   resetDbMemoryStore
-} from '../../lib/db.js';
+} from '../../lib/infrastructure/db.js';
 
 import {
   getZoomOccurrence,
@@ -45,9 +45,9 @@ import {
   setOccurrenceRedisClient,
   resetOccurrenceMemoryStore,
   toSafeOccurrenceId
-} from '../../lib/zoom-occurrences.js';
+} from '../../lib/infrastructure/zoom-occurrences.js';
 
-import webhookHandler from '../../lib/zoom-webhook-handler.js';
+import webhookHandler from '../../lib/infrastructure/zoom-webhook-handler.js';
 import { GET as healthHandler } from '../../app/api/health/route.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });

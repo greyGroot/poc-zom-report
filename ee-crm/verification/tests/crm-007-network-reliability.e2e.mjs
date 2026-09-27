@@ -16,9 +16,9 @@ import {
   SchoolmateUnavailableError,
   isSchoolmateUnavailableError,
   toPublicSchoolmateError
-} from '../../lib/schoolmate.js';
+} from '../../lib/infrastructure/schoolmate.js';
 
-import { getTeacherDayData } from '../../lib/teacher-day.js';
+import { getTeacherDayData } from '../../lib/services/teacher-day.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 

@@ -1,7 +1,7 @@
 // ee-crm/lib/services/weekly-schedule-service.js
 // Weekly lessons aggregation, teacher name matching, and Redis caching service
 
-import { SchoolmateClient } from '../infrastructure/schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError } from '../infrastructure/schoolmate.js';
 import { getWeeklyLessonsCache, setMultipleWeeklyLessonsCache, getTeachers } from '../infrastructure/db.js';
 
 /**
@@ -210,7 +210,10 @@ export async function getWeeklyLessonSummaries({
   if (!dbTeachers || dbTeachers.length === 0) {
     try {
       dbTeachers = await schoolmateClient.fetchTeachersList({ pageSize: 300 });
-    } catch {
+    } catch (err) {
+      if (isSchoolmateUnavailableError(err)) {
+        throw err;
+      }
       dbTeachers = [];
     }
   }

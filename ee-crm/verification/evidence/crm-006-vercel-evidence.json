@@ -1,6 +1,6 @@
 {
   "suite": "CRM-006 Persistence Fallbacks & Reliability E2E Verification",
-  "timestamp": "2026-09-27T18:37:34.931Z",
+  "timestamp": "2026-09-27T20:03:19.507Z",
   "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
   "totalScenarios": 11,
   "passed": 11,
@@ -82,7 +82,7 @@
       "id": "AC-4/HIGH-1/LOW-3-DECOUPLING",
       "description": "All runnable test suites decoupled from root POC and dead APIs pruned from lib/redis.js",
       "status": "PASS",
-      "details": "Scanned 27 runnable files; all 10 dead symbols pruned"
+      "details": "Scanned 29 runnable files; all 10 dead symbols pruned"
     }
   ]
 }

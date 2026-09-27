@@ -16,23 +16,23 @@ import {
   evaluateMeetingQualification,
   isConductedLesson,
   computeTeacherDayComparison
-} from '../../lib/comparison-engine.js';
+} from '../../lib/domain/comparison-engine.js';
 import {
   getTeacherDayData,
   validateDateString,
   getAdjacentDates
-} from '../../lib/teacher-day.js';
+} from '../../lib/services/teacher-day.js';
 import {
   createTeacher,
   getTeacherById,
   saveCachedReport
-} from '../../lib/db.js';
+} from '../../lib/infrastructure/db.js';
 import {
   saveZoomOccurrence,
   getZoomOccurrencesForTeacher,
   formatOccurrenceForDisplay,
   resetOccurrenceMemoryStore
-} from '../../lib/zoom-occurrences.js';
+} from '../../lib/infrastructure/zoom-occurrences.js';
 import {
   FIXTURE_TEACHER_OLHA,
   FIXTURE_TEACHER_UNMAPPED,

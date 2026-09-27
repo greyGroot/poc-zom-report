@@ -1,0 +1,96 @@
+{
+  "suite": "CRM-008 Vertical Slice Module Structure E2E Verification",
+  "timestamp": "2026-09-27T20:03:42.701Z",
+  "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "localBaseUrl": "http://localhost:3000",
+  "totalScenarios": 14,
+  "passed": 14,
+  "failed": 0,
+  "blocked": 0,
+  "results": [
+    {
+      "id": "E2E-PROD-HEALTH",
+      "description": "Vercel /api/health returns 200 OK with upstash_cloud mode, Schoolmate configured, and no-store header",
+      "status": "PASS",
+      "details": "Status: 200, Redis Mode: upstash_cloud, SM Configured: true"
+    },
+    {
+      "id": "E2E-PROD-WEEKLY-EMPTY",
+      "description": "Vercel POST /api/teachers/weekly-lessons returns 200 OK with empty results map for empty teacherIds",
+      "status": "PASS",
+      "details": "Status: 200, Payload: {\"results\":{}}"
+    },
+    {
+      "id": "E2E-PROD-WEEKLY-QUERY",
+      "description": "Vercel POST /api/teachers/weekly-lessons successfully resolves live teacher schedule & cache",
+      "status": "PASS",
+      "details": "Status: 200, Teacher 17251: 20 lessons, 1200 min, cached: true"
+    },
+    {
+      "id": "E2E-PROD-WEEKLY-400",
+      "description": "Vercel POST /api/teachers/weekly-lessons returns HTTP 400 for malformed JSON request",
+      "status": "PASS",
+      "details": "Status: 400, Error: Invalid JSON body"
+    },
+    {
+      "id": "E2E-PROD-WEBHOOK-CRC",
+      "description": "Vercel /api/webhooks/zoom handles CRC challenge and returns encryptedToken",
+      "status": "PASS",
+      "details": "Status: 200, Token: 44cd19dd2dfb6582..."
+    },
+    {
+      "id": "E2E-PROD-PROXY",
+      "description": "Vercel Next.js Proxy allows access to login and public application routes",
+      "status": "PASS",
+      "details": "Login status: 200, Home status: 200"
+    },
+    {
+      "id": "AC-1-ADR-001",
+      "description": "ADR-001 is documented with required layout, responsibility matrix, and layering constraints",
+      "status": "PASS",
+      "details": "Document size: 8422 bytes at docs/architecture/ADR-001..."
+    },
+    {
+      "id": "AC-2-LAYOUT",
+      "description": "lib/ contains domain, services, infrastructure, utils, shared and zero root files",
+      "status": "PASS",
+      "details": "Required subdirectories verified; 0 orphan files in lib/ root"
+    },
+    {
+      "id": "AC-3-THIN-CONTROLLER",
+      "description": "POST /api/teachers/weekly-lessons is a thin transport adapter (< 50 lines)",
+      "status": "PASS",
+      "details": "Handler is 41 lines; transport-only delegation verified"
+    },
+    {
+      "id": "AC-4-QOS-PROXY",
+      "description": "Dead QoS functions pruned from zoom.js, middleware.js removed, proxy.js active",
+      "status": "PASS",
+      "details": "QoS methods absent; proxy.js verified with matcher"
+    },
+    {
+      "id": "AC-6-DOMAIN-ISOLATION",
+      "description": "Domain layer modules (zoom-occurrence.js, comparison-engine.js) have zero infrastructure/Upstash imports",
+      "status": "PASS",
+      "details": "Scanned 2 domain modules; strict isolation confirmed"
+    },
+    {
+      "id": "E2E-LOCAL-WEEKLY-EMPTY",
+      "description": "Local POST /api/teachers/weekly-lessons responds 200 with empty results",
+      "status": "PASS",
+      "details": "Status: 200, Body: {\"results\":{}}"
+    },
+    {
+      "id": "E2E-LOCAL-WEEKLY-400",
+      "description": "Local POST /api/teachers/weekly-lessons returns 400 on malformed JSON",
+      "status": "PASS",
+      "details": "Status: 400, Error: Invalid JSON body"
+    },
+    {
+      "id": "AC-5-CUMULATIVE-IMPORTS",
+      "description": "All cumulative E2E verification test suites have up-to-date modular imports",
+      "status": "PASS",
+      "details": "Zero stale imports found in verification/tests/"
+    }
+  ]
+}

@@ -15,14 +15,14 @@ import {
   toSafeOccurrenceId,
   fromSafeOccurrenceId,
   resetOccurrenceMemoryStore
-} from '../../lib/zoom-occurrences.js';
+} from '../../lib/infrastructure/zoom-occurrences.js';
 import {
   FIXTURE_TEACHER_YULIIA,
   FIXTURE_TEACHER_UNMAPPED,
   SHARED_ROOM_NUMERIC_ID,
   FIXTURE_OCCURRENCES
 } from '../fixtures/crm-001-zoom-fixtures.mjs';
-import { createTeacher, deleteTeacher } from '../../lib/db.js';
+import { createTeacher, deleteTeacher } from '../../lib/infrastructure/db.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -109,9 +109,12 @@ async function runVerification() {
   }
 
   try {
-    const middlewareSrc = fs.readFileSync(path.resolve(process.cwd(), 'middleware.js'), 'utf-8');
+    const proxyPath = path.resolve(process.cwd(), 'proxy.js');
+    const middlewarePath = path.resolve(process.cwd(), 'middleware.js');
+    const authFilePath = fs.existsSync(proxyPath) ? proxyPath : middlewarePath;
+    const middlewareSrc = fs.readFileSync(authFilePath, 'utf-8');
     const hasBypass = middlewareSrc.includes('process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS');
-    assert.ok(hasBypass, 'Middleware must handle NEXT_PUBLIC_EE_CRM_AUTH_BYPASS');
+    assert.ok(hasBypass, 'Proxy/Middleware must handle NEXT_PUBLIC_EE_CRM_AUTH_BYPASS');
     recordResult('AC-10', 'Authentication bypass logic implemented in middleware for automated E2E', 'PASS', 'process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS checked in authorized callback');
   } catch (err) {
     recordResult('AC-10', 'Authentication bypass logic implemented in middleware for automated E2E', 'FAIL', err.message);

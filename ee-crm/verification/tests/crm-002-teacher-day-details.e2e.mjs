@@ -9,18 +9,18 @@ import {
   validateDateString,
   getAdjacentDates,
   getTeacherDayData
-} from '../../lib/teacher-day.js';
+} from '../../lib/services/teacher-day.js';
 import {
   createTeacher,
   getTeacherById,
   saveCachedReport
-} from '../../lib/db.js';
+} from '../../lib/infrastructure/db.js';
 import {
   saveZoomOccurrence,
   getZoomOccurrencesForTeacher,
   formatOccurrenceForDisplay,
   resetOccurrenceMemoryStore
-} from '../../lib/zoom-occurrences.js';
+} from '../../lib/infrastructure/zoom-occurrences.js';
 import {
   FIXTURE_TEACHER_OLENA,
   FIXTURE_TEACHER_UNMAPPED,
@@ -401,7 +401,7 @@ async function runVerification() {
   // ------------------------------------------------------------------------
   console.log('\n--- Group 7: Internationalization & Localized Routes ---');
   try {
-    const translationsFile = path.resolve(process.cwd(), 'lib/i18n/translations.js');
+    const translationsFile = path.resolve(process.cwd(), 'lib/shared/i18n/translations.js');
     const transContent = fs.readFileSync(translationsFile, 'utf-8');
     assert.ok(transContent.includes('dayDetails:'), 'translations.js defines dayDetails namespace');
     assert.ok(transContent.includes('schoolmateSectionTitle'), 'translations.js defines schoolmateSectionTitle');

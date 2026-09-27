@@ -137,6 +137,20 @@ node verification/tests/crm-007-network-reliability.e2e.mjs
 npm run test:crm-007    # CRM-007 network reliability & retry tests (13 checks)
 ```
 
+### Run CRM-008 E2E Verification Suite
+
+```bash
+# In ee-crm directory (runs against local server and live Vercel deployment):
+node verification/tests/crm-008-vertical-slice.e2e.mjs
+```
+
+### Run CRM-008 Developer Tests
+
+```bash
+# In ee-crm directory:
+npm run test:crm-008    # CRM-008 vertical slice module structure tests (13 checks)
+```
+
 ---
 
 ## Story Coverage Index
@@ -149,6 +163,7 @@ npm run test:crm-007    # CRM-007 network reliability & retry tests (13 checks)
 | **CRM-004** | Compare Schoolmate and Zoom activity for a teacher-day | **Pass locally & on Vercel** | [`tests/crm-004-activity-comparison.e2e.mjs`](./tests/crm-004-activity-comparison.e2e.mjs) | [`reports/CRM-004-e2e-report.md`](./reports/CRM-004-e2e-report.md) |
 | **CRM-006** | Remove silent in-memory persistence fallbacks | **Pass locally & on Vercel** | [`tests/crm-006-persistence-fallbacks.e2e.mjs`](./tests/crm-006-persistence-fallbacks.e2e.mjs) | [`reports/CRM-006-e2e-report.md`](./reports/CRM-006-e2e-report.md) |
 | **CRM-007** | Add network reliability abstractions to Schoolmate client | **Pass locally & on Vercel** | [`tests/crm-007-network-reliability.e2e.mjs`](./tests/crm-007-network-reliability.e2e.mjs) | [`reports/CRM-007-e2e-report.md`](./reports/CRM-007-e2e-report.md) |
+| **CRM-008** | Refactor EE-CRM to target vertical slice module structure | **Pass with observations** | [`tests/crm-008-vertical-slice.e2e.mjs`](./tests/crm-008-vertical-slice.e2e.mjs) | [`reports/CRM-008-e2e-report.md`](./reports/CRM-008-e2e-report.md) |
 
 ---
 

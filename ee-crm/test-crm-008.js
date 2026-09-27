@@ -324,17 +324,51 @@ await test('Scenario 6c: weekly-lessons route.js is a thin transport adapter', (
   assert.ok(routeContent.includes('isSchoolmateUnavailableError'), 'Route must retain 503 error transport mapping');
 });
 
+await test('Scenario 6d: fetchTeachersList throwing SchoolmateUnavailableError when dbTeachers is empty bubbles up', async () => {
+  const emptyDb = {
+    async getWeeklyLessonsCache() { return new Map(); },
+    async setMultipleWeeklyLessonsCache() {},
+    async getTeachers() { return []; } // Empty DB teachers
+  };
+
+  const clientWithFailingTeacherList = {
+    async getSchedulerEvents({ date }) {
+      return { events: [] }; // Scheduler succeeds
+    },
+    async fetchTeachersList({ pageSize }) {
+      throw new SchoolmateUnavailableError('Simulated Schoolmate timeout on teachers list', new Error('ETIMEDOUT'));
+    }
+  };
+
+  await assert.rejects(
+    async () => {
+      await getWeeklyLessonSummaries({
+        teacherIds: [101],
+        schoolmateClient: clientWithFailingTeacherList,
+        db: emptyDb
+      });
+    },
+    err => {
+      assert.ok(err instanceof SchoolmateUnavailableError);
+      return true;
+    },
+    'Service must propagate SchoolmateUnavailableError when fallback fetchTeachersList fails'
+  );
+});
+
 // ----------------------------------------------------------------------------
 // 7. Whole-Repository Import Cleanliness
 // ----------------------------------------------------------------------------
 console.log('\n--- 7. Whole-Repository Stale-Import Integrity ---');
 
-await test('Scenario 7: Zero stale flat lib imports remain across app, scripts, and tests', () => {
+await test('Scenario 7: Zero stale flat lib imports remain across app, scripts, tests, and verification suites', () => {
   function scan(dir, list = []) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const e of entries) {
-      if (['node_modules', '.next', '.git', 'verification'].includes(e.name)) continue;
+      if (['node_modules', '.next', '.git'].includes(e.name)) continue;
       const full = path.join(dir, e.name);
+      const rel = path.relative(process.cwd(), full).replace(/\\/g, '/');
+      if (rel.startsWith('verification/archive') || rel.startsWith('verification/evidence')) continue;
       if (e.isDirectory()) scan(full, list);
       else if (/\.(js|jsx|mjs|cjs)$/.test(e.name)) list.push(full);
     }

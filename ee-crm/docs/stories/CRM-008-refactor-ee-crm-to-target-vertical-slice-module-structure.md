@@ -1,11 +1,13 @@
 # CRM-008 — Refactor EE-CRM to Target Vertical Slice Module Structure
 
 **Story ID:** CRM-008
-**Status:** Ready for QA — implementation complete, unit & integration tests passing
+**Status:** Ready for QA — review findings resolved, BUG-001 fixed, all tests passing
 **Primary user:** Software Architect / Developers
 **Related PRD:** [PRD.md](../PRD.md)
 **UX specification:** Not required; this is an internal structural refactor with no intended user-interface change.
 **Technical implementation:** [CRM-008 implementation plan](../architecture/CRM-008-refactor-ee-crm-to-target-vertical-slice-module-structure.md)
+**QA report:** [CRM-008 E2E verification report](../../verification/reports/CRM-008-e2e-report.md)
+**Defects:** [BUG-001: Stale Flat `lib/` Imports in Verification E2E Test Suites](../bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md)
 
 ## Summary
 
@@ -134,6 +136,57 @@ And it must remain focused purely on data transformation and business rules.
 - [x] Open questions are resolved or explicitly accepted
 - [x] Required UX or technical dependencies are linked
 
+## Architecture review — changes requested
+
+Review date: 27 September 2026
+
+### 1. Preserve Schoolmate outage semantics in the weekly schedule service
+
+**Finding:** `lib/services/weekly-schedule-service.js` catches every failure from `SchoolmateClient.fetchTeachersList()` and replaces the failed teacher lookup with an empty list. When the database contains no teachers and Schoolmate is unavailable, the service can therefore return successful zero-lesson summaries instead of allowing the typed availability error to reach the route's HTTP `503` mapper.
+
+**Required change:**
+
+- Do not suppress `SchoolmateUnavailableError` or other errors classified by `isSchoolmateUnavailableError()`.
+- Re-throw typed availability failures so `app/api/teachers/weekly-lessons/route.js` returns the established sanitized `503` payload.
+- Only fall back to an empty teacher list for an explicitly documented non-availability case, if such a case is still required.
+- Add a regression test covering: scheduler request succeeds, database teacher list is empty, `fetchTeachersList()` throws `SchoolmateUnavailableError`, and the service rejects with that typed error.
+
+### 2. Restore maintained verification suites after the module moves
+
+**Finding:** `test-crm-008.js` excludes the entire `verification/` directory from its stale-import scan. Maintained CRM-001, CRM-002, CRM-004, CRM-006, and CRM-007 E2E suites consequently retain imports from deleted flat `lib/*.js` paths. Confirmed failures include `npm run test:crm-006:e2e` and `npm run test:crm-007:e2e`, both terminating with `ERR_MODULE_NOT_FOUND`.
+
+**Tracked defect:** [BUG-001 — Stale Flat `lib/` Imports in Verification E2E Test Suites](../bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) (Severity: High)
+
+**Required change:**
+
+- Update maintained files under `verification/tests/` to import from `lib/domain/`, `lib/services/`, `lib/infrastructure/`, or `lib/utils/` as appropriate.
+- Update the CRM-001 proxy assertion to inspect `proxy.js` rather than the removed `middleware.js`.
+- Remove the blanket `verification` exclusion from the CRM-008 stale-import scan. Archived historical evidence may be excluded narrowly by its archive path or non-runnable extension.
+- Re-run the maintained verification commands and ensure they reach their test logic without module-resolution errors.
+
+### Review acceptance gate
+
+The story may return to **Ready for QA** only when all of the following pass:
+
+```bash
+npm run test:crm-008
+npm run test:crm-004:e2e
+npm run test:crm-006:e2e
+npm run test:crm-007:e2e
+npm test
+npm run build
+```
+
+The two focused CRM-008 findings must also have direct regression coverage. External environment failures must be distinguished from import or implementation failures in the verification evidence.
+
+## QA validation & defects
+
+- **QA Report:** [CRM-008 E2E Verification Report](../../verification/reports/CRM-008-e2e-report.md)
+- **Local status:** Pass with observations (13/14 automated checks pass; 1 defect identified)
+- **Vercel Production status:** Pass (6/6 live production endpoints verified)
+- **Tracked defects:**
+  - [BUG-001 — Stale Flat `lib/` Imports in Verification E2E Test Suites](../bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) (Severity: High)
+
 ## Audit trail
 
 | Date | Decision |
@@ -142,4 +195,7 @@ And it must remain focused purely on data transformation and business rules.
 | 2026-09-27 | Updated to include ADR-001 creation, weekly-lessons domain extraction into service (MED-2), dead QoS code pruning (LOW-3 Part B), and Next.js middleware-to-proxy migration (LOW-2). |
 | 2026-09-27 | Product stakeholder confirmed implementation has started. Status changed to In progress. |
 | 2026-09-27 | Implementation complete: ADR-001 documented, lib/ reorganized into layers, weekly-schedule-service extracted, dead QoS pruned, proxy.js migrated, all tests and Next.js production build pass. Status set to Ready for QA. |
+| 2026-09-27 | Architecture review requested changes: preserve typed Schoolmate failures during fallback teacher loading, repair stale imports in maintained verification suites, and include verification tests in CRM-008's stale-import guard. Status changed to Changes requested. |
+| 2026-09-27 | QA validation performed: local core application and Vercel production pass; logged defect [BUG-001](../bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) tracking stale flat imports in verification test suites. |
+| 2026-09-27 | Architecture review findings and BUG-001 resolved: Schoolmate unavailable errors preserved during fallback teacher list fetch (Scenario 6d), stale imports in verification/tests/ suites fixed, proxy.js check updated in CRM-001 test, stale-import scan expanded. Status returned to Ready for QA. |
 
