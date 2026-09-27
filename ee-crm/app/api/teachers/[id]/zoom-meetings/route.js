@@ -2,12 +2,12 @@
 // Teacher Zoom Meetings API: Retrieve factual Zoom occurrences for a teacher and date range
 
 import { NextResponse } from 'next/server';
-import { getTeacherById } from '@/lib/db.js';
-import { logger } from '@/lib/logger.js';
+import { getTeacherById } from '@/lib/infrastructure/db.js';
+import { logger } from '@/lib/infrastructure/logger.js';
 import {
   getZoomOccurrencesForTeacher,
   formatOccurrenceForDisplay
-} from '@/lib/zoom-occurrences.js';
+} from '@/lib/infrastructure/zoom-occurrences.js';
 
 export async function GET(req, { params }) {
   try {

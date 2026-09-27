@@ -1,4 +1,4 @@
-import { SchoolmateClient } from './lib/schoolmate.js';
+import { SchoolmateClient } from './lib/infrastructure/schoolmate.js';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 

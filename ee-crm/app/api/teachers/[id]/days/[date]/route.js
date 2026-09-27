@@ -4,8 +4,8 @@
 // Responses are private and uncached (no-store).
 
 import { NextResponse } from 'next/server';
-import { getTeacherDayData } from '@/lib/teacher-day.js';
-import { logger } from '@/lib/logger.js';
+import { getTeacherDayData } from '@/lib/services/teacher-day.js';
+import { logger } from '@/lib/infrastructure/logger.js';
 
 export async function GET(req, { params }) {
   try {

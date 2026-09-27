@@ -33,7 +33,7 @@ import {
   normalizeWebhookEventToFacts,
   reduceOccurrenceFacts,
   calculateIntervalUnionSeconds
-} from './lib/zoom-occurrence.js';
+} from './lib/domain/zoom-occurrence.js';
 
 import {
   InMemoryRedis,
@@ -48,17 +48,17 @@ import {
   OCCURRENCE_KEY_PREFIX,
   HOST_OCCURRENCES_KEY_PREFIX,
   CRM_005_MIGRATION_STATE_KEY
-} from './lib/redis.js';
+} from './lib/infrastructure/redis.js';
 
 import {
   getZoomOccurrencesForTeacher,
   formatOccurrenceForDisplay,
   resetOccurrenceMemoryStore,
   setOccurrenceRedisClient
-} from './lib/zoom-occurrences.js';
+} from './lib/infrastructure/zoom-occurrences.js';
 
-import webhookHandler from './lib/zoom-webhook-handler.js';
-import { translations } from './lib/i18n/translations.js';
+import webhookHandler from './lib/infrastructure/zoom-webhook-handler.js';
+import { translations } from './lib/shared/i18n/translations.js';
 
 import {
   MANDATORY_TEACHERS,
@@ -88,10 +88,12 @@ async function test(name, fn) {
   }
 }
 
-// Helper to test middleware regex matcher
+// Helper to test middleware / proxy regex matcher
 function doesMatcherMatch(pathname) {
+  const proxyFile = path.resolve(process.cwd(), 'proxy.js');
   const middlewareFile = path.resolve(process.cwd(), 'middleware.js');
-  const content = fs.readFileSync(middlewareFile, 'utf-8');
+  const targetFile = fs.existsSync(proxyFile) ? proxyFile : middlewareFile;
+  const content = fs.readFileSync(targetFile, 'utf-8');
   const match = content.match(/'(\/\(\(\?!.*?\)\.\*\))'/);
   const pattern = match ? match[1] : '';
   const regexStr = pattern.startsWith('/') ? pattern.slice(1) : pattern;

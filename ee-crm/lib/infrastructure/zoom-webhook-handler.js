@@ -10,7 +10,7 @@ import {
 } from './redis.js';
 import { logger } from './logger.js';
 import { getHeader, verifyZoomWebhookSignature } from './zoom-signature.js';
-import { toSafeOccurrenceId, normalizeWebhookEventToFacts, reduceOccurrenceFacts } from './zoom-occurrence.js';
+import { toSafeOccurrenceId, normalizeWebhookEventToFacts, reduceOccurrenceFacts } from '../domain/zoom-occurrence.js';
 
 /**
  * Calculate the union duration in seconds across session intervals,

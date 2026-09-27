@@ -17,7 +17,7 @@ import {
 } from './schema.js';
 import {
   InMemoryRedis
-} from '../../lib/redis.js';
+} from '../../lib/infrastructure/redis.js';
 
 export function getRedactedFingerprint(url) {
   if (!url) return 'in-memory-mock';

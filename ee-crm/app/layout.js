@@ -1,5 +1,5 @@
 import './globals.css';
-import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import { LanguageProvider } from '@/lib/shared/i18n/LanguageContext';
 import AuthProvider from './components/AuthProvider';
 import Header from './components/Header';
 

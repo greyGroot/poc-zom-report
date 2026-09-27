@@ -24,7 +24,7 @@ import {
   reduceOccurrenceFacts,
   computeProjectionHash,
   validateOccurrenceInvariants
-} from '../../lib/zoom-occurrence.js';
+} from '../../lib/domain/zoom-occurrence.js';
 
 /**
  * Normalizes host email string.

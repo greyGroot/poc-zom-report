@@ -1,8 +1,8 @@
 // ee-crm/scripts/sync-teachers.js
 // Standalone script to sync teachers from Schoolmate directly from terminal
 
-import { SchoolmateClient } from '../lib/schoolmate.js';
-import { bulkUpsertTeachers, getTeachers } from '../lib/db.js';
+import { SchoolmateClient } from '../lib/infrastructure/schoolmate.js';
+import { bulkUpsertTeachers, getTeachers } from '../lib/infrastructure/db.js';
 
 async function main() {
   console.log('--- Syncing Teachers from Schoolmate EU ---');

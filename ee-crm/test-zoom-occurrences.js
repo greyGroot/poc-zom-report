@@ -10,7 +10,7 @@ import {
   toSafeOccurrenceId,
   fromSafeOccurrenceId,
   resetOccurrenceMemoryStore
-} from './lib/zoom-occurrences.js';
+} from './lib/infrastructure/zoom-occurrences.js';
 
 let passed = 0;
 let total = 0;

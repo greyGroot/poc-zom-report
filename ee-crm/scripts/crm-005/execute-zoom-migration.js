@@ -15,7 +15,7 @@ import {
   toSafeOccurrenceId,
   deriveFactFingerprint,
   reduceOccurrenceFacts
-} from '../../lib/zoom-occurrence.js';
+} from '../../lib/domain/zoom-occurrence.js';
 import {
   InMemoryRedis,
   OCCURRENCE_KEY_PREFIX,
@@ -27,7 +27,7 @@ import {
   publishOccurrenceProjection,
   getCrm005MigrationState,
   setCrm005MigrationState
-} from '../../lib/redis.js';
+} from '../../lib/infrastructure/redis.js';
 import { verifyMigration } from './verify-zoom-migration.js';
 
 export function getRedactedFingerprint(url) {

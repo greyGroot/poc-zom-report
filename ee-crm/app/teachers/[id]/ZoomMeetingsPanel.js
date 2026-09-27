@@ -2,8 +2,8 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { getKyivDateString, formatKyivDateHeader } from '@/lib/timezone';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import { getKyivDateString, formatKyivDateHeader } from '@/lib/utils/timezone';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
 

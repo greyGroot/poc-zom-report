@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
 
 // Module-level in-memory cache for weekly lessons across client navigations
 const globalWeeklyLessonsCache = new Map();

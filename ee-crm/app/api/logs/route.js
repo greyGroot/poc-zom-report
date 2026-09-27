@@ -2,8 +2,8 @@
 // Audit Logs API: Retrieve recent application and integration logs
 
 import { NextResponse } from 'next/server';
-import { getAppLogs, cleanOldAppLogs } from '@/lib/db.js';
-import { logger } from '@/lib/logger.js';
+import { getAppLogs, cleanOldAppLogs } from '@/lib/infrastructure/db.js';
+import { logger } from '@/lib/infrastructure/logger.js';
 
 export async function GET(req) {
   try {

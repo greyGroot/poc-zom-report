@@ -27,14 +27,14 @@ import {
   evaluateMeetingQualification,
   isConductedLesson,
   computeTeacherDayComparison
-} from './lib/comparison-engine.js';
+} from './lib/domain/comparison-engine.js';
 import {
   formatOccurrenceForDisplay,
   resetOccurrenceMemoryStore,
   saveZoomOccurrence
-} from './lib/zoom-occurrences.js';
-import { createTeacher, saveCachedReport } from './lib/db.js';
-import { getTeacherDayData } from './lib/teacher-day.js';
+} from './lib/infrastructure/zoom-occurrences.js';
+import { createTeacher, saveCachedReport } from './lib/infrastructure/db.js';
+import { getTeacherDayData } from './lib/services/teacher-day.js';
 
 let passedCount = 0;
 

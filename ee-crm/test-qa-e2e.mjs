@@ -14,8 +14,8 @@ import {
   toSafeOccurrenceId,
   fromSafeOccurrenceId,
   resetOccurrenceMemoryStore
-} from './lib/zoom-occurrences.js';
-import { createTeacher, deleteTeacher } from './lib/db.js';
+} from './lib/infrastructure/zoom-occurrences.js';
+import { createTeacher, deleteTeacher } from './lib/infrastructure/db.js';
 
 dotenv.config({ path: '.env.local' });
 

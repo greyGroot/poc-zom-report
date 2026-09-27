@@ -2,10 +2,10 @@
 // Synchronizes all teachers from Schoolmate EU into CRM database with deduplication
 
 import { NextResponse } from 'next/server';
-import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/schoolmate.js';
-import { bulkUpsertTeachers, getTeachers, pruneAllCaches } from '@/lib/db.js';
-import { getZoomUsersStatusMap } from '@/lib/zoom.js';
-import { logger } from '@/lib/logger.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/infrastructure/schoolmate.js';
+import { bulkUpsertTeachers, getTeachers, pruneAllCaches } from '@/lib/infrastructure/db.js';
+import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
+import { logger } from '@/lib/infrastructure/logger.js';
 
 export async function POST() {
   const startTime = Date.now();

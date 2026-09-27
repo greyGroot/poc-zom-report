@@ -12,15 +12,15 @@ import {
 import {
   toSafeOccurrenceId,
   computeProjectionHash
-} from '../../lib/zoom-occurrence.js';
+} from '../../lib/domain/zoom-occurrence.js';
 import {
   InMemoryRedis,
   OCCURRENCE_KEY_PREFIX,
   HOST_OCCURRENCES_KEY_PREFIX,
   OCCURRENCE_EVENTS_KEY_PREFIX,
   CRM_005_MIGRATION_STATE_KEY
-} from '../../lib/redis.js';
-import { getKyivDateString } from '../../lib/timezone.js';
+} from '../../lib/infrastructure/redis.js';
+import { getKyivDateString } from '../../lib/utils/timezone.js';
 
 export async function verifyMigration({
   manifest = null,

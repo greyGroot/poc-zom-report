@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { getKyivDateString, formatKyivDateHeader } from '@/lib/timezone';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import { getKyivDateString, formatKyivDateHeader } from '@/lib/utils/timezone';
 import AirbnbDatePicker from './AirbnbDatePicker';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';

@@ -4,8 +4,8 @@
 import 'dotenv/config';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { SchoolmateClient } from './lib/schoolmate.js';
-import { parseTeacherSchedulePdf } from './lib/pdf-parser.js';
+import { SchoolmateClient } from './lib/infrastructure/schoolmate.js';
+import { parseTeacherSchedulePdf } from './lib/utils/pdf-parser.js';
 
 // Load .env.local if present
 import dotenv from 'dotenv';

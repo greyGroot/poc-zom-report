@@ -1,7 +1,7 @@
 // ee-crm/app/api/health/route.js
 // Health check endpoint verifying Upstash Redis and Schoolmate configuration
 
-import { checkRedisHealth } from '../../../lib/redis.js';
+import { checkRedisHealth } from '../../../lib/infrastructure/redis.js';
 
 export const dynamic = 'force-dynamic';
 

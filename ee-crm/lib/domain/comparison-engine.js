@@ -3,7 +3,7 @@
 // Compares conducted Schoolmate lessons with qualifying Zoom meeting occurrences (>= 300s teacher-participant overlap).
 // Strictly factual: No inferred lesson-to-meeting matching, flags, risk scores, or payroll/validity conclusions.
 
-import { getKyivDateString, TIMEZONE } from './timezone.js';
+import { getKyivDateString, TIMEZONE } from '../utils/timezone.js';
 
 export const QUALIFICATION_THRESHOLD_SECONDS = 300; // 5 minutes exact threshold
 

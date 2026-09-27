@@ -15,7 +15,7 @@ import {
   computeZoomSignature,
   verifyZoomWebhookSignature,
   generateCrcResponse
-} from './lib/zoom-signature.js';
+} from './lib/infrastructure/zoom-signature.js';
 import {
   toSafeOccurrenceId,
   fromSafeOccurrenceId,
@@ -24,7 +24,7 @@ import {
   normalizeWebhookEventToFacts,
   reduceOccurrenceFacts,
   transformLegacyMeetingToOccurrence
-} from './lib/zoom-occurrence.js';
+} from './lib/domain/zoom-occurrence.js';
 import {
   InMemoryRedis,
   setRedisClient,
@@ -33,13 +33,13 @@ import {
   OCCURRENCE_KEY_PREFIX,
   HOST_OCCURRENCES_KEY_PREFIX,
   MIGRATION_STATE_KEY
-} from './lib/redis.js';
+} from './lib/infrastructure/redis.js';
 import {
   MEETING_KEY_PREFIX,
   MEETINGS_INDEX_KEY,
   WEBHOOK_LOGS_KEY
 } from './scripts/crm-005/schema.js';
-import webhookHandler from './lib/zoom-webhook-handler.js';
+import webhookHandler from './lib/infrastructure/zoom-webhook-handler.js';
 import {
   runMigration,
   getRedactedFingerprint
@@ -49,7 +49,7 @@ import {
   formatOccurrenceForDisplay,
   resetOccurrenceMemoryStore,
   setOccurrenceRedisClient
-} from './lib/zoom-occurrences.js';
+} from './lib/infrastructure/zoom-occurrences.js';
 
 let passedCount = 0;
 

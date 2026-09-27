@@ -12,7 +12,7 @@
  *   scripts/crm-005/backups/ee-crm-zoom-backup-<timestamp>.json
  */
 
-import { getRedisClient } from '../../lib/redis.js';
+import { getRedisClient } from '../../lib/infrastructure/redis.js';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

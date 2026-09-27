@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
 
 function LoginContent() {
   const { data: session, status } = useSession();

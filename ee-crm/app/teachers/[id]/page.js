@@ -1,5 +1,5 @@
-import { getTeacherById } from '@/lib/db.js';
-import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '@/lib/zoom-occurrences.js';
+import { getTeacherById } from '@/lib/infrastructure/db.js';
+import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '@/lib/infrastructure/zoom-occurrences.js';
 import TeacherScheduleClient from './TeacherScheduleClient';
 
 export default async function TeacherSchedulePage({ params, searchParams }) {

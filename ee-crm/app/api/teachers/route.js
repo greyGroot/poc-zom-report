@@ -2,9 +2,9 @@
 // Teachers API: List all teachers and register a new teacher
 
 import { NextResponse } from 'next/server';
-import { getTeachers, createTeacher } from '@/lib/db.js';
-import { logger } from '@/lib/logger.js';
-import { getZoomUsersStatusMap } from '@/lib/zoom.js';
+import { getTeachers, createTeacher } from '@/lib/infrastructure/db.js';
+import { logger } from '@/lib/infrastructure/logger.js';
+import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
 
 export async function GET() {
   try {

@@ -3,7 +3,7 @@
 // Enforces strict persistence mode policy and fail-fast durability.
 
 import { Redis } from '@upstash/redis';
-import { toSafeOccurrenceId, deriveFactFingerprint } from './zoom-occurrence.js';
+import { toSafeOccurrenceId, deriveFactFingerprint } from '../domain/zoom-occurrence.js';
 
 export const OCCURRENCE_KEY_PREFIX = 'zoom:occurrence:';
 export const HOST_OCCURRENCES_KEY_PREFIX = 'zoom:host:occurrences:';

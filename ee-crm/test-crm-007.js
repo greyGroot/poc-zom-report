@@ -9,8 +9,8 @@ import {
   SchoolmateUnavailableError,
   isSchoolmateUnavailableError,
   toPublicSchoolmateError
-} from './lib/schoolmate.js';
-import { getTeacherDayData } from './lib/teacher-day.js';
+} from './lib/infrastructure/schoolmate.js';
+import { getTeacherDayData } from './lib/services/teacher-day.js';
 
 console.log('====================================================');
 console.log('🧪 CRM-007 Network Reliability Abstractions Suite');

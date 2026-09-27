@@ -2,10 +2,10 @@
 // Schoolmate Schedule Report API: Fast native JSON calendar retrieval with fallback to PDF parser
 
 import { NextResponse } from 'next/server';
-import { getTeachers, getCachedReport, saveCachedReport } from '@/lib/db.js';
-import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/schoolmate.js';
-import { parseTeacherSchedulePdf } from '@/lib/pdf-parser.js';
-import { logger } from '@/lib/logger.js';
+import { getTeachers, getCachedReport, saveCachedReport } from '@/lib/infrastructure/db.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/infrastructure/schoolmate.js';
+import { parseTeacherSchedulePdf } from '@/lib/utils/pdf-parser.js';
+import { logger } from '@/lib/infrastructure/logger.js';
 
 export async function POST(req) {
   let body;

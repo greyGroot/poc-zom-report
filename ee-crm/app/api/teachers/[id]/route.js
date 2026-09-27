@@ -2,9 +2,9 @@
 // Individual Teacher API: Retrieve and delete teacher by ID
 
 import { NextResponse } from 'next/server';
-import { getTeacherById, deleteTeacher } from '@/lib/db.js';
-import { logger } from '@/lib/logger.js';
-import { getZoomUsersStatusMap } from '@/lib/zoom.js';
+import { getTeacherById, deleteTeacher } from '@/lib/infrastructure/db.js';
+import { logger } from '@/lib/infrastructure/logger.js';
+import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
 
 export async function GET(req, { params }) {
   try {

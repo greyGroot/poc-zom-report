@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { formatKyivTime, formatDuration } from '@/lib/timezone';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import { formatKyivTime, formatDuration } from '@/lib/utils/timezone';
 
 export default function ZoomParticipants({ safeId, topic, participants = [] }) {
   const { t, locale } = useLanguage();

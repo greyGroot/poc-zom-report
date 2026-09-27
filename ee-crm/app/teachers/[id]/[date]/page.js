@@ -1,4 +1,4 @@
-import { getTeacherDayData } from '@/lib/teacher-day.js';
+import { getTeacherDayData } from '@/lib/services/teacher-day.js';
 import TeacherDayDetailsClient from './TeacherDayDetailsClient';
 
 export default async function TeacherDayPage({ params, searchParams }) {

@@ -5,17 +5,17 @@ import {
   validateDateString,
   getAdjacentDates,
   getTeacherDayData
-} from './lib/teacher-day.js';
+} from './lib/services/teacher-day.js';
 import {
   createTeacher,
   saveCachedReport,
   getTeacherById
-} from './lib/db.js';
+} from './lib/infrastructure/db.js';
 import {
   saveZoomOccurrence,
   resetOccurrenceMemoryStore,
   formatOccurrenceForDisplay
-} from './lib/zoom-occurrences.js';
+} from './lib/infrastructure/zoom-occurrences.js';
 
 let passedTests = 0;
 let totalTests = 0;

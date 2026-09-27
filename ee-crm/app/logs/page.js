@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
 
 export default function SystemLogsPage() {
   const { t } = useLanguage();

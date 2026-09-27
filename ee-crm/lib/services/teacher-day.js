@@ -3,12 +3,12 @@
 // Gathers Schoolmate lessons and Zoom meeting occurrences for one teacher on one school-local calendar day.
 // Strictly factual: No inferred matching, flags, tags, or payroll conclusions.
 
-import { getTeacherById, getCachedReport, saveCachedReport } from './db.js';
-import { SchoolmateClient, isSchoolmateUnavailableError } from './schoolmate.js';
-import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from './zoom-occurrences.js';
-import { computeTeacherDayComparison, isConductedLesson } from './comparison-engine.js';
-import { logger } from './logger.js';
-import { TIMEZONE } from './timezone.js';
+import { getTeacherById, getCachedReport, saveCachedReport } from '../infrastructure/db.js';
+import { SchoolmateClient, isSchoolmateUnavailableError } from '../infrastructure/schoolmate.js';
+import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '../infrastructure/zoom-occurrences.js';
+import { computeTeacherDayComparison, isConductedLesson } from '../domain/comparison-engine.js';
+import { logger } from '../infrastructure/logger.js';
+import { TIMEZONE } from '../utils/timezone.js';
 
 /**
  * Validates whether a given string is a valid ISO calendar date (YYYY-MM-DD).

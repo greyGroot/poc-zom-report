@@ -3,7 +3,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseTeacherSchedulePdf } from './lib/pdf-parser.js';
+import { parseTeacherSchedulePdf } from './lib/utils/pdf-parser.js';
 
 async function run() {
   const samplePdfPath = 'C:/Users/sergi/Downloads/Teacher_schedule_detail_202609201730464017.pdf';

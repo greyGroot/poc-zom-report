@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { formatKyivDateHeader } from '@/lib/timezone';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import { formatKyivDateHeader } from '@/lib/utils/timezone';
 import ZoomMeetingCard from '../ZoomMeetingCard';
 
 export default function TeacherDayDetailsClient({

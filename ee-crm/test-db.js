@@ -1,7 +1,7 @@
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
-import { createTeacher, getTeachers, getTeacherById, deleteTeacher, getAppLogs } from './lib/db.js';
-import { logger } from './lib/logger.js';
+import { createTeacher, getTeachers, getTeacherById, deleteTeacher, getAppLogs } from './lib/infrastructure/db.js';
+import { logger } from './lib/infrastructure/logger.js';
 
 async function run() {
   console.log('--- Testing DB Persistence & Logging ---');

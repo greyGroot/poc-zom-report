@@ -12,6 +12,7 @@ const tests = [
   { name: 'CRM-005 Zoom Migration & Ingestion Test', file: 'test-crm-005.js' },
   { name: 'CRM-006 Persistence Fallbacks & Reliability Test', file: 'test-crm-006.js' },
   { name: 'CRM-007 Network Reliability Test', file: 'test-crm-007.js' },
+  { name: 'CRM-008 Vertical Slice Architecture Test', file: 'test-crm-008.js' },
   { name: 'Live Schoolmate API Test', file: 'test-schoolmate.js' }
 ];
 

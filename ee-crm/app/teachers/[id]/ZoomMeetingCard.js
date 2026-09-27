@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { formatKyivTime, formatDuration } from '@/lib/timezone';
+import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import { formatKyivTime, formatDuration } from '@/lib/utils/timezone';
 import ZoomParticipants from './ZoomParticipants';
 
 export default function ZoomMeetingCard({ occurrence }) {
