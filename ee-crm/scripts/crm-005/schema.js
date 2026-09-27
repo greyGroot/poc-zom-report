@@ -6,6 +6,11 @@ import crypto from 'node:crypto';
 export const SCHEMA_VERSION = 1;
 export const MIGRATION_ID = 'crm-005';
 
+// Legacy POC source key constants for snapshot and migration tooling
+export const MEETING_KEY_PREFIX = 'zoom:meeting:';
+export const MEETINGS_INDEX_KEY = 'zoom:meetings:index';
+export const WEBHOOK_LOGS_KEY = 'zoom:webhook:logs';
+
 export const MANDATORY_TEACHERS = [
   { name: 'Dmy Rostyslav', email: 'dmytrasevych@ukr.net' },
   { name: 'Kondratovych Yana', email: 'kondratovicana4@gmail.com' },

@@ -1,47 +1,44 @@
 // ee-crm/app/api/health/route.js
 // Health check endpoint verifying Upstash Redis and Schoolmate configuration
 
-import { NextResponse } from 'next/server';
-import { getTeachers, addAppLog } from '@/lib/db.js';
+import { checkRedisHealth } from '../../../lib/redis.js';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const isRedisConfigured = Boolean(
-    (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ||
-    (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
-  );
-
   const isSchoolmateConfigured = Boolean(
     process.env.SCHOOLMATE_USERNAME && process.env.SCHOOLMATE_PASSWORD
   );
 
-  let redisLive = false;
-  try {
-    // Attempt quick read/write verification
-    await addAppLog({
-      level: 'INFO',
-      action: 'HEALTH_CHECK',
-      message: 'Health check probe executed'
-    });
-    redisLive = true;
-  } catch (err) {
-    console.error('Health check Redis probe error:', err.message);
-  }
+  const redisHealth = await checkRedisHealth();
+  const isHealthy = redisHealth.ok && redisHealth.connected;
+  const statusCode = isHealthy ? 200 : 503;
+  const status = isHealthy ? 'ok' : 'degraded';
 
-  return NextResponse.json({
-    status: 'ok',
-    service: 'Empire English CRM (EE CRM)',
-    timestamp: new Date().toISOString(),
-    integrations: {
-      redis: {
-        configured: isRedisConfigured,
-        connected: redisLive,
-        mode: isRedisConfigured ? 'upstash_cloud' : 'in_memory_fallback'
-      },
-      schoolmate: {
-        configured: isSchoolmateConfigured,
-        baseUrl: process.env.SCHOOLMATE_BASE_URL || 'https://empireenglish.schoolmate.eu',
-        username: process.env.SCHOOLMATE_USERNAME ? '✓ configured' : 'missing'
+  return Response.json(
+    {
+      status,
+      service: 'Empire English CRM (EE CRM)',
+      timestamp: new Date().toISOString(),
+      integrations: {
+        redis: {
+          configured: redisHealth.configured,
+          connected: redisHealth.connected,
+          mode: redisHealth.mode,
+          ...(redisHealth.error ? { error: redisHealth.error } : {})
+        },
+        schoolmate: {
+          configured: isSchoolmateConfigured,
+          baseUrl: process.env.SCHOOLMATE_BASE_URL || 'https://empireenglish.schoolmate.eu',
+          username: process.env.SCHOOLMATE_USERNAME ? '✓ configured' : 'missing'
+        }
+      }
+    },
+    {
+      status: statusCode,
+      headers: {
+        'Cache-Control': 'no-store, max-age=0'
       }
     }
-  });
+  );
 }

@@ -15,10 +15,12 @@ import {
   deriveFactFingerprint
 } from '../lib/zoom-occurrence.js';
 import {
-  InMemoryRedis,
   MEETING_KEY_PREFIX,
   MEETINGS_INDEX_KEY,
-  WEBHOOK_LOGS_KEY,
+  WEBHOOK_LOGS_KEY
+} from './crm-005/schema.js';
+import {
+  InMemoryRedis,
   OCCURRENCE_KEY_PREFIX,
   HOST_OCCURRENCES_KEY_PREFIX,
   OCCURRENCE_EVENTS_KEY_PREFIX,

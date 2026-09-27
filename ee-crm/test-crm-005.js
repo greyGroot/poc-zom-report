@@ -47,7 +47,6 @@ import {
   setCrm005MigrationState,
   OCCURRENCE_KEY_PREFIX,
   HOST_OCCURRENCES_KEY_PREFIX,
-  MEETING_KEY_PREFIX,
   CRM_005_MIGRATION_STATE_KEY
 } from './lib/redis.js';
 
@@ -65,7 +64,8 @@ import {
   MANDATORY_TEACHERS,
   validateSnapshot,
   validateManifest,
-  computeSha256
+  computeSha256,
+  MEETING_KEY_PREFIX
 } from './scripts/crm-005/schema.js';
 
 import { exportSnapshot } from './scripts/crm-005/export-poc-snapshot.js';

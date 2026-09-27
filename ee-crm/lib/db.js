@@ -1,8 +1,8 @@
 // ee-crm/lib/db.js
-// Persistence layer for Empire English CRM with Upstash Redis and Local Fallback
+// Persistence layer for Empire English CRM with strict Upstash Redis and Local Memory mode
 
-import { Redis } from '@upstash/redis';
 import crypto from 'node:crypto';
+import { getRedisClient, isMockClient } from './redis.js';
 
 const TEACHERS_KEY = 'ee:teachers:map';
 const LOGS_KEY = 'ee:app:logs';
@@ -17,25 +17,19 @@ class MemoryStore {
     this.weeklyLessons = new Map();
     this.logs = [];
   }
+
+  reset() {
+    this.teachers.clear();
+    this.reports.clear();
+    this.weeklyLessons.clear();
+    this.logs = [];
+  }
 }
 
 const memoryStore = new MemoryStore();
 
-/**
- * Returns active Redis client if credentials exist, otherwise null
- */
-function getRedisClient() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (url && token) {
-    try {
-      return new Redis({ url, token });
-    } catch (err) {
-      console.warn('[DB] Failed to init Upstash client, falling back to memory:', err.message);
-    }
-  }
-  return null;
+export function resetDbMemoryStore() {
+  memoryStore.reset();
 }
 
 // -------------------------------------------------------------
@@ -44,14 +38,10 @@ function getRedisClient() {
 
 export async function getTeachers() {
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const all = await redis.hgetall(TEACHERS_KEY);
-      if (!all) return [];
-      return Object.values(all).map(t => (typeof t === 'string' ? JSON.parse(t) : t));
-    } catch (err) {
-      console.warn('[DB] Redis getTeachers error, fallback to memory:', err.message);
-    }
+  if (!isMockClient()) {
+    const all = await redis.hgetall(TEACHERS_KEY);
+    if (!all) return [];
+    return Object.values(all).map(t => (typeof t === 'string' ? JSON.parse(t) : t));
   }
   return Array.from(memoryStore.teachers.values());
 }
@@ -60,26 +50,23 @@ export async function getTeacherById(id) {
   if (!id) return null;
   const idStr = String(id).trim();
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const raw = await redis.hget(TEACHERS_KEY, idStr);
-      if (raw) {
-        return typeof raw === 'string' ? JSON.parse(raw) : raw;
-      }
-      // Fallback: look up by schoolmateTeacherId or email if direct key didn't match
-      const all = await redis.hgetall(TEACHERS_KEY);
-      if (all) {
-        for (const val of Object.values(all)) {
-          const t = typeof val === 'string' ? JSON.parse(val) : val;
-          if (t && (t.id === idStr || String(t.schoolmateTeacherId) === idStr || t.email?.toLowerCase() === idStr.toLowerCase())) {
-            return t;
-          }
+
+  if (!isMockClient()) {
+    const raw = await redis.hget(TEACHERS_KEY, idStr);
+    if (raw) {
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    }
+    // Fallback: look up by schoolmateTeacherId or email if direct key didn't match
+    const all = await redis.hgetall(TEACHERS_KEY);
+    if (all) {
+      for (const val of Object.values(all)) {
+        const t = typeof val === 'string' ? JSON.parse(val) : val;
+        if (t && (t.id === idStr || String(t.schoolmateTeacherId) === idStr || t.email?.toLowerCase() === idStr.toLowerCase())) {
+          return t;
         }
       }
-      return null;
-    } catch (err) {
-      console.warn('[DB] Redis getTeacherById error:', err.message);
     }
+    return null;
   }
 
   if (memoryStore.teachers.has(idStr)) {
@@ -125,13 +112,9 @@ export async function createTeacher({
   };
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      await redis.hset(TEACHERS_KEY, { [id]: JSON.stringify(teacher) });
-      return teacher;
-    } catch (err) {
-      console.warn('[DB] Redis createTeacher error, saving to memory:', err.message);
-    }
+  if (!isMockClient()) {
+    await redis.hset(TEACHERS_KEY, { [id]: JSON.stringify(teacher) });
+    return teacher;
   }
 
   memoryStore.teachers.set(id, teacher);
@@ -140,13 +123,9 @@ export async function createTeacher({
 
 export async function deleteTeacher(id) {
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      await redis.hdel(TEACHERS_KEY, String(id));
-      return true;
-    } catch (err) {
-      console.warn('[DB] Redis deleteTeacher error:', err.message);
-    }
+  if (!isMockClient()) {
+    await redis.hdel(TEACHERS_KEY, String(id));
+    return true;
   }
   return memoryStore.teachers.delete(String(id));
 }
@@ -232,22 +211,18 @@ export async function bulkUpsertTeachers(schoolmateTeachers = []) {
 
   // Persist all updated records to Redis or MemoryStore
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const recordsToSet = {};
-      for (const [id, teacher] of teachersMap.entries()) {
-        recordsToSet[id] = JSON.stringify(teacher);
-      }
-      if (Object.keys(recordsToSet).length > 0) {
-        await redis.hset(TEACHERS_KEY, recordsToSet);
-      }
-    } catch (err) {
-      console.warn('[DB] Redis bulkUpsertTeachers error, updating memory store:', err.message);
+  if (!isMockClient()) {
+    const recordsToSet = {};
+    for (const [id, teacher] of teachersMap.entries()) {
+      recordsToSet[id] = JSON.stringify(teacher);
     }
-  }
-
-  for (const [id, teacher] of teachersMap.entries()) {
-    memoryStore.teachers.set(id, teacher);
+    if (Object.keys(recordsToSet).length > 0) {
+      await redis.hset(TEACHERS_KEY, recordsToSet);
+    }
+  } else {
+    for (const [id, teacher] of teachersMap.entries()) {
+      memoryStore.teachers.set(id, teacher);
+    }
   }
 
   return {
@@ -269,22 +244,18 @@ export async function getWeeklyLessonsCache(weekKey, teacherIds = []) {
   if (!weekKey || !teacherIds.length) return resultMap;
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const keys = teacherIds.map(id => `${WEEKLY_LESSONS_PREFIX}${weekKey}:${id}`);
-      if (keys.length > 0) {
-        const results = await redis.mget(...keys);
-        results.forEach((val, idx) => {
-          if (val) {
-            const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-            resultMap.set(Number(teacherIds[idx]), parsed);
-          }
-        });
-        return resultMap;
-      }
-    } catch (err) {
-      console.warn('[DB] Redis getWeeklyLessonsCache error, checking memory store:', err.message);
+  if (!isMockClient()) {
+    const keys = teacherIds.map(id => `${WEEKLY_LESSONS_PREFIX}${weekKey}:${id}`);
+    if (keys.length > 0) {
+      const results = await redis.mget(...keys);
+      results.forEach((val, idx) => {
+        if (val) {
+          const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+          resultMap.set(Number(teacherIds[idx]), parsed);
+        }
+      });
     }
+    return resultMap;
   }
 
   // Memory fallback
@@ -310,13 +281,9 @@ export async function setWeeklyLessonsCache(weekKey, teacherId, data, ttlSeconds
   const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
-      return;
-    } catch (err) {
-      console.warn('[DB] Redis setWeeklyLessonsCache error, saving to memory:', err.message);
-    }
+  if (!isMockClient()) {
+    await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
+    return;
   }
 
   memoryStore.weeklyLessons.set(key, data);
@@ -334,22 +301,17 @@ export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds
   if (!entriesList.length) return;
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      // Chunk pipeline execution in batches of 100
-      for (let i = 0; i < entriesList.length; i += 100) {
-        const chunk = entriesList.slice(i, i + 100);
-        const pipeline = redis.pipeline();
-        for (const [teacherId, data] of chunk) {
-          const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
-          pipeline.set(key, JSON.stringify(data), { ex: ttlSeconds });
-        }
-        await pipeline.exec();
+  if (!isMockClient()) {
+    for (let i = 0; i < entriesList.length; i += 100) {
+      const chunk = entriesList.slice(i, i + 100);
+      const pipeline = redis.pipeline();
+      for (const [teacherId, data] of chunk) {
+        const key = `${WEEKLY_LESSONS_PREFIX}${weekKey}:${teacherId}`;
+        pipeline.set(key, JSON.stringify(data), { ex: ttlSeconds });
       }
-      return;
-    } catch (err) {
-      console.warn('[DB] Redis setMultipleWeeklyLessonsCache error, saving to memory:', err.message);
+      await pipeline.exec();
     }
+    return;
   }
 
   for (const [teacherId, data] of entriesList) {
@@ -359,32 +321,29 @@ export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds
 }
 
 /**
- * Prunes all weekly lessons and report caches from Redis and in-memory store
+ * Prunes all weekly lessons and report caches from Redis or in-memory store
  */
 export async function pruneAllCaches() {
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const lessonKeys = await redis.keys(`${WEEKLY_LESSONS_PREFIX}*`);
-      const reportKeys = await redis.keys(`${REPORT_KEY_PREFIX}*`);
-      const allKeys = [
-        ...(Array.isArray(lessonKeys) ? lessonKeys : []),
-        ...(Array.isArray(reportKeys) ? reportKeys : [])
-      ];
-      // Chunk key deletion in batches of 100
-      for (let i = 0; i < allKeys.length; i += 100) {
-        const batch = allKeys.slice(i, i + 100);
+  if (!isMockClient()) {
+    const lessonKeys = await redis.keys(`${WEEKLY_LESSONS_PREFIX}*`);
+    const reportKeys = await redis.keys(`${REPORT_KEY_PREFIX}*`);
+    const allKeys = [
+      ...(Array.isArray(lessonKeys) ? lessonKeys : []),
+      ...(Array.isArray(reportKeys) ? reportKeys : [])
+    ];
+    for (let i = 0; i < allKeys.length; i += 100) {
+      const batch = allKeys.slice(i, i + 100);
+      if (batch.length > 0) {
         await redis.del(...batch);
       }
-    } catch (err) {
-      console.warn('[DB] Redis pruneAllCaches error, clearing memory store:', err.message);
     }
+    return;
   }
 
   memoryStore.weeklyLessons.clear();
   memoryStore.reports.clear();
 }
-
 
 // -------------------------------------------------------------
 // Report Cache
@@ -398,14 +357,9 @@ export async function saveCachedReport(teacherId, periodKey, parsedData) {
   };
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      // Cache for 5 minutes (300 seconds)
-      await redis.set(key, JSON.stringify(record), { ex: 300 });
-      return;
-    } catch (err) {
-      console.warn('[DB] Redis saveCachedReport error:', err.message);
-    }
+  if (!isMockClient()) {
+    await redis.set(key, JSON.stringify(record), { ex: 300 });
+    return;
   }
   memoryStore.reports.set(key, record);
 }
@@ -413,15 +367,11 @@ export async function saveCachedReport(teacherId, periodKey, parsedData) {
 export async function getCachedReport(teacherId, periodKey) {
   const key = `${REPORT_KEY_PREFIX}${teacherId}:${periodKey}`;
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const raw = await redis.get(key);
-      if (!raw) return null;
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      return parsed.data || parsed;
-    } catch (err) {
-      console.warn('[DB] Redis getCachedReport error:', err.message);
-    }
+  if (!isMockClient()) {
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return parsed.data || parsed;
   }
   const mem = memoryStore.reports.get(key);
   return mem ? mem.data : null;
@@ -443,35 +393,31 @@ export async function cleanOldAppLogs(maxAgeDays = LOG_RETENTION_DAYS) {
   const cutoffTime = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
   const redis = getRedisClient();
 
-  if (redis) {
-    try {
-      const rawList = await redis.lrange(LOGS_KEY, 0, -1);
-      if (!rawList || rawList.length === 0) return 0;
+  if (!isMockClient()) {
+    const rawList = await redis.lrange(LOGS_KEY, 0, -1);
+    if (!rawList || rawList.length === 0) return 0;
 
-      const validLogs = [];
-      let removedCount = 0;
+    const validLogs = [];
+    let removedCount = 0;
 
-      for (const item of rawList) {
-        const parsed = typeof item === 'string' ? JSON.parse(item) : item;
-        const itemTime = new Date(parsed.timestamp).getTime();
-        if (itemTime >= cutoffTime) {
-          validLogs.push(typeof item === 'string' ? item : JSON.stringify(item));
-        } else {
-          removedCount++;
-        }
+    for (const item of rawList) {
+      const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+      const itemTime = new Date(parsed.timestamp).getTime();
+      if (itemTime >= cutoffTime) {
+        validLogs.push(typeof item === 'string' ? item : JSON.stringify(item));
+      } else {
+        removedCount++;
       }
-
-      if (removedCount > 0) {
-        await redis.del(LOGS_KEY);
-        if (validLogs.length > 0) {
-          await redis.rpush(LOGS_KEY, ...validLogs);
-        }
-      }
-
-      return removedCount;
-    } catch (err) {
-      console.warn('[DB] Redis cleanOldAppLogs error:', err.message);
     }
+
+    if (removedCount > 0) {
+      await redis.del(LOGS_KEY);
+      if (validLogs.length > 0) {
+        await redis.rpush(LOGS_KEY, ...validLogs);
+      }
+    }
+
+    return removedCount;
   }
 
   // In-memory fallback
@@ -494,14 +440,10 @@ export async function addAppLog(entry) {
   };
 
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      await redis.lpush(LOGS_KEY, JSON.stringify(logItem));
-      await redis.ltrim(LOGS_KEY, 0, 499); // Keep latest 500 logs max
-      return logItem;
-    } catch (err) {
-      console.warn('[DB] Redis addAppLog error:', err.message);
-    }
+  if (!isMockClient()) {
+    await redis.lpush(LOGS_KEY, JSON.stringify(logItem));
+    await redis.ltrim(LOGS_KEY, 0, 499); // Keep latest 500 logs max
+    return logItem;
   }
 
   memoryStore.logs.unshift(logItem);
@@ -513,16 +455,12 @@ export async function getAppLogs(limit = 100) {
   const cutoffTime = Date.now() - LOG_RETENTION_MS;
   const redis = getRedisClient();
 
-  if (redis) {
-    try {
-      const list = await redis.lrange(LOGS_KEY, 0, limit - 1);
-      if (!list) return [];
-      return list
-        .map(item => (typeof item === 'string' ? JSON.parse(item) : item))
-        .filter(item => new Date(item.timestamp).getTime() >= cutoffTime);
-    } catch (err) {
-      console.warn('[DB] Redis getAppLogs error:', err.message);
-    }
+  if (!isMockClient()) {
+    const list = await redis.lrange(LOGS_KEY, 0, limit - 1);
+    if (!list) return [];
+    return list
+      .map(item => (typeof item === 'string' ? JSON.parse(item) : item))
+      .filter(item => new Date(item.timestamp).getTime() >= cutoffTime);
   }
 
   return memoryStore.logs

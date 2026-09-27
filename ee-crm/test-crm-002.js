@@ -1,5 +1,4 @@
-// ee-crm/test-crm-002.js
-// Comprehensive Unit & Integration Test Suite for CRM-002: Teacher-Day Details Page & API
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import assert from 'node:assert/strict';
 import {

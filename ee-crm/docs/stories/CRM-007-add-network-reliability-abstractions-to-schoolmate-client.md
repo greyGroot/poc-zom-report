@@ -95,6 +95,10 @@ And should instead proceed with the existing re-authentication logic (clearing `
 
 - What should be the specific timeout threshold for the `getTeacherSchedulePdf` endpoint? (Suggested: 25 seconds, close to Vercel's standard limit).
 
+## Technical implementation
+
+- [Architecture: CRM-007 — Add Network Reliability Abstractions to Schoolmate Client](../architecture/CRM-007-add-network-reliability-abstractions-to-schoolmate-client.md)
+
 ## Definition of Ready checklist
 
 - [x] Business objective and user are clear

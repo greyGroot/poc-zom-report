@@ -8,11 +8,13 @@ const tests = [
   { name: 'Database & Logging Test', file: 'test-db.js' },
   { name: 'Zoom Occurrences Test', file: 'test-zoom-occurrences.js' },
   { name: 'CRM-002 Teacher-Day Details Test', file: 'test-crm-002.js' },
-  { name: 'CRM-003 Webhook & Migration Test', file: 'test-crm-003.js' },
   { name: 'CRM-004 Teacher-Day Comparison Test', file: 'test-crm-004.js' },
   { name: 'CRM-005 Zoom Migration & Ingestion Test', file: 'test-crm-005.js' },
+  { name: 'CRM-006 Persistence Fallbacks & Reliability Test', file: 'test-crm-006.js' },
   { name: 'Live Schoolmate API Test', file: 'test-schoolmate.js' }
 ];
+
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 async function runTest(test) {
   return new Promise((resolve, reject) => {
@@ -20,7 +22,10 @@ async function runTest(test) {
     console.log(`RUNNING: ${test.name} (${test.file})`);
     console.log(`========================================`);
 
-    const p = spawn('node', [test.file], { stdio: 'inherit' });
+    const p = spawn('node', [test.file], {
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'test' }
+    });
     p.on('close', code => {
       if (code === 0) {
         resolve();

@@ -10,13 +10,13 @@ import {
   SCHEMA_VERSION,
   canonicalizeJson,
   computeSha256,
-  validateSnapshot
-} from './schema.js';
-import {
-  InMemoryRedis,
+  validateSnapshot,
   MEETING_KEY_PREFIX,
   MEETINGS_INDEX_KEY,
   WEBHOOK_LOGS_KEY
+} from './schema.js';
+import {
+  InMemoryRedis
 } from '../../lib/redis.js';
 
 export function getRedactedFingerprint(url) {

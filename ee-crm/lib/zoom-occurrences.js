@@ -3,13 +3,19 @@
 // Stores and retrieves every meeting occurrence by its exact Zoom UUID.
 // Does NOT compute derived reconciliation flags, risk labels, or fraud conclusions.
 
-import { Redis } from '@upstash/redis';
 import { getKyivDateString } from './timezone.js';
+import {
+  getRedisClient,
+  isMockClient,
+  InMemoryRedis,
+  OCCURRENCE_KEY_PREFIX,
+  HOST_OCCURRENCES_KEY_PREFIX
+} from './redis.js';
 
-const OCCURRENCE_PREFIX = 'zoom:occurrence:';
-const HOST_OCCURRENCES_PREFIX = 'zoom:host:occurrences:';
+const OCCURRENCE_PREFIX = OCCURRENCE_KEY_PREFIX;
+const HOST_OCCURRENCES_PREFIX = HOST_OCCURRENCES_KEY_PREFIX;
 
-// In-Memory store for tests and fallback when Redis credentials are not present
+// In-Memory store for tests and fallback when explicitly in memory mode
 class OccurrenceMemoryStore {
   constructor() {
     this.occurrences = new Map();
@@ -32,25 +38,18 @@ export function setOccurrenceRedisClient(client) {
   customRedisClient = client;
 }
 
-/**
- * Returns active Upstash Redis client if credentials are configured, otherwise null
- */
-function getRedisClient() {
+function resolveClient() {
   if (customRedisClient) {
     return customRedisClient;
   }
+  return getRedisClient();
+}
 
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (url && token) {
-    try {
-      return new Redis({ url, token });
-    } catch (err) {
-      console.warn('[ZoomOccurrences] Redis init error, fallback to memory:', err.message);
-    }
+function isMemoryMode() {
+  if (customRedisClient) {
+    return customRedisClient instanceof InMemoryRedis;
   }
-  return null;
+  return isMockClient();
 }
 
 /**
@@ -128,33 +127,29 @@ export function calculateIntervalUnionSeconds(sessions) {
 export async function getZoomOccurrence(uuidOrSafeId) {
   if (!uuidOrSafeId) return null;
 
-  // Check exact UUID or canonical occurrence ID in memory
-  if (memoryStore.occurrences.has(uuidOrSafeId)) {
-    return memoryStore.occurrences.get(uuidOrSafeId);
+  if (isMemoryMode()) {
+    // Check exact UUID or canonical occurrence ID in memory
+    if (memoryStore.occurrences.has(uuidOrSafeId)) {
+      return memoryStore.occurrences.get(uuidOrSafeId);
+    }
+
+    // Check decoded safeId in memory
+    try {
+      const restored = fromSafeOccurrenceId(uuidOrSafeId);
+      if (restored && memoryStore.occurrences.has(restored)) {
+        return memoryStore.occurrences.get(restored);
+      }
+    } catch {}
   }
 
-  // Check decoded safeId in memory
-  try {
-    const restored = fromSafeOccurrenceId(uuidOrSafeId);
-    if (restored && memoryStore.occurrences.has(restored)) {
-      return memoryStore.occurrences.get(restored);
-    }
-  } catch {}
-
-  const redis = getRedisClient();
-  if (redis) {
-    try {
-      const safeId = toSafeOccurrenceId(uuidOrSafeId);
-      let raw = await redis.get(`${OCCURRENCE_PREFIX}${safeId}`);
-      if (!raw && safeId !== uuidOrSafeId) {
-        raw = await redis.get(`${OCCURRENCE_PREFIX}${uuidOrSafeId}`);
-      }
-      if (raw) {
-        return typeof raw === 'string' ? JSON.parse(raw) : raw;
-      }
-    } catch (err) {
-      console.warn('[ZoomOccurrences] Redis getZoomOccurrence error:', err.message);
-    }
+  const redis = resolveClient();
+  const safeId = toSafeOccurrenceId(uuidOrSafeId);
+  let raw = await redis.get(`${OCCURRENCE_KEY_PREFIX}${safeId}`);
+  if (!raw && safeId !== uuidOrSafeId) {
+    raw = await redis.get(`${OCCURRENCE_KEY_PREFIX}${uuidOrSafeId}`);
+  }
+  if (raw) {
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
   }
 
   return null;
@@ -266,23 +261,18 @@ export async function saveZoomOccurrence(occurrence, options = {}) {
     };
   }
 
-  // Persist to memory
-  memoryStore.occurrences.set(occId, recordToSave);
+  if (isMemoryMode()) {
+    memoryStore.occurrences.set(occId, recordToSave);
+  }
 
-  // Persist to Redis
-  const redis = getRedisClient();
-  if (redis) {
-    try {
-      const safeId = toSafeOccurrenceId(occId);
-      await redis.set(`${OCCURRENCE_PREFIX}${safeId}`, JSON.stringify(recordToSave));
-      if (recordToSave.host_email) {
-        const hostKey = `${HOST_OCCURRENCES_PREFIX}${recordToSave.host_email.toLowerCase().trim()}`;
-        const score = recordToSave.start_time ? Date.parse(recordToSave.start_time) : Date.now();
-        await redis.zadd(hostKey, { score, member: safeId });
-      }
-    } catch (err) {
-      console.warn('[ZoomOccurrences] Redis save error:', err.message);
-    }
+  // Persist to Redis (errors propagate)
+  const redis = resolveClient();
+  const safeId = toSafeOccurrenceId(occId);
+  await redis.set(`${OCCURRENCE_PREFIX}${safeId}`, JSON.stringify(recordToSave));
+  if (recordToSave.host_email) {
+    const hostKey = `${HOST_OCCURRENCES_PREFIX}${recordToSave.host_email.toLowerCase().trim()}`;
+    const score = recordToSave.start_time ? Date.parse(recordToSave.start_time) : Date.now();
+    await redis.zadd(hostKey, { score, member: safeId });
   }
 
   return recordToSave;
@@ -312,7 +302,7 @@ export async function getZoomOccurrencesForTeacher({
     targetHosts.add(teacherEmail.trim().toLowerCase());
   }
 
-  // BUG-02: If no host identity is mapped, return empty array immediately (prevent leaking other teachers' data)
+  // BUG-02: If no host identity is mapped, return empty array immediately
   if (targetHosts.size === 0) {
     return [];
   }
@@ -320,70 +310,65 @@ export async function getZoomOccurrencesForTeacher({
   const allOccurrences = [];
   const seenIds = new Set();
 
-  // 1. Gather occurrences from memoryStore
-  for (const occ of memoryStore.occurrences.values()) {
-    if (!occ) continue;
-    const occId = occ.occurrence_id || occ.uuid;
-    if (!occId || seenIds.has(occId)) continue;
-    allOccurrences.push(occ);
-    seenIds.add(occId);
-  }
-
-  // 2. Gather occurrences from Redis
-  const redis = getRedisClient();
-  if (redis) {
-    try {
-      let minScore = '-inf';
-      let maxScore = '+inf';
-
-      if (fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
-        minScore = new Date(`${fromDate}T00:00:00.000Z`).getTime() - 4 * 3600 * 1000;
-      }
-      if (toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
-        maxScore = new Date(`${toDate}T23:59:59.999Z`).getTime() + 4 * 3600 * 1000;
-      }
-
-      for (const host of targetHosts) {
-        const hostKey = `${HOST_OCCURRENCES_PREFIX}${host}`;
-        let safeIds = [];
-
-        if (minScore !== '-inf' || maxScore !== '+inf') {
-          if (typeof redis.zrangebyscore === 'function') {
-            safeIds = await redis.zrangebyscore(hostKey, minScore, maxScore);
-          } else {
-            safeIds = await redis.zrange(hostKey, minScore, maxScore, { byScore: true });
-          }
-        } else {
-          safeIds = await redis.zrange(hostKey, 0, -1);
-        }
-
-        if (Array.isArray(safeIds) && safeIds.length > 0) {
-          const keys = safeIds.map(sId => `${OCCURRENCE_PREFIX}${sId}`);
-          let rawList = [];
-          if (typeof redis.mget === 'function') {
-            rawList = await redis.mget(...keys);
-          } else {
-            rawList = await Promise.all(keys.map(k => redis.get(k)));
-          }
-
-          for (const raw of rawList) {
-            if (raw) {
-              const occ = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              const occId = occ?.occurrence_id || occ?.uuid;
-              if (occ && occId && !seenIds.has(occId)) {
-                allOccurrences.push(occ);
-                seenIds.add(occId);
-              }
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[ZoomOccurrences] Redis getZoomOccurrencesForTeacher error:', err.message);
+  if (isMemoryMode()) {
+    for (const occ of memoryStore.occurrences.values()) {
+      if (!occ) continue;
+      const occId = occ.occurrence_id || occ.uuid;
+      if (!occId || seenIds.has(occId)) continue;
+      allOccurrences.push(occ);
+      seenIds.add(occId);
     }
   }
 
-  // 3. Filter strictly by host identity and inclusive date range
+  // Gather occurrences from Redis
+  const redis = resolveClient();
+  let minScore = '-inf';
+  let maxScore = '+inf';
+
+  if (fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+    minScore = new Date(`${fromDate}T00:00:00.000Z`).getTime() - 4 * 3600 * 1000;
+  }
+  if (toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+    maxScore = new Date(`${toDate}T23:59:59.999Z`).getTime() + 4 * 3600 * 1000;
+  }
+
+  for (const host of targetHosts) {
+    const hostKey = `${HOST_OCCURRENCES_PREFIX}${host}`;
+    let safeIds = [];
+
+    if (minScore !== '-inf' || maxScore !== '+inf') {
+      if (typeof redis.zrangebyscore === 'function') {
+        safeIds = await redis.zrangebyscore(hostKey, minScore, maxScore);
+      } else {
+        safeIds = await redis.zrange(hostKey, minScore, maxScore, { byScore: true });
+      }
+    } else {
+      safeIds = await redis.zrange(hostKey, 0, -1);
+    }
+
+    if (Array.isArray(safeIds) && safeIds.length > 0) {
+      const keys = safeIds.map(sId => `${OCCURRENCE_PREFIX}${sId}`);
+      let rawList = [];
+      if (typeof redis.mget === 'function') {
+        rawList = await redis.mget(...keys);
+      } else {
+        rawList = await Promise.all(keys.map(k => redis.get(k)));
+      }
+
+      for (const raw of rawList) {
+        if (raw) {
+          const occ = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          const occId = occ?.occurrence_id || occ?.uuid;
+          if (occ && occId && !seenIds.has(occId)) {
+            allOccurrences.push(occ);
+            seenIds.add(occId);
+          }
+        }
+      }
+    }
+  }
+
+  // Filter strictly by host identity and inclusive date range
   const filtered = [];
   for (const occ of allOccurrences) {
     const occHost = (occ.host_email || '').trim().toLowerCase();
@@ -401,7 +386,7 @@ export async function getZoomOccurrencesForTeacher({
     filtered.push(occ);
   }
 
-  // 4. Sort chronologically ascending
+  // Sort chronologically ascending
   filtered.sort((a, b) => {
     const tA = a.start_time ? Date.parse(a.start_time) : 0;
     const tB = b.start_time ? Date.parse(b.start_time) : 0;

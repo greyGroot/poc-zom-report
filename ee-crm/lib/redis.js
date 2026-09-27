@@ -1,14 +1,10 @@
-// api/lib/redis.js
-// Pure ESM Upstash Redis persistence layer with in-memory fallback for poc-zoom-report
+// ee-crm/lib/redis.js
+// Pure ESM Upstash Redis persistence layer for Empire English CRM
+// Enforces strict persistence mode policy and fail-fast durability.
 
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { Redis } from '@upstash/redis';
-
 import { toSafeOccurrenceId, deriveFactFingerprint } from './zoom-occurrence.js';
 
-export const MEETING_KEY_PREFIX = 'zoom:meeting:';
-export const MEETINGS_INDEX_KEY = 'zoom:meetings:index';
-export const WEBHOOK_LOGS_KEY = 'zoom:webhook:logs';
 export const OCCURRENCE_KEY_PREFIX = 'zoom:occurrence:';
 export const HOST_OCCURRENCES_KEY_PREFIX = 'zoom:host:occurrences:';
 export const OCCURRENCE_EVENTS_KEY_PREFIX = 'zoom:occurrence:events:';
@@ -31,176 +27,8 @@ function cloneDeep(val) {
 }
 
 /**
- * In-memory asynchronous lock map per meetingId.
- * Serializes concurrent read-modify-write and delete operations on the same meeting.
- */
-const meetingLocks = new Map();
-const lockStorage = new AsyncLocalStorage();
-
-/**
- * Execute an asynchronous operation with exclusive lock per meetingId.
- * Ensures sequential execution of concurrent operations on the same meeting.
- * Supports re-entrancy within the same asynchronous call chain.
- * @param {string|number} meetingId
- * @param {Function} fn
- * @returns {Promise<any>}
- */
-export function withMeetingLock(meetingId, fn) {
-  const idStr = String(meetingId);
-  const currentLocks = lockStorage.getStore();
-  if (currentLocks && currentLocks.has(idStr)) {
-    return fn();
-  }
-
-  const prevPromise = meetingLocks.get(idStr) || Promise.resolve();
-
-  let release;
-  const gate = new Promise(resolve => { release = resolve; });
-
-  const cleanup = () => {
-    release();
-    if (meetingLocks.get(idStr) === gate) {
-      meetingLocks.delete(idStr);
-    }
-  };
-
-  meetingLocks.set(idStr, gate);
-
-  return prevPromise
-    .catch(() => {}) // Prevent previous operation errors from blocking subsequent ones
-    .then(() => {
-      const active = new Set(currentLocks || []);
-      active.add(idStr);
-      return lockStorage.run(active, fn);
-    })
-    .finally(cleanup);
-}
-
-/**
- * Deep merge participant structures, supporting both Array and Object map formats.
- * Matches participant items by email, user_id, or name.
- * @param {Array|object} existingParticipants
- * @param {Array|object} newParticipants
- * @returns {Array|object}
- */
-export function mergeParticipants(existingParticipants, newParticipants) {
-  if (newParticipants === undefined || newParticipants === null) {
-    return existingParticipants;
-  }
-  if (existingParticipants === undefined || existingParticipants === null) {
-    return newParticipants;
-  }
-
-  const matches = (a, b, keyA, keyB) => {
-    if (!a || !b) return false;
-    const emailA = (a.email || (keyA && keyA.includes('@') ? keyA : '') || '').toLowerCase().trim();
-    const emailB = (b.email || (keyB && keyB.includes('@') ? keyB : '') || '').toLowerCase().trim();
-    if (emailA && emailB && emailA === emailB) return true;
-
-    const idA = String(a.user_id || a.userId || a.id || '');
-    const idB = String(b.user_id || b.userId || b.id || '');
-    if (idA && idB && idA === idB) return true;
-
-    const nameA = (a.name || a.user_name || '').toLowerCase().trim();
-    const nameB = (b.name || b.user_name || '').toLowerCase().trim();
-    if (nameA && nameB && nameA === nameB) return true;
-
-    return false;
-  };
-
-  // Case 1: Existing participants is an Array
-  if (Array.isArray(existingParticipants)) {
-    const result = [...existingParticipants];
-    const incomingList = Array.isArray(newParticipants)
-      ? newParticipants
-      : Object.entries(newParticipants).map(([k, v]) => ({
-          email: k.includes('@') ? k : undefined,
-          ...(typeof v === 'object' && v !== null ? v : { val: v })
-        }));
-
-    for (const item of incomingList) {
-      if (!item || typeof item !== 'object') continue;
-      const idx = result.findIndex(p => matches(p, item));
-      if (idx !== -1) {
-        result[idx] = { ...result[idx], ...item };
-      } else {
-        result.push({ ...item });
-      }
-    }
-    return result;
-  }
-
-  // Case 2: Existing participants is an Object map
-  if (typeof existingParticipants === 'object') {
-    const result = { ...existingParticipants };
-
-    if (Array.isArray(newParticipants)) {
-      for (const item of newParticipants) {
-        if (!item || typeof item !== 'object') continue;
-        let foundKey = null;
-        for (const [key, existingItem] of Object.entries(result)) {
-          if (matches(existingItem, item, key)) {
-            foundKey = key;
-            break;
-          }
-        }
-        if (foundKey) {
-          result[foundKey] = { ...result[foundKey], ...item };
-        } else {
-          const key = item.email || (item.user_id ? String(item.user_id) : null) || item.name || `participant_${Object.keys(result).length}`;
-          result[key] = { ...item };
-        }
-      }
-      return result;
-    }
-
-    if (typeof newParticipants === 'object') {
-      for (const [key, item] of Object.entries(newParticipants)) {
-        if (result[key] && typeof result[key] === 'object' && typeof item === 'object' && item !== null) {
-          result[key] = { ...result[key], ...item };
-        } else {
-          result[key] = item;
-        }
-      }
-      return result;
-    }
-  }
-
-  return newParticipants;
-}
-
-/**
- * Compute the UTC offset string for Europe/Kyiv on a given date (YYYY-MM-DD).
- * Europe/Kyiv observes EET (UTC+2) in winter and EEST (UTC+3) in summer.
- * @param {string} dateStr 'YYYY-MM-DD'
- * @returns {string} e.g. '+02:00' or '+03:00'
- */
-export function getKyivOffset(dateStr) {
-  try {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const approx = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Kyiv',
-      timeZoneName: 'longOffset'
-    });
-    const parts = formatter.formatToParts(approx);
-    const tz = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+03:00';
-    const match = tz.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
-    if (match) {
-      const sign = match[1];
-      const hours = match[2].padStart(2, '0');
-      const mins = (match[3] || '00').padStart(2, '0');
-      return `${sign}${hours}:${mins}`;
-    }
-  } catch {
-    // Fallback if timezone data is unavailable
-  }
-  return '+03:00';
-}
-
-/**
- * In-memory Redis mock implementation supporting key-value and Sorted Set (ZSET) commands.
- * Used during local development and automated testing when remote Upstash credentials are not configured.
+ * In-memory Redis mock implementation supporting key-value, Hashes, Lists, and Sorted Sets (ZSET).
+ * Used strictly during local development and automated testing when explicitly allowed.
  */
 export class InMemoryRedis {
   constructor() {
@@ -208,6 +36,10 @@ export class InMemoryRedis {
     this.zsets = new Map();
     this.lists = new Map();
     this.hashes = new Map();
+  }
+
+  async ping() {
+    return 'PONG';
   }
 
   async hset(key, fieldOrObj, val) {
@@ -243,6 +75,16 @@ export class InMemoryRedis {
     const hash = this.hashes.get(key);
     if (!hash || !hash.has(String(field))) return null;
     return cloneDeep(hash.get(String(field)));
+  }
+
+  async hdel(key, ...fields) {
+    const hash = this.hashes.get(key);
+    if (!hash) return 0;
+    let count = 0;
+    for (const f of fields.flat()) {
+      if (hash.delete(String(f))) count++;
+    }
+    return count;
   }
 
   async hgetall(key) {
@@ -283,7 +125,7 @@ export class InMemoryRedis {
   pipeline() {
     const operations = [];
     const proxy = {
-      set: (k, v) => { operations.push(() => this.set(k, v)); return proxy; },
+      set: (k, v, opts) => { operations.push(() => this.set(k, v, opts)); return proxy; },
       get: (k) => { operations.push(() => this.get(k)); return proxy; },
       zadd: (k, ...args) => { operations.push(() => this.zadd(k, ...args)); return proxy; },
       hset: (k, f, v) => { operations.push(() => this.hset(k, f, v)); return proxy; },
@@ -307,6 +149,18 @@ export class InMemoryRedis {
     }
     for (const val of values.flat()) {
       list.unshift(cloneDeep(val));
+    }
+    return list.length;
+  }
+
+  async rpush(key, ...values) {
+    let list = this.lists.get(key);
+    if (!list) {
+      list = [];
+      this.lists.set(key, list);
+    }
+    for (const val of values.flat()) {
+      list.push(cloneDeep(val));
     }
     return list.length;
   }
@@ -365,7 +219,12 @@ export class InMemoryRedis {
   }
 
   async keys(pattern = '*') {
-    const allKeys = Array.from(new Set([...this.store.keys(), ...this.zsets.keys()]));
+    const allKeys = Array.from(new Set([
+      ...this.store.keys(),
+      ...this.zsets.keys(),
+      ...this.lists.keys(),
+      ...this.hashes.keys()
+    ]));
     if (pattern === '*' || !pattern) return allKeys;
     const regexPattern = '^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$';
     const reg = new RegExp(regexPattern);
@@ -440,7 +299,6 @@ export class InMemoryRedis {
 
     // Default: index-based range [start, stop]
     let entries = Array.from(zset.entries()).map(([member, score]) => ({ member, score }));
-    // Sort by score ascending, ties by member
     entries.sort((a, b) => a.score - b.score || a.member.localeCompare(b.member));
 
     if (options.rev) {
@@ -483,7 +341,6 @@ export class InMemoryRedis {
 
     const boundA = parseBound(min);
     const boundB = parseBound(max);
-    // Normalize bounds to handle both [min, max] and Redis-standard REV [max, min]
     const lowerBound = boundA.val <= boundB.val ? boundA : boundB;
     const upperBound = boundA.val >= boundB.val ? boundA : boundB;
 
@@ -542,11 +399,73 @@ let currentClient = null;
 let isMock = false;
 
 /**
- * Returns the active Redis client instance (real Upstash Redis or InMemoryRedis fallback).
+ * Resolves the required persistence mode based on environment variables.
+ * Enforces production invariants: production cannot use in-memory fallbacks or explicit mock flags.
+ * @param {object} [env=process.env]
+ * @returns {'upstash_cloud' | 'in_memory'}
+ */
+export function resolvePersistenceMode(env = process.env) {
+  const nodeEnv = env.NODE_ENV;
+  const url = (env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL || '').trim();
+  const token = (env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN || '').trim();
+  const hasUrl = Boolean(url);
+  const hasToken = Boolean(token);
+  const hasCreds = hasUrl && hasToken;
+  const hasPartialCreds = (hasUrl && !hasToken) || (!hasUrl && hasToken);
+  const useInMemoryFlag = env.USE_IN_MEMORY_REDIS === 'true';
+
+  if (hasPartialCreds) {
+    throw new Error('Partial Redis configuration: both URL and Token must be provided');
+  }
+
+  if (nodeEnv === 'production') {
+    if (useInMemoryFlag) {
+      throw new Error('Invalid configuration: USE_IN_MEMORY_REDIS is forbidden in production');
+    }
+    if (!hasCreds) {
+      throw new Error('Production environment requires valid Upstash/Vercel KV Redis credentials');
+    }
+    return 'upstash_cloud';
+  }
+
+  if (nodeEnv === 'test') {
+    if (useInMemoryFlag || !hasCreds) {
+      return 'in_memory';
+    }
+    return 'upstash_cloud';
+  }
+
+  if (nodeEnv === 'development') {
+    if (useInMemoryFlag) {
+      return 'in_memory';
+    }
+    if (hasCreds) {
+      return 'upstash_cloud';
+    }
+    return 'in_memory';
+  }
+
+  // Any other environment
+  if (useInMemoryFlag) {
+    return 'in_memory';
+  }
+  if (hasCreds) {
+    return 'upstash_cloud';
+  }
+
+  throw new Error('Redis credentials required when USE_IN_MEMORY_REDIS is not set');
+}
+
+/**
+ * Returns the active Redis client instance (real Upstash Redis or InMemoryRedis).
+ * Throws when production configuration is invalid or client construction fails.
  * @param {{ forceMock?: boolean }} [options]
  */
 export function getRedisClient(options = {}) {
   if (options.forceMock) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('forceMock is forbidden in production');
+    }
     if (!currentClient || !isMock) {
       currentClient = new InMemoryRedis();
       isMock = true;
@@ -558,49 +477,27 @@ export function getRedisClient(options = {}) {
     return currentClient;
   }
 
-  // Support Vercel KV (automatically provisioned by Vercel) and standalone Upstash Redis
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  const isTest = process.env.NODE_ENV === 'test' || process.env.USE_IN_MEMORY_REDIS === 'true';
+  const mode = resolvePersistenceMode(process.env);
 
-  if ((!url || !token) && !isTest) {
-    try {
-      if (typeof Redis.fromEnv === 'function') {
-        const envClient = Redis.fromEnv();
-        if (envClient) {
-          currentClient = envClient;
-          isMock = false;
-          return currentClient;
-        }
-      }
-    } catch {
-      // ignore and fall back to in-memory
-    }
-  }
-
-  if (!url || !token || isTest) {
+  if (mode === 'in_memory') {
     currentClient = new InMemoryRedis();
     isMock = true;
     return currentClient;
   }
 
-  try {
-    const client = new Redis({ url, token });
-    // Polyfill zrangebyscore if not natively present in this @upstash/redis version
-    if (typeof client.zrangebyscore !== 'function') {
-      client.zrangebyscore = function(key, min, max, opts = {}) {
-        return client.zrange(key, min, max, { ...opts, byScore: true });
-      };
-    }
-    currentClient = client;
-    isMock = false;
-    return currentClient;
-  } catch (err) {
-    console.warn(`[Redis] Failed to initialize Upstash/Vercel KV client (${err.message}). Falling back to InMemoryRedis.`);
-    currentClient = new InMemoryRedis();
-    isMock = true;
-    return currentClient;
+  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL).trim();
+  const token = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN).trim();
+
+  const client = new Redis({ url, token });
+  if (typeof client.zrangebyscore !== 'function') {
+    client.zrangebyscore = function(key, min, max, opts = {}) {
+      return client.zrange(key, min, max, { ...opts, byScore: true });
+    };
   }
+
+  currentClient = client;
+  isMock = false;
+  return currentClient;
 }
 
 /**
@@ -612,12 +509,11 @@ export function setRedisClient(client) {
 }
 
 /**
- * Reset singleton client instance (clears current client and active locks).
+ * Reset singleton client instance (clears current client).
  */
 export function resetRedisClient() {
   currentClient = null;
   isMock = false;
-  meetingLocks.clear();
 }
 
 /**
@@ -628,245 +524,45 @@ export function isMockClient() {
 }
 
 /**
- * Store or update a meeting record in Redis and maintain the sorted set index.
- * Sequential execution per meetingId is enforced via withMeetingLock.
- * @param {string|number} meetingId
- * @param {object} data
- * @param {{ merge?: boolean }} [options]
- * @returns {Promise<object>} The stored meeting record
+ * Check Redis health status via read-only ping.
+ * @returns {Promise<{ ok: boolean, connected: boolean, configured: boolean, mode: string, error?: string }>}
  */
-export async function saveMeeting(meetingId, data, options = {}) {
-  if (meetingId === null || meetingId === undefined || meetingId === '') {
-    throw new Error('meetingId is required to save meeting');
-  }
-  const idStr = String(meetingId);
-
-  return withMeetingLock(idStr, async () => {
-    const redis = getRedisClient();
-    const key = `${MEETING_KEY_PREFIX}${idStr}`;
-    const safeData = (data && typeof data === 'object') ? data : {};
-
-    let recordToSave = safeData;
-    if (options.merge) {
-      const existing = await getMeeting(idStr);
-      if (existing && typeof existing === 'object') {
-        recordToSave = {
-          ...existing,
-          ...safeData,
-          participants: mergeParticipants(existing.participants, safeData.participants)
-        };
-      }
-    }
-
-    const normalized = {
-      ...recordToSave,
-      meeting_id: recordToSave.meeting_id !== undefined ? recordToSave.meeting_id : (recordToSave.meetingId !== undefined ? recordToSave.meetingId : idStr),
-      meetingId: recordToSave.meetingId !== undefined ? recordToSave.meetingId : (recordToSave.meeting_id !== undefined ? recordToSave.meeting_id : idStr),
-      updated_at: recordToSave.updated_at || new Date().toISOString()
-    };
-
-    await redis.set(key, normalized);
-
-    // Score by start timestamp in milliseconds (handle numeric 0 cleanly)
-    const rawStartTime = normalized.start_time !== undefined ? normalized.start_time
-      : (normalized.startTime !== undefined ? normalized.startTime : normalized.created_at);
-
-    let score = Date.now();
-    if (rawStartTime !== undefined && rawStartTime !== null && rawStartTime !== '') {
-      const parsed = typeof rawStartTime === 'number' ? rawStartTime : Date.parse(rawStartTime);
-      if (!Number.isNaN(parsed)) {
-        score = parsed;
-      }
-    }
-
-    await redis.zadd(MEETINGS_INDEX_KEY, { score, member: idStr });
-    return normalized;
-  });
-}
-
-/**
- * Retrieve a meeting record from Redis.
- * @param {string|number} meetingId
- * @returns {Promise<object|null>}
- */
-export async function getMeeting(meetingId) {
-  if (meetingId === null || meetingId === undefined || meetingId === '') return null;
-  const redis = getRedisClient();
-  const key = `${MEETING_KEY_PREFIX}${String(meetingId)}`;
-  const raw = await redis.get(key);
-  if (!raw) return null;
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return raw;
-    }
-  }
-  return raw;
-}
-
-/**
- * Query meetings from the sorted set index with optional date and host filtering.
- * @param {{
- *   date?: string,
- *   startDate?: string,
- *   endDate?: string,
- *   minScore?: number|string,
- *   maxScore?: number|string,
- *   host?: string,
- *   limit?: number,
- *   offset?: number,
- *   rev?: boolean
- * }} [options]
- * @returns {Promise<Array<object>>}
- */
-export async function getMeetingsByIndex(options = {}) {
-  const {
-    date,
-    startDate,
-    endDate,
-    host,
-    limit = 50,
-    offset = 0,
-    rev = true
-  } = options;
-
-  let min = options.minScore !== undefined ? options.minScore : '-inf';
-  let max = options.maxScore !== undefined ? options.maxScore : '+inf';
-
-  // Handle date parameter (YYYY-MM-DD) with dynamic Europe/Kyiv seasonal timezone offset
-  const targetDate = date || startDate;
-  if (targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
-    const startOffset = getKyivOffset(targetDate);
-    const startOfDay = new Date(`${targetDate}T00:00:00.000${startOffset}`).getTime();
-    min = startOfDay;
-
-    const endTarget = endDate || targetDate;
-    const endOffset = getKyivOffset(endTarget);
-    const endOfDay = new Date(`${endTarget}T23:59:59.999${endOffset}`).getTime();
-    max = endOfDay;
-  } else if (endDate && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-    const endOffset = getKyivOffset(endDate);
-    const endOfDay = new Date(`${endDate}T23:59:59.999${endOffset}`).getTime();
-    max = endOfDay;
-  }
-
-  // In Upstash Redis and Redis 6.2+: ZRANGE key max min BYSCORE REV
-  // When rev: true is passed, score bounds must be ordered [max, min]
-  const startScore = rev ? max : min;
-  const stopScore = rev ? min : max;
-
-  const redis = getRedisClient();
-
-  // If host filter is present, we cannot apply count: limit at the ZSET query level
-  // because the top `limit` meetings may belong to other hosts.
-  const zrangeOpts = {
-    byScore: true,
-    rev
-  };
-  if (!host) {
-    zrangeOpts.offset = offset;
-    zrangeOpts.count = limit;
-  }
-
-  const ids = await redis.zrange(MEETINGS_INDEX_KEY, startScore, stopScore, zrangeOpts);
-
-  if (!ids || ids.length === 0) {
-    return [];
-  }
-
-  const meetings = await Promise.all(ids.map(id => getMeeting(id)));
-  let validMeetings = meetings.filter(Boolean);
-
-  if (host) {
-    const hostQuery = String(host).trim().toLowerCase();
-    validMeetings = validMeetings.filter(m => {
-      const email = String(m.host_email || m.hostEmail || '').toLowerCase();
-      const name = String(m.host_name || m.hostName || '').toLowerCase();
-      return email.includes(hostQuery) || name.includes(hostQuery);
-    });
-
-    if (offset > 0) {
-      validMeetings = validMeetings.slice(offset);
-    }
-    if (limit !== undefined && limit !== null) {
-      const lim = Number(limit);
-      if (lim >= 0) {
-        validMeetings = validMeetings.slice(0, lim);
-      }
-    }
-  }
-
-  return validMeetings;
-}
-
-/**
- * Delete a meeting record and remove it from the index.
- * Sequential execution per meetingId is enforced via withMeetingLock.
- * @param {string|number} meetingId
- * @returns {Promise<boolean>}
- */
-export async function deleteMeeting(meetingId) {
-  if (meetingId === null || meetingId === undefined || meetingId === '') return false;
-  const idStr = String(meetingId);
-  return withMeetingLock(idStr, async () => {
-    const redis = getRedisClient();
-    const key = `${MEETING_KEY_PREFIX}${idStr}`;
-    await Promise.all([
-      redis.del(key),
-      redis.zrem(MEETINGS_INDEX_KEY, idStr)
-    ]);
-    return true;
-  });
-}
-
-/**
- * Record an incoming webhook event log in Redis for live monitoring and debugging.
- * Stores up to the last 100 events in a capped Redis list.
- * @param {object} entry
- */
-export async function recordWebhookLog(entry) {
+export async function checkRedisHealth() {
   try {
-    const redis = getRedisClient();
-    const item = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      timestamp: new Date().toISOString(),
-      ...entry
-    };
-    if (typeof redis.lpush === 'function') {
-      await redis.lpush(WEBHOOK_LOGS_KEY, JSON.stringify(item));
-      if (typeof redis.ltrim === 'function') {
-        await redis.ltrim(WEBHOOK_LOGS_KEY, 0, 9999);
+    if (currentClient) {
+      if (isMock) {
+        return { ok: true, connected: true, configured: false, mode: 'in_memory' };
       }
+      const res = await currentClient.ping();
+      if (res === 'PONG' || res) {
+        return { ok: true, connected: true, configured: true, mode: 'upstash_cloud' };
+      }
+      return { ok: false, connected: false, configured: true, mode: 'unavailable', error: 'PING_FAILED' };
     }
-  } catch (err) {
-    console.warn('[Redis] Error saving webhook log:', err.message);
-  }
-}
 
-/**
- * Retrieve the most recent webhook event logs from Redis.
- * @param {number} [limit=100]
- * @returns {Promise<Array<object>>}
- */
-export async function getWebhookLogs(limit = 100) {
-  try {
-    const redis = getRedisClient();
-    if (typeof redis.lrange === 'function') {
-      const raw = await redis.lrange(WEBHOOK_LOGS_KEY, 0, limit - 1);
-      return (raw || []).map(r => {
-        if (typeof r === 'object' && r !== null) return r;
-        try {
-          return JSON.parse(r);
-        } catch {
-          return { raw: String(r) };
-        }
-      });
+    const mode = resolvePersistenceMode(process.env);
+    if (mode === 'in_memory') {
+      return { ok: true, connected: true, configured: false, mode: 'in_memory' };
     }
-    return [];
+
+    const client = getRedisClient();
+    const res = await client.ping();
+    if (res === 'PONG' || res) {
+      return { ok: true, connected: true, configured: true, mode: 'upstash_cloud' };
+    }
+    return { ok: false, connected: false, configured: true, mode: 'unavailable', error: 'PING_FAILED' };
   } catch (err) {
-    console.warn('[Redis] Error fetching webhook logs:', err.message);
-    return [];
+    const isConfigured = Boolean(
+      (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) &&
+      (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN)
+    );
+    return {
+      ok: false,
+      connected: false,
+      configured: isConfigured,
+      mode: 'unavailable',
+      error: 'REDIS_CONNECTION_FAILED'
+    };
   }
 }
 
@@ -887,14 +583,10 @@ export async function saveOccurrenceFact(safeId, fact, customClient = null) {
   const fingerprint = deriveFactFingerprint(fact);
 
   if (typeof redis.hset === 'function') {
-    // @upstash/redis accepts an object map. The positional Redis signature is
-    // supported by the in-memory fake but is interpreted incorrectly by the
-    // production client (it stores the fingerprint string character-by-character).
     await redis.hset(factKey, {
       [fingerprint]: typeof fact === 'string' ? fact : JSON.stringify(fact)
     });
   } else {
-    // Fallback if hset is not available
     const existing = (await redis.get(factKey)) || {};
     const map = typeof existing === 'string' ? JSON.parse(existing) : existing;
     map[fingerprint] = fact;
@@ -924,9 +616,7 @@ export async function getOccurrenceFacts(safeId, customClient = null) {
         const parsed = typeof val === 'string' ? JSON.parse(val) : val;
         if (parsed && typeof parsed === 'object' && parsed.type) facts.push(parsed);
       } catch {
-        // CRM-003/early CRM-005 used the wrong Upstash HSET signature and may
-        // have left character-valued hash fields. They are not valid facts;
-        // guarded migration execution replaces the hash from source evidence.
+        // Ignore unparseable entries
       }
     }
     return facts;
@@ -1011,23 +701,6 @@ export async function getZoomOccurrence(uuidOrSafeId, customClient = null) {
 }
 
 /**
- * Clear all webhook event logs from Redis.
- * @returns {Promise<boolean>}
- */
-export async function clearWebhookLogs() {
-  try {
-    const redis = getRedisClient();
-    if (typeof redis.del === 'function') {
-      await redis.del(WEBHOOK_LOGS_KEY);
-    }
-    return true;
-  } catch (err) {
-    console.warn('[Redis] Error clearing webhook logs:', err.message);
-    return false;
-  }
-}
-
-/**
  * Get the current migration state from target Redis.
  * @param {object} [customClient]
  * @returns {Promise<object|null>}
@@ -1074,6 +747,3 @@ export async function setCrm005MigrationState(state, customClient = null) {
   await redis.set(CRM_005_MIGRATION_STATE_KEY, state);
   return state;
 }
-
-
-

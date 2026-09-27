@@ -1,14 +1,14 @@
-// api/webhooks/zoom.js
+// ee-crm/lib/zoom-webhook-handler.js
 // Pure ESM Zoom Webhook Ingestion & Security Handler
 // Supports Vercel Serverless (Node req, res) and Web Fetch API (request)
 
 import crypto from 'crypto';
 import {
-  recordWebhookLog,
   saveOccurrenceFact,
   getOccurrenceFacts,
   publishOccurrenceProjection
 } from './redis.js';
+import { logger } from './logger.js';
 import { getHeader, verifyZoomWebhookSignature } from './zoom-signature.js';
 import { toSafeOccurrenceId, normalizeWebhookEventToFacts, reduceOccurrenceFacts } from './zoom-occurrence.js';
 
@@ -55,7 +55,6 @@ export function calculateIntervalUnionSeconds(sessions) {
 
   return Math.round(totalMs / 1000);
 }
-
 
 /**
  * Asynchronously read request body stream when req.body is undefined.
@@ -259,14 +258,10 @@ export default async function handler(reqOrRequest, optionalRes) {
         .update(plainToken)
         .digest('hex');
 
-      try {
-        await recordWebhookLog({
-          event: 'endpoint.url_validation',
-          status: 'success',
-          topic: 'Zoom CRC Validation',
-          message: 'CRC challenge-response verified successfully'
-        });
-      } catch {}
+      // Best effort audit log to ee:app:logs
+      logger.info('ZOOM_CRC', 'CRC challenge-response verified successfully', { plainToken }).catch(err => {
+        console.error('[Zoom Webhook] Audit log error on CRC:', err.message);
+      });
 
       return responder.send(200, { plainToken, encryptedToken });
     }
@@ -318,22 +313,28 @@ export default async function handler(reqOrRequest, optionalRes) {
     try {
       occResult = await ingestOccurrenceEvent(event, payload);
       if (occResult.disposition === 'legacy_only_missing_uuid' && isKnownEvent) {
-        await recordWebhookLog({
+        logger.warn('ZOOM_WEBHOOK', `Event ${event} has no object.uuid`, {
           event: 'metric.legacy_only_missing_uuid',
-          status: 'warning',
-          meeting_id: meetingId,
-          topic: 'Missing UUID in Zoom Webhook',
-          message: `Event ${event} has no object.uuid`
+          meeting_id: meetingId
+        }).catch(err => {
+          console.error('[Zoom Webhook] Audit log error on missing uuid:', err.message);
         });
       }
     } catch (occErr) {
       console.error('[Zoom Webhook] Occurrence ingestion failed:', occErr);
-      return responder.send(500, { error: 'Occurrence ingestion failed', message: occErr.message });
+      logger.error('ZOOM_WEBHOOK', 'Occurrence ingestion failed', occErr, {
+        event,
+        meeting_id: meetingId
+      }).catch(() => {});
+      return responder.send(500, {
+        error: 'ZOOM_PERSISTENCE_FAILED',
+        message: 'Occurrence persistence failed'
+      });
     }
 
-    // Log incoming webhook event to Redis for live monitoring and diagnostics
+    // Secondary audit logging to ee:app:logs via standard logger (best-effort)
     try {
-      await recordWebhookLog({
+      await logger.info('ZOOM_WEBHOOK', `Zoom webhook event: ${event}`, {
         event,
         status: isKnownEvent ? 'success' : 'unexpected_event',
         meeting_id: meetingId,
@@ -343,7 +344,6 @@ export default async function handler(reqOrRequest, optionalRes) {
         participant_name: object.participant?.user_name || object.participant?.name || undefined,
         participant_email: object.participant?.email || object.participant?.user_email || undefined,
         participant_user_id: object.participant?.user_id !== undefined ? String(object.participant.user_id) : undefined,
-        participant_ip: object.participant?.public_ip || object.participant?.ip_address || undefined,
         details: {
           action: object.action || undefined,
           ip_address: object.participant?.public_ip || object.participant?.ip_address || undefined,
@@ -351,15 +351,11 @@ export default async function handler(reqOrRequest, optionalRes) {
           leave_time: object.participant?.leave_time || undefined,
           duration: object.duration !== undefined ? object.duration : undefined,
           start_time: object.start_time || undefined,
-          end_time: object.end_time || undefined,
-          connections: Array.isArray(object.data_connections)
-            ? object.data_connections.map(c => `${c.connection_type || 'media'} (${c.total_time_cost_ms || 0}ms)`).join(', ')
-            : undefined
-        },
-        payload_raw: JSON.stringify(body, null, 2)
+          end_time: object.end_time || undefined
+        }
       });
-    } catch {
-      // ignore logging failure
+    } catch (logErr) {
+      console.error('[Zoom Webhook] Secondary audit log error:', logErr.message);
     }
 
     return responder.send(200, {
@@ -371,15 +367,10 @@ export default async function handler(reqOrRequest, optionalRes) {
 
   } catch (err) {
     console.error('[Zoom Webhook] Unhandled exception in webhook handler:', err);
-    try {
-      await recordWebhookLog({
-        event: 'error.handler_exception',
-        status: 'error',
-        error: err.message,
-        stack: err.stack
-      });
-    } catch {}
-    return responder.send(500, { error: 'Internal Server Error', message: err.message });
+    return responder.send(500, {
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred'
+    });
   }
 }
 

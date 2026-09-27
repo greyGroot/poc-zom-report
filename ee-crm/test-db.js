@@ -1,5 +1,4 @@
-// ee-crm/test-db.js
-// Verification of teacher persistence and logging
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import { createTeacher, getTeachers, getTeacherById, deleteTeacher, getAppLogs } from './lib/db.js';
 import { logger } from './lib/logger.js';

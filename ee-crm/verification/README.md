@@ -86,13 +86,20 @@ node verification/tests/crm-002-teacher-day-details.e2e.mjs
 node verification/tests/crm-003-zoom-migration.e2e.mjs
 ```
 
-### Run CRM-003 Developer Tests
+### Run CRM-004 E2E Verification Suite
+
+```bash
+# In ee-crm directory (runs against local mock and live Vercel deployment):
+npm run test:crm-004:e2e
+# Or:
+node verification/tests/crm-004-activity-comparison.e2e.mjs
+```
+
+### Run CRM-004 Developer Tests
 
 ```bash
 # In ee-crm directory:
-npm run test:crm-002    # CRM-002 acceptance unit tests (14 checks)
-npm run test:crm-003    # CRM-003 acceptance tests (11 checks)
-npm run test:zoom       # Occurrence store unit tests (10 checks)
+npm run test:crm-004    # CRM-004 comparison domain & acceptance unit tests (15 checks)
 ```
 
 ---
@@ -104,6 +111,7 @@ npm run test:zoom       # Occurrence store unit tests (10 checks)
 | **CRM-001** | Display tracked Zoom meetings on teacher page | **Pass locally / Blocked on Vercel (Auth)** | [`tests/crm-001-zoom-meetings.e2e.mjs`](./tests/crm-001-zoom-meetings.e2e.mjs) | [`reports/CRM-001-e2e-report.md`](./reports/CRM-001-e2e-report.md) |
 | **CRM-002** | View teacher-day details page and API | **Pass locally & on Vercel** | [`tests/crm-002-teacher-day-details.e2e.mjs`](./tests/crm-002-teacher-day-details.e2e.mjs) | [`reports/CRM-002-e2e-report.md`](./reports/CRM-002-e2e-report.md) |
 | **CRM-003** | Migrate legacy Zoom meetings and connect webhook ingestion | **Pass locally / Blocked on Vercel (Stale deployment)** | [`tests/crm-003-zoom-migration.e2e.mjs`](./tests/crm-003-zoom-migration.e2e.mjs) | [`reports/CRM-003-e2e-report.md`](./reports/CRM-003-e2e-report.md) |
+| **CRM-004** | Compare Schoolmate and Zoom activity for a teacher-day | **Pass locally & on Vercel** | [`tests/crm-004-activity-comparison.e2e.mjs`](./tests/crm-004-activity-comparison.e2e.mjs) | [`reports/CRM-004-e2e-report.md`](./reports/CRM-004-e2e-report.md) |
 
 ---
 

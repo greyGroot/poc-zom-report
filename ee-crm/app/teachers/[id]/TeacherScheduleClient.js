@@ -756,8 +756,8 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                 </h4>
                               </div>
 
-                              <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                {isExpanded ? '▲' : '▼'}
+                              <span className={`lesson-chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">
+                                ▼
                               </span>
                             </div>
 

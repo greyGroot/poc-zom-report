@@ -1,9 +1,11 @@
 # CRM-006 — Remove Silent In-Memory Persistence Fallbacks
 
 **Story ID:** CRM-006
-**Status:** Ready
+**Status:** Implemented — ready for QA validation 27 September 2026
 **Primary user:** System Administrator / Operations
 **Related PRD:** [PRD.md](../PRD.md)
+**UX specification:** Not required; this story changes backend persistence and operational health behavior only.
+**Technical implementation:** [CRM-006 implementation plan](../architecture/CRM-006-remove-silent-in-memory-persistence-fallbacks.md)
 
 ## Summary
 
@@ -130,4 +132,6 @@ And it must NOT write entries to the legacy POC key `zoom:webhook:logs`.
 |---|---|
 | 2026-09-27 | Story created based on architectural review findings indicating critical risk of silent data loss in serverless environments. |
 | 2026-09-27 | Updated to include test runner decoupling (HIGH-1, removing obsolete test-crm-003 from test-all.js), webhook log redirection away from legacy POC key (MED-1), and dead legacy meeting method pruning from lib/redis.js (LOW-3). |
+| 2026-09-27 | Product stakeholder confirmed implementation is in progress. Status changed from Ready to In Progress. |
+| 2026-09-27 | Implementation completed: strict mode policy, health endpoint ping & 503 status, failure propagation, webhook 500 status on failure, audit log redirection to ee:app:logs, dead API pruning, test decoupling, test:crm-006 suite passing. |
 

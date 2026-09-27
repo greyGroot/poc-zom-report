@@ -1,7 +1,7 @@
 # CRM-005 — Complete one-time Zoom migration and independent ingestion
 
 **Story ID:** CRM-005  
-**Status:** Ready  
+**Status:** Done — completion confirmed 27 September 2026  
 **Primary user:** School administrator / integration operator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Depends on:** [CRM-002 — Teacher-day details and independent Zoom backend](./CRM-002-teacher-day-details-page.md), [CRM-003 — Migrate Zoom meetings and connect webhook ingestion](./CRM-003-migrate-zoom-meetings-and-connect-webhook-ingestion.md)  
@@ -482,3 +482,4 @@ No product-blocking questions remain. Operational scheduling, secure artifact lo
 | 27 September 2026 | Required a frozen source snapshot, manifest reconciliation, permanent completion guard and separate local/production QA procedures. |
 | 27 September 2026 | Required an explicit Architect review after QA approval; CRM-005 cannot be marked Done until the Architect approves the implementation and production evidence without blockers. |
 | 27 September 2026 | Added the six business-confirmed Zoom-member teachers as mandatory migration and per-teacher reconciliation scope; missing or unmapped evidence for any one teacher blocks QA approval. |
+| 27 September 2026 | Product stakeholder confirmed CRM-005 and its required delivery/review process are complete. Status changed to Done. |

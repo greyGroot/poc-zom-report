@@ -1,7 +1,7 @@
 # CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day
 
 **Story ID:** CRM-004  
-**Status:** Ready  
+**Status:** Done — completion confirmed 27 September 2026  
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **UX Specification:** [UX: CRM-004 — Compare Schoolmate and Zoom activity for a teacher-day](../ux/CRM-004-compare-schoolmate-and-zoom-activity-for-teacher-day.md)  
@@ -206,3 +206,4 @@ And the overlap is shown as unknown, not zero.
 | 27 September 2026 | Defined CRM-004 as a factual teacher-day comparison feature. |
 | 27 September 2026 | Compare conducted Schoolmate lessons with Zoom meetings having at least 300 supported seconds of eligible teacher–participant overlap. |
 | 27 September 2026 | Excluded individual meeting tags, lesson matching and payroll/fraud conclusions. |
+| 27 September 2026 | Product stakeholder confirmed CRM-004 is complete. Status changed to Done. |

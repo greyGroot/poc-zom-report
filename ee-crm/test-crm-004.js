@@ -16,7 +16,7 @@
 //    - Scenario 7: Current / future day in progress
 //    - Scenario 8: Provisional state for stale Zoom data
 // 6. Participant Display Deduplication in formatOccurrenceForDisplay
-// 7. Full getTeacherDayData integration & diagnostics payload
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import assert from 'node:assert/strict';
 import {

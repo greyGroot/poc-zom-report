@@ -802,9 +802,13 @@ a:hover {
 }
 
 .lesson-chevron {
-  font-size: 12px;
+  display: inline-block;
+  font-size: 11px;
   color: var(--text-muted);
-  transition: transform 0.2s ease;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center center;
+  user-select: none;
+  line-height: 1;
 }
 
 .lesson-chevron.open {

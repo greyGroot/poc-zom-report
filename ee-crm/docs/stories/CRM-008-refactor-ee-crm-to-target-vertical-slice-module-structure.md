@@ -4,6 +4,8 @@
 **Status:** Ready
 **Primary user:** Software Architect / Developers
 **Related PRD:** [PRD.md](../PRD.md)
+**UX specification:** Not required; this is an internal structural refactor with no intended user-interface change.
+**Technical implementation:** [CRM-008 implementation plan](../architecture/CRM-008-refactor-ee-crm-to-target-vertical-slice-module-structure.md)
 
 ## Summary
 

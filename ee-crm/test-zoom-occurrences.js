@@ -1,5 +1,4 @@
-// ee-crm/test-zoom-occurrences.js
-// Unit tests for authoritative Zoom meeting occurrence store, interval union, and identity isolation
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import assert from 'node:assert/strict';
 import {

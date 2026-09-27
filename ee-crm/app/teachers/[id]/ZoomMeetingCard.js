@@ -101,8 +101,8 @@ export default function ZoomMeetingCard({ occurrence }) {
             </button>
 
             {pCount > 0 && (
-              <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                {participantsOpen ? '▲' : '▼'}
+              <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} aria-hidden="true">
+                ▼
               </span>
             )}
           </div>
