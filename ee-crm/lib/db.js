@@ -57,17 +57,40 @@ export async function getTeachers() {
 }
 
 export async function getTeacherById(id) {
+  if (!id) return null;
+  const idStr = String(id).trim();
   const redis = getRedisClient();
   if (redis) {
     try {
-      const raw = await redis.hget(TEACHERS_KEY, String(id));
-      if (!raw) return null;
-      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const raw = await redis.hget(TEACHERS_KEY, idStr);
+      if (raw) {
+        return typeof raw === 'string' ? JSON.parse(raw) : raw;
+      }
+      // Fallback: look up by schoolmateTeacherId or email if direct key didn't match
+      const all = await redis.hgetall(TEACHERS_KEY);
+      if (all) {
+        for (const val of Object.values(all)) {
+          const t = typeof val === 'string' ? JSON.parse(val) : val;
+          if (t && (t.id === idStr || String(t.schoolmateTeacherId) === idStr || t.email?.toLowerCase() === idStr.toLowerCase())) {
+            return t;
+          }
+        }
+      }
+      return null;
     } catch (err) {
       console.warn('[DB] Redis getTeacherById error:', err.message);
     }
   }
-  return memoryStore.teachers.get(String(id)) || null;
+
+  if (memoryStore.teachers.has(idStr)) {
+    return memoryStore.teachers.get(idStr);
+  }
+  for (const t of memoryStore.teachers.values()) {
+    if (t.id === idStr || String(t.schoolmateTeacherId) === idStr || t.email?.toLowerCase() === idStr.toLowerCase()) {
+      return t;
+    }
+  }
+  return null;
 }
 
 export async function createTeacher({
