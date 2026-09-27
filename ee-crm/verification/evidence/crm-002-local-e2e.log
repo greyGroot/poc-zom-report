@@ -1,0 +1,22 @@
+[PASS] HEALTH-LOCAL: Local server GET /api/health responds with 200 OK - Mode: in_memory_fallback
+[PASS] HEALTH-VERCEL: Vercel deployment GET /api/health responds with 200 OK - X-Vercel-Id: arn1::iad1::t45bs-1790485103849-b1d2fce31f00
+[BLOCKED] VERCEL-API-DAYS: Vercel GET /api/teachers/[id]/days/[date] endpoint presence - HTTP 404: Endpoint not deployed to Vercel (uncommitted in repository)
+[BLOCKED] VERCEL-PAGE-DAY: Vercel GET /teachers/[id]/[date] page route presence - HTTP 404: Route not deployed to Vercel (uncommitted in repository)
+[PASS] SEED-TEACHERS: Seeded test teachers (mapped Olena and unmapped Taras) - Olena ID: t_00f9dbd4 (HTTP: t_9e757995), Unmapped ID: t_fbf758ec
+[PASS] SEED-SCHOOLMATE: Seeded Schoolmate schedule cache for 2026-09-18 - 2 lessons, 150 min, 750 UAH
+[PASS] SEED-ZOOM: Seeded 3 Zoom occurrences (reconnects, overlapping devices, incomplete boundary, reused numeric ID) - 
+[PASS] SCENARIO-08-TEACHER: Scenario 8: Non-existent teacher returns status 404 - Teacher not found
+[PASS] SCENARIO-08-DATE: Scenario 8: Malformed or non-existent date returns status 400 - Tested 2026-02-30, 2026-99-99, not-a-date, empty string
+[PASS] SCENARIO-01-07: Scenario 1 & 7: Valid direct request returns complete day payload with adjacent day stepper - Prev: 2026-09-17, Next: 2026-09-19
+[PASS] SCENARIO-02: Scenario 2: Both sources displayed in separate sections with factual totals - SM: 2 lessons, 150m, 750 UAH | Zoom: 3 meetings, 150m
+[PASS] SCENARIO-03: Scenario 3: Participant inspection with interval union (reconnects & concurrent devices) - Alex B reconnect: 84 min | Maryna K overlap: 60 min (union)
+[PASS] SCENARIO-12: Scenario 12: Reused numeric room IDs remain strictly isolated by UUID - Shared numeric ID: 98765432101
+[PASS] SCENARIO-04-ZOOM-EMPTY: Scenario 4: Zoom empty date shows neutral empty state without conclusions - zoom.state: "empty", totalMeetings: 0
+[PASS] SCENARIO-05-UNMAPPED: Scenario 5: Unmapped teacher reports state "unmapped" without throwing error - zoom.state: "unmapped"
+[PASS] SCENARIO-06: Scenario 6: Incomplete meeting boundary shows durationState="incomplete", durationMinutes=null - Null duration prevents invented elapsed values
+[PASS] SCENARIO-09: Scenario 9: Strictly no inferred reconciliation, tags, flags, or payroll conclusions in response - Factual evidence boundary strictly preserved
+[PASS] HTTP-API-DAYS-200: Local GET /api/teachers/[id]/days/[date] returns 200 with Cache-Control: no-store, private - Status: 200, Success: true
+[PASS] HTTP-API-DAYS-404: Local GET /api/teachers/[id]/days/[date] returns 404 for missing teacher - Teacher not found
+[PASS] HTTP-API-DAYS-400: Local GET /api/teachers/[id]/days/[date] returns 400 for invalid date - Invalid date format (expected YYYY-MM-DD)
+[PASS] NAV-OVERVIEW-LINKS: Teacher schedule overview contains Open day details links preserving query filters - Implemented on Schoolmate day headers and Zoom date groups
+[PASS] I18N-COVERAGE: Teacher-day translations and localized route wrappers present across EN, UK, PL - Verified app/uk/... and app/pl/... routes exist

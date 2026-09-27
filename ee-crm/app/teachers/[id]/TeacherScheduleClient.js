@@ -572,14 +572,39 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                     return (
                       <div key={dayGroup.date} className="day-group">
                         {/* Day Subtotal Header */}
-                        <div className="day-header">
-                          <span className="day-title">
-                            📅 {dayGroup.dayName || dayGroup.date}
-                          </span>
-                          <span className="day-subtotal">
-                            {dayGroup.subtotalMinutes} min • {filteredLessons.length} {t('schedule.lessonsCount').toLowerCase()}
-                            {dayGroup.subtotalWageFormatted ? ` • ${dayGroup.subtotalWageFormatted}` : ''}
-                          </span>
+                        <div className="day-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <span className="day-title">
+                              📅 {dayGroup.dayName || dayGroup.date}
+                            </span>
+                            <span className="day-subtotal">
+                              {dayGroup.subtotalMinutes} min • {filteredLessons.length} {t('schedule.lessonsCount').toLowerCase()}
+                              {dayGroup.subtotalWageFormatted ? ` • ${dayGroup.subtotalWageFormatted}` : ''}
+                            </span>
+                          </div>
+                          {dayGroup.date && (
+                            <Link
+                              href={formatUrl(`/teachers/${teacherId}/${dayGroup.date}?from=${fromDate}&to=${toDate}${activePreset ? `&preset=${activePreset}` : ''}${statusFilter !== 'all' ? `&filter=${statusFilter}` : ''}`)}
+                              className="btn-open-day-details"
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                backgroundColor: '#eff6ff',
+                                color: '#2563eb',
+                                border: '1px solid #bfdbfe',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                textDecoration: 'none',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{t('schedule.openDayDetails') || 'Open day details'}</span>
+                              <span>→</span>
+                            </Link>
+                          )}
                         </div>
 
                         {/* Day Lessons List */}

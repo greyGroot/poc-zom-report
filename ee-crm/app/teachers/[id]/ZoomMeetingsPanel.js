@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { getKyivDateString, formatKyivDateHeader } from '@/lib/timezone';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
 
 export default function ZoomMeetingsPanel({ teacherId, fromDate, toDate, initialMeetings = [] }) {
-  const { t, locale } = useLanguage();
+  const { t, locale, formatUrl } = useLanguage();
 
   const {
     status,
@@ -181,9 +182,33 @@ export default function ZoomMeetingsPanel({ teacherId, fromDate, toDate, initial
               {groupedMeetings.map(group => (
                 <div key={group.date} className="zoom-date-group">
                   {isMultiDay && (
-                    <h3 className="zoom-date-heading">
-                      📅 {formatKyivDateHeader(group.date, locale)}
-                    </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                      <h3 className="zoom-date-heading" style={{ margin: 0 }}>
+                        📅 {formatKyivDateHeader(group.date, locale)}
+                      </h3>
+                      {group.date && group.date !== 'Unknown' && (
+                        <Link
+                          href={formatUrl(`/teachers/${teacherId}/${group.date}?from=${fromDate}&to=${toDate}`)}
+                          className="btn-open-day-details-sm"
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            backgroundColor: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1px solid #bfdbfe',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}
+                        >
+                          <span>{t('schedule.openDayDetails') || 'Open day details'}</span>
+                          <span>→</span>
+                        </Link>
+                      )}
+                    </div>
                   )}
 
                   <div className="zoom-meeting-cards-list">

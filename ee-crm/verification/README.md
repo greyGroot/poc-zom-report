@@ -13,15 +13,20 @@ ee-crm/verification/
 ├── README.md               # Suite prerequisites, commands, organization, and coverage index
 ├── tests/                  # Automated E2E test suites (organized by story / feature)
 │   ├── crm-001-zoom-meetings.e2e.mjs
+│   ├── crm-002-teacher-day-details.e2e.mjs
 │   └── crm-003-zoom-migration.e2e.mjs
 ├── fixtures/               # Test data fixtures, mocks, and seed data
 │   ├── crm-001-zoom-fixtures.mjs
+│   ├── crm-002-day-details-fixtures.mjs
 │   └── crm-003-zoom-fixtures.mjs
 ├── reports/                # Formal markdown QA verification reports
 │   ├── CRM-001-e2e-report.md
+│   ├── CRM-002-e2e-report.md
 │   └── CRM-003-e2e-report.md
 └── evidence/               # Raw test logs, HTTP request/response payloads, and probe records
     ├── crm-001-local-e2e.log
+    ├── crm-002-local-e2e.log
+    ├── crm-002-vercel-evidence.json
     ├── crm-003-dry-run-report.json
     ├── crm-003-live-report.json
     ├── crm-003-vercel-evidence.json
@@ -64,6 +69,16 @@ npx next dev -p 3000
 node verification/tests/crm-001-zoom-meetings.e2e.mjs
 ```
 
+### Run CRM-002 E2E Verification Suite
+
+```bash
+# Ensure local application server is running on port 3000:
+# npm run dev -- -p 3000 (or npx next start -p 3000)
+
+# Run cumulative E2E suite:
+node verification/tests/crm-002-teacher-day-details.e2e.mjs
+```
+
 ### Run CRM-003 E2E Verification Suite
 
 ```bash
@@ -75,6 +90,7 @@ node verification/tests/crm-003-zoom-migration.e2e.mjs
 
 ```bash
 # In ee-crm directory:
+npm run test:crm-002    # CRM-002 acceptance unit tests (14 checks)
 npm run test:crm-003    # CRM-003 acceptance tests (11 checks)
 npm run test:zoom       # Occurrence store unit tests (10 checks)
 ```
@@ -86,6 +102,7 @@ npm run test:zoom       # Occurrence store unit tests (10 checks)
 | Story ID | Story Title | Status | Primary Test Script | Report |
 |---|---|---|---|---|
 | **CRM-001** | Display tracked Zoom meetings on teacher page | **Pass locally / Blocked on Vercel (Auth)** | [`tests/crm-001-zoom-meetings.e2e.mjs`](./tests/crm-001-zoom-meetings.e2e.mjs) | [`reports/CRM-001-e2e-report.md`](./reports/CRM-001-e2e-report.md) |
+| **CRM-002** | View teacher-day details page and API | **Pass locally / Blocked on Vercel (Requires deployment)** | [`tests/crm-002-teacher-day-details.e2e.mjs`](./tests/crm-002-teacher-day-details.e2e.mjs) | [`reports/CRM-002-e2e-report.md`](./reports/CRM-002-e2e-report.md) |
 | **CRM-003** | Migrate legacy Zoom meetings and connect webhook ingestion | **Pass locally / Blocked on Vercel (Stale deployment)** | [`tests/crm-003-zoom-migration.e2e.mjs`](./tests/crm-003-zoom-migration.e2e.mjs) | [`reports/CRM-003-e2e-report.md`](./reports/CRM-003-e2e-report.md) |
 
 ---
@@ -153,3 +170,44 @@ npm run test:zoom       # Occurrence store unit tests (10 checks)
 - Historical migration explicitly maps Savchuk (`yuliasavchuk03@gmail.com`) on `2026-09-25` into the UUID occurrence store.
 - The migrated personal-room lesson preserves its 66-minute duration and both student participants (`bevz.s` and `Анна Козачук`).
 - The teacher host index and teacher-period query return the migrated Savchuk occurrence instead of the empty state.
+
+---
+
+## CRM-002 Test Scenarios Covered
+
+**Group 1 — Service Availability & Health Probe**
+1. **HEALTH-LOCAL**: Local server `/api/health` responds HTTP 200 with service operational.
+2. **HEALTH-VERCEL**: Vercel production deployment responds HTTP 200.
+
+**Group 2 — Vercel Deployed CRM-002 Route Probe**
+3. **VERCEL-API-DAYS**: Probes `/api/teachers/[id]/days/[date]` on Vercel (`BLOCKED` — returns 404; uncommitted in repository).
+4. **VERCEL-PAGE-DAY**: Probes `/teachers/[id]/[date]` on Vercel (`BLOCKED` — returns 404; uncommitted in repository).
+
+**Group 3 — Local Test Data Seed & Logic Verification**
+5. **SEED-TEACHERS**: Creates test teachers (mapped Olena and unmapped Taras).
+6. **SEED-SCHOOLMATE**: Seeds Schoolmate schedule cache for `2026-09-18` (2 lessons, 150 min, 750 UAH).
+7. **SEED-ZOOM**: Seeds Zoom occurrences with reconnects, overlapping devices, incomplete boundaries, and reused room IDs.
+
+**Group 4 — Acceptance Criteria Scenarios (Scenarios 1-17)**
+8. **SCENARIO-08-TEACHER**: Non-existent teacher returns HTTP 404.
+9. **SCENARIO-08-DATE**: Malformed / non-existent date returns HTTP 400 (tested `2026-02-30`, `2026-99-99`, malformed, empty).
+10. **SCENARIO-01-07**: Valid direct request returns complete day payload with adjacent day stepper (`prevDate` / `nextDate`).
+11. **SCENARIO-02**: Both sources displayed in separate sections with factual totals (SM: 2 lessons, 150m, 750 UAH | Zoom: 3 meetings, 150m).
+12. **SCENARIO-03**: Participant inspection with interval union (Alex B reconnect: 84 min | Maryna K concurrent overlap: 60 min).
+13. **SCENARIO-12**: Reused numeric room IDs remain strictly isolated by UUID without participant leakage.
+14. **SCENARIO-04-ZOOM-EMPTY**: Zoom empty date shows neutral empty state without conclusions.
+15. **SCENARIO-05-UNMAPPED**: Unmapped teacher reports `zoom.state: "unmapped"` without throwing error or breaking Schoolmate.
+16. **SCENARIO-06**: Incomplete meeting boundary shows `durationState: "incomplete"`, `durationMinutes: null` (no invented wall-clock duration).
+17. **SCENARIO-09**: Strictly no inferred reconciliation, pairing, tags, flags, or payroll conclusions in response.
+
+**Group 5 — Local HTTP API Route Handler Contract**
+18. **HTTP-API-DAYS-200**: GET `/api/teachers/[id]/days/[date]` returns HTTP 200 with `Cache-Control: no-store, private`.
+19. **HTTP-API-DAYS-404**: GET `/api/teachers/[id]/days/[date]` returns HTTP 404 for missing teacher.
+20. **HTTP-API-DAYS-400**: GET `/api/teachers/[id]/days/[date]` returns HTTP 400 for invalid date.
+
+**Group 6 — Teacher Overview Page Navigation & Linkage**
+21. **NAV-OVERVIEW-LINKS**: Teacher schedule overview contains `Open day details` links preserving query filters (`from`, `to`, `preset`, `filter`).
+
+**Group 7 — Internationalization & Localized Routes**
+22. **I18N-COVERAGE**: Full `dayDetails` translations across English (`en`), Ukrainian (`uk`), and Polish (`pl`); localized routes `/uk/...` and `/pl/...` verified.
+

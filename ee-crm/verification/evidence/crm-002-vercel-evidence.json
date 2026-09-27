@@ -1,0 +1,143 @@
+{
+  "timestamp": "2026-09-27T04:58:25.861Z",
+  "vercelUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "localUrl": "http://localhost:3000",
+  "probeReport": {
+    "apiDaysStatus": 404,
+    "pageDayStatus": 404
+  },
+  "testResults": [
+    {
+      "id": "HEALTH-LOCAL",
+      "description": "Local server GET /api/health responds with 200 OK",
+      "status": "PASS",
+      "details": "Mode: in_memory_fallback"
+    },
+    {
+      "id": "HEALTH-VERCEL",
+      "description": "Vercel deployment GET /api/health responds with 200 OK",
+      "status": "PASS",
+      "details": "X-Vercel-Id: arn1::iad1::t45bs-1790485103849-b1d2fce31f00"
+    },
+    {
+      "id": "VERCEL-API-DAYS",
+      "description": "Vercel GET /api/teachers/[id]/days/[date] endpoint presence",
+      "status": "BLOCKED",
+      "details": "HTTP 404: Endpoint not deployed to Vercel (uncommitted in repository)"
+    },
+    {
+      "id": "VERCEL-PAGE-DAY",
+      "description": "Vercel GET /teachers/[id]/[date] page route presence",
+      "status": "BLOCKED",
+      "details": "HTTP 404: Route not deployed to Vercel (uncommitted in repository)"
+    },
+    {
+      "id": "SEED-TEACHERS",
+      "description": "Seeded test teachers (mapped Olena and unmapped Taras)",
+      "status": "PASS",
+      "details": "Olena ID: t_00f9dbd4 (HTTP: t_9e757995), Unmapped ID: t_fbf758ec"
+    },
+    {
+      "id": "SEED-SCHOOLMATE",
+      "description": "Seeded Schoolmate schedule cache for 2026-09-18",
+      "status": "PASS",
+      "details": "2 lessons, 150 min, 750 UAH"
+    },
+    {
+      "id": "SEED-ZOOM",
+      "description": "Seeded 3 Zoom occurrences (reconnects, overlapping devices, incomplete boundary, reused numeric ID)",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "id": "SCENARIO-08-TEACHER",
+      "description": "Scenario 8: Non-existent teacher returns status 404",
+      "status": "PASS",
+      "details": "Teacher not found"
+    },
+    {
+      "id": "SCENARIO-08-DATE",
+      "description": "Scenario 8: Malformed or non-existent date returns status 400",
+      "status": "PASS",
+      "details": "Tested 2026-02-30, 2026-99-99, not-a-date, empty string"
+    },
+    {
+      "id": "SCENARIO-01-07",
+      "description": "Scenario 1 & 7: Valid direct request returns complete day payload with adjacent day stepper",
+      "status": "PASS",
+      "details": "Prev: 2026-09-17, Next: 2026-09-19"
+    },
+    {
+      "id": "SCENARIO-02",
+      "description": "Scenario 2: Both sources displayed in separate sections with factual totals",
+      "status": "PASS",
+      "details": "SM: 2 lessons, 150m, 750 UAH | Zoom: 3 meetings, 150m"
+    },
+    {
+      "id": "SCENARIO-03",
+      "description": "Scenario 3: Participant inspection with interval union (reconnects & concurrent devices)",
+      "status": "PASS",
+      "details": "Alex B reconnect: 84 min | Maryna K overlap: 60 min (union)"
+    },
+    {
+      "id": "SCENARIO-12",
+      "description": "Scenario 12: Reused numeric room IDs remain strictly isolated by UUID",
+      "status": "PASS",
+      "details": "Shared numeric ID: 98765432101"
+    },
+    {
+      "id": "SCENARIO-04-ZOOM-EMPTY",
+      "description": "Scenario 4: Zoom empty date shows neutral empty state without conclusions",
+      "status": "PASS",
+      "details": "zoom.state: \"empty\", totalMeetings: 0"
+    },
+    {
+      "id": "SCENARIO-05-UNMAPPED",
+      "description": "Scenario 5: Unmapped teacher reports state \"unmapped\" without throwing error",
+      "status": "PASS",
+      "details": "zoom.state: \"unmapped\""
+    },
+    {
+      "id": "SCENARIO-06",
+      "description": "Scenario 6: Incomplete meeting boundary shows durationState=\"incomplete\", durationMinutes=null",
+      "status": "PASS",
+      "details": "Null duration prevents invented elapsed values"
+    },
+    {
+      "id": "SCENARIO-09",
+      "description": "Scenario 9: Strictly no inferred reconciliation, tags, flags, or payroll conclusions in response",
+      "status": "PASS",
+      "details": "Factual evidence boundary strictly preserved"
+    },
+    {
+      "id": "HTTP-API-DAYS-200",
+      "description": "Local GET /api/teachers/[id]/days/[date] returns 200 with Cache-Control: no-store, private",
+      "status": "PASS",
+      "details": "Status: 200, Success: true"
+    },
+    {
+      "id": "HTTP-API-DAYS-404",
+      "description": "Local GET /api/teachers/[id]/days/[date] returns 404 for missing teacher",
+      "status": "PASS",
+      "details": "Teacher not found"
+    },
+    {
+      "id": "HTTP-API-DAYS-400",
+      "description": "Local GET /api/teachers/[id]/days/[date] returns 400 for invalid date",
+      "status": "PASS",
+      "details": "Invalid date format (expected YYYY-MM-DD)"
+    },
+    {
+      "id": "NAV-OVERVIEW-LINKS",
+      "description": "Teacher schedule overview contains Open day details links preserving query filters",
+      "status": "PASS",
+      "details": "Implemented on Schoolmate day headers and Zoom date groups"
+    },
+    {
+      "id": "I18N-COVERAGE",
+      "description": "Teacher-day translations and localized route wrappers present across EN, UK, PL",
+      "status": "PASS",
+      "details": "Verified app/uk/... and app/pl/... routes exist"
+    }
+  ]
+}

@@ -12,6 +12,7 @@
     "test:schoolmate": "node test-schoolmate.js",
     "test:db": "node test-db.js",
     "test:zoom": "node test-zoom-occurrences.js",
+    "test:crm-002": "node test-crm-002.js",
     "test:crm-003": "node test-crm-003.js",
     "test:e2e": "node test-qa-e2e.mjs",
     "migrate:zoom:dry-run": "node scripts/migrate-poc-zoom-occurrences.js --dry-run",
