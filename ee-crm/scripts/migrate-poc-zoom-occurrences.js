@@ -197,13 +197,43 @@ export async function runMigration({
     }
   }
 
+  const legacyRecordCache = new Map();
+
+  // If source Redis has 0 legacy meetings, fetch from remote legacy POC debug endpoint fallback
+  if (discoveredMeetingIds.size === 0) {
+    const legacyUrl = process.env.LEGACY_POC_URL || 'https://poc-zom-report.vercel.app';
+    try {
+      console.log(`[Phase 1] No meetings in source Redis. Querying legacy POC at ${legacyUrl}/api/debug ...`);
+      const res = await fetch(`${legacyUrl}/api/debug`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.meetings)) {
+          console.log(`   Fetched ${json.meetings.length} legacy meetings from ${legacyUrl}`);
+          for (const m of json.meetings) {
+            if (m && m.meeting_id && m.data) {
+              const mid = String(m.meeting_id);
+              discoveredMeetingIds.add(mid);
+              legacyRecordCache.set(mid, m.data);
+            }
+          }
+        }
+        if (Array.isArray(json.webhook_events)) {
+          webhookLogs = json.webhook_events;
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch legacy meetings from ${legacyUrl}:`, e.message);
+    }
+  }
+
   console.log(`   Discovered ${discoveredMeetingIds.size} legacy meeting entries.`);
 
   // C. Fetch supplementary logs for UUID recovery
   let webhookLogs = [];
   if (typeof src.lrange === 'function') {
     const rawLogs = await src.lrange(WEBHOOK_LOGS_KEY, 0, 999);
-    webhookLogs = (rawLogs || []).map(r => (typeof r === 'string' ? JSON.parse(r) : r));
+    const parsedLogs = (rawLogs || []).map(r => (typeof r === 'string' ? JSON.parse(r) : r));
+    if (parsedLogs.length > 0) webhookLogs = parsedLogs;
   }
 
   // 2. Fetch and transform legacy records
@@ -232,7 +262,10 @@ export async function runMigration({
 
   for (const mid of allMeetingIds) {
     const key = `${MEETING_KEY_PREFIX}${mid}`;
-    let raw = await src.get(key);
+    let raw = legacyRecordCache.get(mid);
+    if (!raw) {
+      raw = await src.get(key);
+    }
     if (!raw) continue;
     const meeting = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
@@ -327,6 +360,20 @@ export async function runMigration({
         if (hostEmail) {
           const hostKey = `${HOST_OCCURRENCES_KEY_PREFIX}${hostEmail}`;
           await tgt.zadd(hostKey, { score, member: safeId });
+        }
+
+        // 4. Mirror legacy meeting to target Redis for backwards compatibility
+        const legacyId = occurrence.numeric_meeting_id;
+        const legacyMeetingData = legacyId ? legacyRecordCache.get(legacyId) : null;
+        if (legacyId && legacyMeetingData) {
+          const legacyKey = `${MEETING_KEY_PREFIX}${legacyId}`;
+          const existingLegacy = await tgt.get(legacyKey);
+          if (!existingLegacy) {
+            await tgt.set(legacyKey, typeof legacyMeetingData === 'string' ? legacyMeetingData : JSON.stringify(legacyMeetingData));
+          }
+          if (typeof tgt.zadd === 'function') {
+            await tgt.zadd(MEETINGS_INDEX_KEY, { score, member: legacyId });
+          }
         }
 
         report.migrated++;
