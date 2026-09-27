@@ -13,7 +13,7 @@ import { Redis } from '@upstash/redis';
 import {
   transformLegacyMeetingToOccurrence,
   deriveFactFingerprint
-} from '../../api/lib/zoom-occurrence.js';
+} from '../lib/zoom-occurrence.js';
 import {
   InMemoryRedis,
   MEETING_KEY_PREFIX,
@@ -23,7 +23,7 @@ import {
   HOST_OCCURRENCES_KEY_PREFIX,
   OCCURRENCE_EVENTS_KEY_PREFIX,
   MIGRATION_STATE_KEY
-} from '../../api/lib/redis.js';
+} from '../lib/redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
