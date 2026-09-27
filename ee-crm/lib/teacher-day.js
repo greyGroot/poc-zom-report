@@ -4,7 +4,7 @@
 // Strictly factual: No inferred matching, flags, tags, or payroll conclusions.
 
 import { getTeacherById, getCachedReport, saveCachedReport } from './db.js';
-import { SchoolmateClient } from './schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError } from './schoolmate.js';
 import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from './zoom-occurrences.js';
 import { computeTeacherDayComparison, isConductedLesson } from './comparison-engine.js';
 import { logger } from './logger.js';
@@ -209,6 +209,9 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
     };
   } catch (smErr) {
     await logger.warn('TEACHER_DAY_SCHOOLMATE_ERROR', `Schoolmate fetch failed for ${teacherId} on ${normalizedDate}: ${smErr.message}`);
+    const errorMessage = isSchoolmateUnavailableError(smErr)
+      ? 'External service unavailable'
+      : (smErr.message || 'Failed to retrieve Schoolmate lessons');
     schoolmateResult = {
       state: 'error',
       totalLessons: 0,
@@ -216,7 +219,7 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
       totalWage: null,
       totalWageNumeric: 0,
       lessons: [],
-      error: smErr.message || 'Failed to retrieve Schoolmate lessons'
+      error: errorMessage
     };
   }
 

@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { getTeachers, getCachedReport, saveCachedReport } from '@/lib/db.js';
-import { SchoolmateClient } from '@/lib/schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/schoolmate.js';
 import { parseTeacherSchedulePdf } from '@/lib/pdf-parser.js';
 import { logger } from '@/lib/logger.js';
 
@@ -147,8 +147,13 @@ export async function POST(req) {
       'schoolmate:report_error',
       `Failed to fetch or parse report for teacher ${numericTeacherId}: ${err.message}`,
       err,
-      { teacherId: numericTeacherId, periodKey }
+      { teacherId: numericTeacherId, periodKey, errorCode: err.code || err.name }
     );
+
+    if (isSchoolmateUnavailableError(err)) {
+      const pub = toPublicSchoolmateError(err);
+      return NextResponse.json(pub.body, { status: pub.status });
+    }
 
     const isBadRequest =
       err.message.toLowerCase().includes('required') ||

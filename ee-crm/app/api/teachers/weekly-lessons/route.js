@@ -2,7 +2,7 @@
 // Batch retrieves weekly planned lessons for teachers using fast calendar aggregation and 24-hour Redis caching
 
 import { NextResponse } from 'next/server';
-import { SchoolmateClient } from '@/lib/schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/schoolmate.js';
 import { getWeeklyLessonsCache, setMultipleWeeklyLessonsCache, getTeachers } from '@/lib/db.js';
 
 /**
@@ -200,6 +200,10 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error('[WEEKLY_LESSONS] Error computing weekly lessons:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (isSchoolmateUnavailableError(err)) {
+      const pub = toPublicSchoolmateError(err);
+      return NextResponse.json(pub.body, { status: pub.status });
+    }
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

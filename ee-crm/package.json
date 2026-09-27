@@ -17,6 +17,8 @@
     "test:crm-004:e2e": "node verification/tests/crm-004-activity-comparison.e2e.mjs",
     "test:crm-005": "node test-crm-005.js",
     "test:crm-006": "node test-crm-006.js",
+    "test:crm-006:e2e": "node verification/tests/crm-006-persistence-fallbacks.e2e.mjs",
+    "test:crm-007": "node test-crm-007.js",
     "test:e2e": "node test-qa-e2e.mjs",
     "migration:crm-005:snapshot": "node scripts/crm-005/export-poc-snapshot.js",
     "migration:crm-005:plan": "node scripts/crm-005/plan-zoom-migration.js",

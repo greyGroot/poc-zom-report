@@ -1,5 +1,110 @@
 // ee-crm/lib/schoolmate.js
-// High-performance direct HTTP client for Empire English Schoolmate EU
+// High-performance direct HTTP client for Empire English Schoolmate EU with network reliability,
+// bounded timeouts, exponential backoff retries, session recovery, and typed errors.
+
+export class SchoolmateTimeoutError extends Error {
+  constructor(message, { pathname = '', timeoutMs = 0, cause = null } = {}) {
+    super(message);
+    this.name = 'SchoolmateTimeoutError';
+    this.code = 'SCHOOLMATE_TIMEOUT';
+    this.pathname = pathname;
+    this.timeoutMs = timeoutMs;
+    if (cause) this.cause = cause;
+  }
+}
+
+export class SchoolmateHttpError extends Error {
+  constructor(message, { status = 0, statusText = '', pathname = '', cause = null } = {}) {
+    super(message);
+    this.name = 'SchoolmateHttpError';
+    this.code = 'SCHOOLMATE_HTTP_ERROR';
+    this.status = status;
+    this.statusText = statusText;
+    this.pathname = pathname;
+    if (cause) this.cause = cause;
+  }
+}
+
+export class SchoolmateUnavailableError extends Error {
+  constructor(message, { attempts = 0, lastError = null, cause = null } = {}) {
+    super(message);
+    this.name = 'SchoolmateUnavailableError';
+    this.code = 'SCHOOLMATE_UNAVAILABLE';
+    this.attempts = attempts;
+    this.lastError = lastError;
+    if (cause) this.cause = cause;
+  }
+}
+
+export function isSchoolmateUnavailableError(err) {
+  if (!err) return false;
+  if (err instanceof SchoolmateUnavailableError || err instanceof SchoolmateTimeoutError) return true;
+  if (err.name === 'SchoolmateUnavailableError' || err.name === 'SchoolmateTimeoutError') return true;
+  if (err.code === 'SCHOOLMATE_UNAVAILABLE' || err.code === 'SCHOOLMATE_TIMEOUT') return true;
+  if (err.cause && isSchoolmateUnavailableError(err.cause)) return true;
+  return false;
+}
+
+export function toPublicSchoolmateError(err) {
+  if (isSchoolmateUnavailableError(err)) {
+    return {
+      status: 503,
+      body: {
+        error: 'External service unavailable',
+        code: 'SCHOOLMATE_UNAVAILABLE'
+      }
+    };
+  }
+  return {
+    status: 500,
+    body: {
+      error: err?.message || 'Internal server error',
+      code: 'INTERNAL_ERROR'
+    }
+  };
+}
+
+const TRANSIENT_NETWORK_CODES = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'UND_ERR_SOCKET',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EPIPE'
+]);
+
+function isTransientError(err) {
+  if (!err) return false;
+  if (err.name === 'AbortError' || err.name === 'TimeoutError' || err instanceof SchoolmateTimeoutError) {
+    return true;
+  }
+  if (err.code && TRANSIENT_NETWORK_CODES.has(err.code)) {
+    return true;
+  }
+  if (err.cause) {
+    if (err.cause.code && TRANSIENT_NETWORK_CODES.has(err.cause.code)) {
+      return true;
+    }
+    if (err.cause.name === 'AbortError' || err.cause.name === 'TimeoutError' || err.cause instanceof SchoolmateTimeoutError) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isTransientStatus(status) {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function extractPathname(urlStr) {
+  try {
+    const parsed = new URL(urlStr, 'https://empireenglish.schoolmate.eu');
+    return parsed.pathname;
+  } catch {
+    return String(urlStr);
+  }
+}
 
 export class SchoolmateClient {
   constructor(config = {}) {
@@ -8,9 +113,149 @@ export class SchoolmateClient {
     this.userName = config.userName || process.env.SCHOOLMATE_USERNAME || 'IzaiI1498';
     this.password = config.password || process.env.SCHOOLMATE_PASSWORD || '';
     this.requestUserId = config.requestUserId || Number(process.env.SCHOOLMATE_ADMIN_USER_ID || 743140);
-    
+
+    // Injected dependencies for testing / observability
+    this.fetch = config.fetch || globalThis.fetch;
+    this.sleep = config.sleep || ((ms) => new Promise(resolve => setTimeout(resolve, ms)));
+    this.random = config.random || Math.random;
+    this.logger = config.logger || console;
+
+    // Reliability configuration
+    this.defaultTimeoutMs = config.defaultTimeoutMs || 10000; // 10s
+    this.pdfTimeoutMs = config.pdfTimeoutMs || 25000; // 25s
+    this.maxAttempts = config.maxAttempts || 3; // 3 total attempts
+    this.baseDelayMs = config.baseDelayMs || 250; // 250ms
+    this.jitterRatio = config.jitterRatio !== undefined ? config.jitterRatio : 0.25;
+
     this.sessionId = null;
     this.sessionExpiresAt = null;
+  }
+
+  /**
+   * Central HTTP request executor with timeout, exponential backoff retry, and safe diagnostics.
+   * @param {string} url
+   * @param {RequestInit} [init]
+   * @param {object} [policy]
+   * @param {number} [policy.timeoutMs]
+   * @param {number} [policy.maxAttempts]
+   * @returns {Promise<Response>}
+   */
+  async _request(url, init = {}, policy = {}) {
+    const maxAttempts = policy.maxAttempts || this.maxAttempts || 3;
+    const timeoutMs = policy.timeoutMs || this.defaultTimeoutMs || 10000;
+    const pathname = extractPathname(url);
+    const requestStart = Date.now();
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const controller = new AbortController();
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeoutMs);
+
+      try {
+        const res = await this.fetch(url, {
+          ...init,
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+
+        if (isTransientStatus(res.status)) {
+          await res.text().catch(() => {});
+          const httpErr = new SchoolmateHttpError(`Schoolmate HTTP ${res.status} ${res.statusText}`, {
+            status: res.status,
+            statusText: res.statusText,
+            pathname
+          });
+
+          if (attempt < maxAttempts) {
+            const baseDelay = this.baseDelayMs * Math.pow(2, attempt - 1);
+            const jitter = baseDelay * this.random() * this.jitterRatio;
+            const delayMs = Math.round(baseDelay + jitter);
+            const elapsedMs = Date.now() - requestStart;
+            this.logger.warn(`[Schoolmate] Retry ${attempt}/${maxAttempts} for ${pathname} after HTTP ${res.status} (delay: ${delayMs}ms, elapsed: ${elapsedMs}ms)`);
+            await this.sleep(delayMs);
+            continue;
+          } else {
+            throw new SchoolmateUnavailableError(`Schoolmate service unavailable after ${maxAttempts} attempts (HTTP ${res.status})`, {
+              attempts: maxAttempts,
+              lastError: httpErr,
+              cause: httpErr
+            });
+          }
+        }
+
+        if (!res.ok) {
+          throw new SchoolmateHttpError(`Schoolmate HTTP ${res.status} ${res.statusText}`, {
+            status: res.status,
+            statusText: res.statusText,
+            pathname
+          });
+        }
+
+        return res;
+      } catch (err) {
+        let effectiveErr = err;
+        if (timedOut || err.name === 'AbortError') {
+          effectiveErr = new SchoolmateTimeoutError(`Request to Schoolmate ${pathname} timed out after ${timeoutMs}ms`, {
+            pathname,
+            timeoutMs,
+            cause: err
+          });
+        }
+
+        if (isTransientError(effectiveErr)) {
+          if (attempt < maxAttempts) {
+            const baseDelay = this.baseDelayMs * Math.pow(2, attempt - 1);
+            const jitter = baseDelay * this.random() * this.jitterRatio;
+            const delayMs = Math.round(baseDelay + jitter);
+            const elapsedMs = Date.now() - requestStart;
+            const errCode = effectiveErr.code || effectiveErr.name || 'TRANSIENT_ERROR';
+            this.logger.warn(`[Schoolmate] Retry ${attempt}/${maxAttempts} for ${pathname} after ${errCode} (delay: ${delayMs}ms, elapsed: ${elapsedMs}ms)`);
+            await this.sleep(delayMs);
+            continue;
+          } else {
+            throw new SchoolmateUnavailableError(`Schoolmate service unavailable after ${maxAttempts} attempts`, {
+              attempts: maxAttempts,
+              lastError: effectiveErr,
+              cause: effectiveErr
+            });
+          }
+        }
+
+        throw effectiveErr;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  /**
+   * Executes an authenticated request, renewing session once on 401/302.
+   */
+  async _requestAuthenticated(url, initOrFactory, policy = {}, isReplay = false) {
+    await this.ensureAuthenticated();
+    const init = typeof initOrFactory === 'function' ? initOrFactory(this.sessionId) : {
+      ...initOrFactory,
+      headers: {
+        ...(initOrFactory?.headers || {}),
+        'Cookie': `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`
+      }
+    };
+
+    try {
+      return await this._request(url, init, policy);
+    } catch (err) {
+      const isAuthError = (err instanceof SchoolmateHttpError && (err.status === 401 || err.status === 302)) || err.status === 401 || err.status === 302;
+      if (isAuthError && !isReplay) {
+        this.sessionId = null;
+        this.sessionExpiresAt = null;
+        await this.login();
+        return this._requestAuthenticated(url, initOrFactory, policy, true);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -37,7 +282,7 @@ export class SchoolmateClient {
     const startTime = Date.now();
 
     // 1. Acquire initial ASP.NET_SessionId from /admin
-    const initRes = await fetch(`${this.baseUrl}/admin`);
+    const initRes = await this._request(`${this.baseUrl}/admin`, { method: 'GET' });
     let initCookieHeader = initRes.headers.get('set-cookie') || '';
     if (typeof initRes.headers.getSetCookie === 'function') {
       initCookieHeader = initRes.headers.getSetCookie().join('; ');
@@ -53,7 +298,7 @@ export class SchoolmateClient {
 
     // 2. Authenticate session via POST /security/index
     const loginUrl = `${this.baseUrl}/security/index`;
-    const res = await fetch(loginUrl, {
+    const res = await this._request(loginUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,10 +314,6 @@ export class SchoolmateClient {
         roleId: 0
       })
     });
-
-    if (!res.ok) {
-      throw new Error(`Schoolmate login HTTP error: ${res.status} ${res.statusText}`);
-    }
 
     const loginData = await res.json();
     if (!loginData.IsSuccess) {
@@ -104,39 +345,31 @@ export class SchoolmateClient {
     if (!teacherId) throw new Error('teacherId is required to fetch teacher schedule');
     if (!fromDate || !toDate) throw new Error('fromDate and toDate are required (format YYYY-MM-DD)');
 
-    await this.ensureAuthenticated();
     const overallStartTime = Date.now();
-
-    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
 
     // 1. Request report generation
     const genUrl = `${this.baseUrl}/teacher/printemployeeschedule`;
-    const genRes = await fetch(genUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
-      },
-      body: JSON.stringify({
-        teacherId: Number(teacherId),
-        lessonSearchModel: {
-          FromDate: fromDate,
-          ToDate: toDate
+    const genRes = await this._requestAuthenticated(
+      genUrl,
+      (sessionId) => ({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+          'Accept': 'application/json, text/plain, */*'
         },
-        requestUserId: this.requestUserId,
-        roleId: 2
-      })
-    });
-
-    if (!genRes.ok) {
-      if (genRes.status === 401 || genRes.status === 302) {
-        this.sessionId = null;
-        await this.login();
-        return this.getTeacherSchedulePdf({ teacherId, fromDate, toDate });
-      }
-      throw new Error(`Failed to generate schedule: HTTP ${genRes.status} ${genRes.statusText}`);
-    }
+        body: JSON.stringify({
+          teacherId: Number(teacherId),
+          lessonSearchModel: {
+            FromDate: fromDate,
+            ToDate: toDate
+          },
+          requestUserId: this.requestUserId,
+          roleId: 2
+        })
+      }),
+      { timeoutMs: this.pdfTimeoutMs }
+    );
 
     const genData = await genRes.json();
     if (!genData.IsSuccess || !genData.Data || !genData.Data.AbsolutePath) {
@@ -149,16 +382,16 @@ export class SchoolmateClient {
     // Note: AbsolutePath is already URL-encoded or contains encoded slashes (%5c)
     const downloadUrl = `${this.baseUrl}/common/download?fpath=${AbsolutePath}&fname=${FileName}&d=true`;
 
-    const downloadRes = await fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'Cookie': cookieHeader
-      }
-    });
-
-    if (!downloadRes.ok) {
-      throw new Error(`Failed to download generated schedule PDF: HTTP ${downloadRes.status} ${downloadRes.statusText}`);
-    }
+    const downloadRes = await this._requestAuthenticated(
+      downloadUrl,
+      (sessionId) => ({
+        method: 'GET',
+        headers: {
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`
+        }
+      }),
+      { timeoutMs: this.pdfTimeoutMs }
+    );
 
     const arrayBuffer = await downloadRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -179,37 +412,28 @@ export class SchoolmateClient {
    * @returns {Promise<{ calendarDays: Array, events: Array, durationMs: number }>}
    */
   async getSchedulerEvents({ date }) {
-    await this.ensureAuthenticated();
     const startTime = Date.now();
-    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
-
     const url = `${this.baseUrl}/calendar/getschedulerevents`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
-      },
-      body: JSON.stringify({
-        serchModel: {
-          GroupId: 0,
-          GroupType: 0,
-          Date: date,
-          IsNext: false,
-          IsPrevious: false
-        }
+    const res = await this._requestAuthenticated(
+      url,
+      (sessionId) => ({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+          'Accept': 'application/json, text/plain, */*'
+        },
+        body: JSON.stringify({
+          serchModel: {
+            GroupId: 0,
+            GroupType: 0,
+            Date: date,
+            IsNext: false,
+            IsPrevious: false
+          }
+        })
       })
-    });
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 302) {
-        this.sessionId = null;
-        await this.login();
-        return this.getSchedulerEvents({ date });
-      }
-      throw new Error(`Failed to fetch scheduler events: HTTP ${res.status} ${res.statusText}`);
-    }
+    );
 
     const json = await res.json();
     if (!json.IsSuccess) {
@@ -256,7 +480,6 @@ export class SchoolmateClient {
     const lastName = nameParts[0] || '';
     const firstName = nameParts[1] || '';
 
-    const fromLimit = date || '';
     const lessons = [];
     for (const ev of events) {
       for (const l of (ev.SchedulerLessons || [])) {
@@ -361,10 +584,7 @@ export class SchoolmateClient {
    * @returns {Promise<Array<{ GroupId: number, GroupName: string }>>}
    */
   async getTeacherGroupClassList({ teacherId, fromDate, toDate }) {
-    await this.ensureAuthenticated();
-    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
     const url = `${this.baseUrl}/teacher/getteachergroupclasslist`;
-
     const formattedFrom = this.normalizeDateForSchoolmate(fromDate);
     const formattedTo = this.normalizeDateForSchoolmate(toDate);
 
@@ -378,24 +598,18 @@ export class SchoolmateClient {
       roleId: 2
     };
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 302) {
-        this.sessionId = null;
-        await this.login();
-        return this.getTeacherGroupClassList({ teacherId, fromDate, toDate });
-      }
-      throw new Error(`Failed to fetch teacher groups: HTTP ${res.status} ${res.statusText}`);
-    }
+    const res = await this._requestAuthenticated(
+      url,
+      (sessionId) => ({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+          'Accept': 'application/json, text/plain, */*'
+        },
+        body: JSON.stringify(payload)
+      })
+    );
 
     const json = await res.json();
     if (!json.IsSuccess) {
@@ -416,10 +630,7 @@ export class SchoolmateClient {
    * @returns {Promise<{ lessons: Array, wageSum: string, totalWage: string, currencySymbol: string }>}
    */
   async getTeacherGroupClassDetail({ groupId, teacherId, fromDate, toDate }) {
-    await this.ensureAuthenticated();
-    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
     const url = `${this.baseUrl}/teacher/getteachergroupclassdetail`;
-
     const formattedFrom = this.normalizeDateForSchoolmate(fromDate);
     const formattedTo = this.normalizeDateForSchoolmate(toDate);
 
@@ -434,24 +645,18 @@ export class SchoolmateClient {
       roleId: 2
     };
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 302) {
-        this.sessionId = null;
-        await this.login();
-        return this.getTeacherGroupClassDetail({ groupId, teacherId, fromDate, toDate });
-      }
-      throw new Error(`Failed to fetch group class detail: HTTP ${res.status} ${res.statusText}`);
-    }
+    const res = await this._requestAuthenticated(
+      url,
+      (sessionId) => ({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+          'Accept': 'application/json, text/plain, */*'
+        },
+        body: JSON.stringify(payload)
+      })
+    );
 
     const json = await res.json();
     if (!json.IsSuccess) {
@@ -484,7 +689,10 @@ export class SchoolmateClient {
     // 1. Fetch group list and scheduler events in parallel
     const [groups, schedulerRes] = await Promise.all([
       this.getTeacherGroupClassList({ teacherId, fromDate, toDate }),
-      this.getSchedulerEvents({ date: fromDate }).catch(() => ({ events: [] }))
+      this.getSchedulerEvents({ date: fromDate }).catch((err) => {
+        this.logger.warn(`[Schoolmate] Warning: scheduler enrichment failed: ${err.message}`);
+        return { events: [] };
+      })
     ]);
 
     const timeMap = new Map();
@@ -523,7 +731,7 @@ export class SchoolmateClient {
             });
             return { group, detail };
           } catch (err) {
-            console.warn(`[Schoolmate] Warning: group ${group.GroupId} (${group.GroupName}) failed:`, err.message);
+            this.logger.warn(`[Schoolmate] Warning: group ${group.GroupId} (${group.GroupName}) failed: ${err.message}`);
             return {
               group,
               detail: { lessons: [], wageSum: '0.00', totalWage: '0.00 ₴', currencySymbol: '₴' }
@@ -694,41 +902,36 @@ export class SchoolmateClient {
    * @returns {Promise<Array<object>>} List of mapped teacher objects
    */
   async fetchTeachersList(options = {}) {
-    await this.ensureAuthenticated();
-
     const pageSize = options.pageSize || 300;
     const pageIndex = options.pageIndex || 1;
-    const cookieHeader = `ASP.NET_SessionId=${this.sessionId}; SelectedCulture=en-GB;`;
     const url = `${this.baseUrl}/teacher/teacherlist`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookieHeader,
-        'Accept': 'application/json, text/plain, */*'
-      },
-      body: JSON.stringify({
-        searchParams: {
-          LastWorkingRecordId: '',
-          RecordType: 'undefined',
-          MasterSearch: ''
+    const res = await this._requestAuthenticated(
+      url,
+      (sessionId) => ({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+          'Accept': 'application/json, text/plain, */*'
         },
-        sortIndex: 'LastName',
-        sortDirection: 'ASC',
-        oldSortIndex: 'LastName',
-        oldsortDirection: 'ASC',
-        pageSize,
-        pageIndex,
-        requestuserId: this.requestUserId,
-        roleId: 2
+        body: JSON.stringify({
+          searchParams: {
+            LastWorkingRecordId: '',
+            RecordType: 'undefined',
+            MasterSearch: ''
+          },
+          sortIndex: 'LastName',
+          sortDirection: 'ASC',
+          oldSortIndex: 'LastName',
+          oldsortDirection: 'ASC',
+          pageSize,
+          pageIndex,
+          requestuserId: this.requestUserId,
+          roleId: 2
+        })
       })
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Schoolmate teacherlist error (${res.status}): ${errText}`);
-    }
+    );
 
     const data = await res.json();
     if (!data.IsSuccess) {
@@ -768,4 +971,3 @@ export class SchoolmateClient {
     });
   }
 }
-

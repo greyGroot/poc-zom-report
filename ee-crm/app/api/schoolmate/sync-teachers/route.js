@@ -2,7 +2,7 @@
 // Synchronizes all teachers from Schoolmate EU into CRM database with deduplication
 
 import { NextResponse } from 'next/server';
-import { SchoolmateClient } from '@/lib/schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/schoolmate.js';
 import { bulkUpsertTeachers, getTeachers, pruneAllCaches } from '@/lib/db.js';
 import { getZoomUsersStatusMap } from '@/lib/zoom.js';
 import { logger } from '@/lib/logger.js';
@@ -54,13 +54,23 @@ export async function POST() {
     });
   } catch (err) {
     const durationMs = Date.now() - startTime;
-    await logger.error('TEACHERS_SYNC_ERROR', `Failed to sync teachers from Schoolmate: ${err.message}`, {
-      error: err.message,
-      durationMs
-    });
+    await logger.error(
+      'TEACHERS_SYNC_ERROR',
+      `Failed to sync teachers from Schoolmate: ${err.message}`,
+      err,
+      {
+        errorCode: err.code || err.name,
+        durationMs
+      }
+    );
+
+    if (isSchoolmateUnavailableError(err)) {
+      const pub = toPublicSchoolmateError(err);
+      return NextResponse.json(pub.body, { status: pub.status });
+    }
 
     return NextResponse.json(
-      { error: err.message || 'Failed to sync teachers from Schoolmate' },
+      { error: 'Internal server error', code: 'INTERNAL_ERROR' },
       { status: 500 }
     );
   }
