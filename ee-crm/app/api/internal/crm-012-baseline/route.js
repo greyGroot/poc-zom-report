@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getZoomUsersSnapshot } from '@/lib/infrastructure/zoom.js';
+import { getTeachers } from '@/lib/infrastructure/db.js';
 import {
   getBaselineManifest,
   getMembershipActivation,
@@ -36,16 +37,26 @@ export async function POST(request) {
   }
 
   const activeUsers = snapshot.users.filter(user => user.status === 'active');
-  if (activeUsers.length !== 6) {
+  const teachers = await getTeachers();
+  const teacherEmails = new Set(teachers
+    .map(teacher => String(teacher.zoomHostEmail || teacher.email || '').trim().toLowerCase())
+    .filter(Boolean));
+  const matchedActiveUsers = activeUsers.filter(user => teacherEmails.has(user.email));
+  if (matchedActiveUsers.length !== 6) {
     return Response.json(
-      { error: 'active_member_count_mismatch', expected: 6, actual: activeUsers.length },
+      {
+        error: 'mapped_active_teacher_count_mismatch',
+        expected: 6,
+        actual: matchedActiveUsers.length,
+        zoomActiveUsers: activeUsers.length
+      },
       { status: 409 }
     );
   }
 
   const recordedAt = new Date().toISOString();
   const applied = [];
-  for (const user of activeUsers) {
+  for (const user of matchedActiveUsers) {
     const existing = await getMembershipActivation(snapshot.accountId, user.id);
     if (existing) {
       applied.push({ zoomUserId: user.id, disposition: 'preserved' });
@@ -68,7 +79,7 @@ export async function POST(request) {
     baselineInstant: CRM_012_BASELINE_INSTANT,
     sourceKind: ZOOM_MEMBERSHIP_SOURCE_KINDS.BASELINE,
     snapshotCheckedAt: snapshot.checkedAt,
-    zoomUserIds: activeUsers.map(user => user.id),
+    zoomUserIds: matchedActiveUsers.map(user => user.id),
     runAt: recordedAt
   };
   const manifestResult = await saveBaselineManifest(manifest);
