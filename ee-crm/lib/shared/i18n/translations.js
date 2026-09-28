@@ -84,6 +84,15 @@ export const translations = {
       errTelegramReq: 'Telegram ID must start with @ (e.g. @username)',
       teacherAddedSuccess: 'Teacher {name} registered successfully!',
     },
+    zoomMembership: {
+      memberSince: 'Zoom member since: {date}',
+      memberSinceUnavailable: 'Zoom member since: Unavailable',
+      loading: 'Loading Zoom membership…',
+      statusUnavailable: 'Zoom status unavailable',
+      stale: 'Zoom membership data may be out of date. Last checked {dateTime}.',
+      sourceUnavailable: 'Zoom membership data is unavailable.',
+      sourceUnavailableChecked: 'Zoom membership data is unavailable. Last checked {dateTime}.',
+    },
     schedule: {
       backLink: '← Back to Teachers',
       teacherNotFound: 'Teacher not found',
@@ -378,6 +387,15 @@ export const translations = {
       errTelegramReq: "Telegram ID має починатися з @ (напр. @username)",
       teacherAddedSuccess: 'Викладача {name} успішно додано!',
     },
+    zoomMembership: {
+      memberSince: 'Учасник організації Zoom з: {date}',
+      memberSinceUnavailable: 'Учасник організації Zoom з: дата недоступна',
+      loading: 'Завантаження даних про участь у Zoom…',
+      statusUnavailable: 'Статус Zoom недоступний',
+      stale: 'Дані про участь в організації Zoom можуть бути застарілими. Остання перевірка: {dateTime}.',
+      sourceUnavailable: 'Дані про участь в організації Zoom недоступні.',
+      sourceUnavailableChecked: 'Дані про участь в організації Zoom недоступні. Остання перевірка: {dateTime}.',
+    },
     schedule: {
       backLink: '← Назад до викладачів',
       teacherNotFound: 'Викладача не знайдено',
@@ -670,6 +688,15 @@ export const translations = {
       errIdReq: 'Schoolmate Teacher ID musi być dodatnią liczbą całkowitą.',
       errTelegramReq: 'Telegram ID musi zaczynać się od @ (np. @username)',
       teacherAddedSuccess: 'Nauczyciel {name} został pomyślnie zarejestrowany!',
+    },
+    zoomMembership: {
+      memberSince: 'Członek organizacji Zoom od: {date}',
+      memberSinceUnavailable: 'Członek organizacji Zoom od: data niedostępna',
+      loading: 'Ładowanie danych członkostwa Zoom…',
+      statusUnavailable: 'Status Zoom jest niedostępny',
+      stale: 'Dane członkostwa w organizacji Zoom mogą być nieaktualne. Ostatnio sprawdzono: {dateTime}.',
+      sourceUnavailable: 'Dane członkostwa w organizacji Zoom są niedostępne.',
+      sourceUnavailableChecked: 'Dane członkostwa w organizacji Zoom są niedostępne. Ostatnio sprawdzono: {dateTime}.',
     },
     schedule: {
       backLink: '← Wróć do nauczycieli',

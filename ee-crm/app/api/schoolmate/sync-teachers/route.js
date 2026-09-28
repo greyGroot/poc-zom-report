@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server';
 import { SchoolmateClient, isSchoolmateUnavailableError, toPublicSchoolmateError } from '@/lib/infrastructure/schoolmate.js';
 import { bulkUpsertTeachers, getTeachers, pruneAllCaches } from '@/lib/infrastructure/db.js';
-import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
+import { enrichTeachersWithZoomMembership } from '@/lib/services/zoom-membership-service.js';
 import { logger } from '@/lib/infrastructure/logger.js';
 
 export async function POST() {
@@ -23,21 +23,7 @@ export async function POST() {
 
     // 3. Fetch full enriched list with Zoom statuses
     const teachers = await getTeachers();
-    let zoomMap = new Map();
-    try {
-      zoomMap = await getZoomUsersStatusMap();
-    } catch {
-      // ignore
-    }
-
-    const enrichedTeachers = teachers.map(t => {
-      const emailToCheck = (t.zoomHostEmail || t.email || '').trim().toLowerCase();
-      const zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
-      return {
-        ...t,
-        zoomStatus
-      };
-    });
+    const enrichedTeachers = await enrichTeachersWithZoomMembership(teachers);
 
     const durationMs = Date.now() - startTime;
 

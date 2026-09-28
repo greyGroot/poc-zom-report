@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
+import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
 
 // Module-level in-memory cache for weekly lessons across client navigations
 const globalWeeklyLessonsCache = new Map();
@@ -192,7 +193,7 @@ function TeachersDirectoryContent() {
     for (const t of teachers) {
       if (t.zoomStatus === 'member') counts.member++;
       else if (t.zoomStatus === 'pending') counts.pending++;
-      else counts.not_invited++;
+      else if (t.zoomStatus === 'not_invited') counts.not_invited++;
     }
     return counts;
   }, [teachers]);
@@ -202,7 +203,7 @@ function TeachersDirectoryContent() {
     return teachers.filter(teacher => {
       // Zoom Filter
       if (zoomFilter !== 'all') {
-        const teacherZoom = teacher.zoomStatus || 'not_invited';
+        const teacherZoom = teacher.zoomStatus;
         if (teacherZoom !== zoomFilter) return false;
       }
 
@@ -243,9 +244,9 @@ function TeachersDirectoryContent() {
         valA = Number(a.schoolmateTeacherId) || 0;
         valB = Number(b.schoolmateTeacherId) || 0;
       } else if (sortField === 'zoomStatus') {
-        const rank = { member: 1, pending: 2, not_invited: 3 };
-        valA = rank[a.zoomStatus] || 3;
-        valB = rank[b.zoomStatus] || 3;
+        const rank = { member: 1, pending: 2, not_invited: 3, unavailable: 4 };
+        valA = rank[a.zoomStatus] || 4;
+        valB = rank[b.zoomStatus] || 4;
       } else if (sortField === 'thisWeek') {
         const smIdA = Number(a.schoolmateTeacherId);
         const smIdB = Number(b.schoolmateTeacherId);
@@ -579,74 +580,6 @@ function TeachersDirectoryContent() {
           )}
         </div>
       </th>
-    );
-  };
-
-  // Render Zoom Status Badge
-  const renderZoomBadge = (status) => {
-    if (status === 'member') {
-      return (
-        <span
-          className="badge"
-          style={{
-            backgroundColor: '#dcfce7',
-            color: '#15803d',
-            border: '1px solid #86efac',
-            fontWeight: 600,
-            fontSize: 12,
-            padding: '3px 9px',
-            borderRadius: 12,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5
-          }}
-        >
-          <span style={{ fontSize: 9 }}>●</span>
-          <span>{t('directory.zoomMember')}</span>
-        </span>
-      );
-    }
-    if (status === 'pending') {
-      return (
-        <span
-          className="badge"
-          style={{
-            backgroundColor: '#fef3c7',
-            color: '#b45309',
-            border: '1px solid #fde68a',
-            fontWeight: 600,
-            fontSize: 12,
-            padding: '3px 9px',
-            borderRadius: 12,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5
-          }}
-        >
-          <span style={{ fontSize: 10 }}>⏳</span>
-          <span>{t('directory.zoomPending')}</span>
-        </span>
-      );
-    }
-    return (
-      <span
-        className="badge"
-        style={{
-          backgroundColor: '#f1f5f9',
-          color: '#64748b',
-          border: '1px solid #e2e8f0',
-          fontWeight: 500,
-          fontSize: 12,
-          padding: '3px 9px',
-          borderRadius: 12,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5
-        }}
-      >
-        <span style={{ fontSize: 9 }}>○</span>
-        <span>{t('directory.zoomNotInvited')}</span>
-      </span>
     );
   };
 
@@ -1099,7 +1032,7 @@ function TeachersDirectoryContent() {
                         </span>
                       </td>
                       <td>
-                        {renderZoomBadge(teacher.zoomStatus)}
+                        <ZoomMembershipContext membership={teacher.zoomMembership} />
                       </td>
                       <td>
                         {(() => {

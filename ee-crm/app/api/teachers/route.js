@@ -4,28 +4,18 @@
 import { NextResponse } from 'next/server';
 import { getTeachers, createTeacher } from '@/lib/infrastructure/db.js';
 import { logger } from '@/lib/infrastructure/logger.js';
-import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
+import {
+  enrichTeachersWithZoomMembership,
+  enrichTeacherWithZoomMembership
+} from '@/lib/services/zoom-membership-service.js';
 
 export async function GET() {
   try {
     const teachers = await getTeachers();
-    let zoomMap = new Map();
-    try {
-      zoomMap = await getZoomUsersStatusMap();
-    } catch (zoomErr) {
-      console.warn('[API/TEACHERS] Could not fetch Zoom statuses:', zoomErr.message);
-    }
-
-    const enrichedTeachers = teachers.map(t => {
-      const emailToCheck = (t.zoomHostEmail || t.email || '').trim().toLowerCase();
-      const zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
-      return {
-        ...t,
-        zoomStatus
-      };
+    const enrichedTeachers = await enrichTeachersWithZoomMembership(teachers);
+    return NextResponse.json({ teachers: enrichedTeachers }, {
+      headers: { 'Cache-Control': 'no-store, private' }
     });
-
-    return NextResponse.json({ teachers: enrichedTeachers });
   } catch (err) {
     await logger.error('TEACHERS_FETCH_ERROR', 'Failed to retrieve teachers list', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -98,19 +88,7 @@ export async function POST(req) {
       email: teacher.email
     });
 
-    const emailToCheck = (teacher.zoomHostEmail || teacher.email || '').trim().toLowerCase();
-    let zoomStatus = 'not_invited';
-    try {
-      const zoomMap = await getZoomUsersStatusMap();
-      zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
-    } catch {
-      // ignore
-    }
-
-    const teacherWithZoom = {
-      ...teacher,
-      zoomStatus
-    };
+    const teacherWithZoom = await enrichTeacherWithZoomMembership(teacher);
 
     return NextResponse.json({ teacher: teacherWithZoom }, { status: 201 });
   } catch (err) {

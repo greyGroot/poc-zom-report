@@ -1,15 +1,25 @@
 # CRM-012 — Display Zoom organization membership date
 
 **Story ID:** CRM-012  
-**Status:** Draft — Zoom source-field semantics require confirmation  
+**Status:** Implemented locally — awaiting production rollout and baseline execution
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)
 
+## UX
+
+The placement, copy, states, responsive behavior and implementation handoff are documented here:
+
+[UX specification](../ux/CRM-012-display-zoom-organization-membership-date.md)
+
+## Technical implementation
+
+[Architecture plan](../architecture/CRM-012-display-zoom-organization-membership-date.md)
+
 ## Summary
 
-Show the date on which a teacher accepted the Zoom organization invitation and became an active organization member. Display it in the teachers directory, the teacher page and the teacher-day page.
+Show the date on which a teacher became an active member of the Zoom organization. Display it in the teachers directory, the teacher page and the teacher-day page.
 
-The date must come from an authoritative Zoom source field representing organization membership activation. It must never be inferred from an invitation send date, first meeting, Schoolmate record or EE-CRM refresh time.
+For future acceptances, the date comes from the signed Zoom `user.invitation_accepted` webhook's `event_ts`. For teachers who were already active when CRM-012 is introduced, EE-CRM will persist the product-approved baseline date **28 September 2026**. The baseline is a migration policy, not a claim that Zoom recorded the teacher's actual historical acceptance instant. Neither value may be inferred from invitation send date, first meeting, Schoolmate record or EE-CRM refresh time.
 
 ## Business objective
 
@@ -29,8 +39,8 @@ so that I can understand the teacher’s Zoom membership context while reviewing
 
 ## Functional requirements
 
-1. Retrieve an authoritative Zoom organization-membership activation timestamp for active members.
-2. Document the exact Zoom source field, endpoint and semantics used for that timestamp.
+1. Persist the signed Zoom `user.invitation_accepted.event_ts` for future organization-membership activations.
+2. During the one-time CRM-012 baseline seed, persist 28 September 2026 for Zoom users confirmed active at the cutoff and record that this is a product-approved baseline.
 3. Display `Zoom member since: {localized date}` in the teachers directory for an active member.
 4. Display the same membership date in the teacher page header.
 5. Display the same membership date in the teacher-day page header or teacher context area.
@@ -46,7 +56,7 @@ so that I can understand the teacher’s Zoom membership context while reviewing
 
 ### Scenario 1: Active member with an available date
 Given a teacher’s configured Zoom host email maps to an active Zoom organization member  
-And Zoom provides the authoritative membership activation timestamp  
+And EE-CRM has either the approved Zoom acceptance timestamp or the approved current-member baseline
 When an administrator opens the directory, teacher page or teacher-day page  
 Then each page displays the same localized `Zoom member since` date.
 
@@ -70,7 +80,7 @@ Then EE-CRM displays the date associated with the configured Zoom host email.
 
 ### Scenario 5: Active member without a source date
 Given a teacher is an active Zoom organization member  
-And the authoritative source does not provide a membership activation date  
+And EE-CRM has neither a captured acceptance timestamp nor an approved baseline record
 When the membership information loads  
 Then EE-CRM displays the active-member status  
 And shows a neutral unavailable date state  
@@ -122,7 +132,8 @@ And the membership date becomes visible on all three pages.
 ## Dependencies
 
 - Existing Zoom OAuth credentials and user-status API access.
-- Zoom API documentation or integration-owner confirmation of the authoritative date field.
+- Zoom webhook subscription for `user.invitation_accepted` and the required User Read scope.
+- One-time production baseline seed for users confirmed active on 28 September 2026.
 - Existing teachers directory, teacher page and teacher-day page.
 - UX copy and placement for available, unavailable and stale states.
 
@@ -136,7 +147,8 @@ And the membership date becomes visible on all three pages.
 
 ## Assumptions
 
-- Zoom provides, or the integration owner can identify, an authoritative membership-activation timestamp.
+- Zoom `user.invitation_accepted.event_ts` is the approved future activation source.
+- Product approved 28 September 2026 as the stored CRM-012 baseline date for users already active at rollout.
 - Existing status visibility is approved for all three pages.
 - This feature shows current membership context and not a full organization-membership audit history.
 
@@ -147,20 +159,20 @@ And the membership date becomes visible on all three pages.
 - Displaying Zoom account creation, first meeting or invitation-send dates as a substitute.
 - Reconstructing historical membership periods or changing meeting/reconciliation behavior.
 
-## Open questions
+## Confirmed rollout decisions
 
-1. Which Zoom API field is the authoritative organization-membership activation date, and does it differ from Zoom account creation date?
-2. If a teacher leaves and later rejoins, should EE-CRM show the latest active-membership date or retain membership history?
-3. What exact unavailable and stale-state copy should UX use?
+1. On leave/reinvite/reaccept, the newest valid `user.invitation_accepted.event_ts` replaces an older baseline or event date. Replays and older events are ignored.
+2. A successful snapshot is fresh for 60 seconds. After a failed refresh, the last successful snapshot is marked stale immediately, remains displayable for up to 24 hours, and then becomes unavailable.
+3. Unavailable and stale-state copy follows the linked UX specification.
 
 ## Definition of Ready checklist
 
 - [x] Business objective, user and display locations are clear
 - [x] Successful, pending, unavailable and failure scenarios are documented
 - [x] Data, permissions, edge cases and exclusions are documented
-- [ ] Zoom date-field semantics are confirmed
-- [ ] UX copy and placement are approved
-- [ ] Open questions are resolved or accepted
+- [x] Future-source semantics and the current-member baseline are approved
+- [x] UX copy and placement are documented
+- [x] Rejoin and stale-data policy are resolved or accepted
 
 ## Audit trail
 
@@ -168,3 +180,5 @@ And the membership date becomes visible on all three pages.
 |---|---|
 | 27 September 2026 | Created CRM-012 to display the authoritative date a teacher became an active Zoom organization member. |
 | 27 September 2026 | Reserved CRM-010 and CRM-011 for the previously agreed attention-flags and teacher-day review-workflow stories. |
+| 28 September 2026 | Product approved `user.invitation_accepted.event_ts` as the future source and 28 September 2026 as the one-time stored baseline for members already active at rollout. |
+| 28 September 2026 | Product approved latest-valid-event rejoin semantics, a 60-second fresh window, immediate stale labeling after refresh failure, and a 24-hour stale-use limit. |

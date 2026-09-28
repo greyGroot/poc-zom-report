@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server';
 import { getTeacherById, deleteTeacher } from '@/lib/infrastructure/db.js';
 import { logger } from '@/lib/infrastructure/logger.js';
-import { getZoomUsersStatusMap } from '@/lib/infrastructure/zoom.js';
+import { enrichTeacherWithZoomMembership } from '@/lib/services/zoom-membership-service.js';
 
 export async function GET(req, { params }) {
   try {
@@ -18,20 +18,12 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
     }
 
-    let zoomStatus = 'not_invited';
-    try {
-      const zoomMap = await getZoomUsersStatusMap();
-      const emailToCheck = (teacher.zoomHostEmail || teacher.email || '').trim().toLowerCase();
-      zoomStatus = zoomMap.get(emailToCheck) || 'not_invited';
-    } catch {
-      // ignore
-    }
+    const enrichedTeacher = await enrichTeacherWithZoomMembership(teacher);
 
     return NextResponse.json({
-      teacher: {
-        ...teacher,
-        zoomStatus
-      }
+      teacher: enrichedTeacher
+    }, {
+      headers: { 'Cache-Control': 'no-store, private' }
     });
   } catch (err) {
     await logger.error('TEACHER_GET_ERROR', 'Failed to get teacher', err);

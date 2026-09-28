@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
 import { formatKyivDateHeader } from '@/lib/utils/timezone';
 import ZoomMeetingCard from '../ZoomMeetingCard';
+import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
 
 export default function TeacherDayDetailsClient({
   initialData,
@@ -73,6 +74,7 @@ export default function TeacherDayDetailsClient({
         const fresh = await res.json();
         setData(prev => ({
           ...prev,
+          teacher: fresh.teacher || prev.teacher,
           schoolmate: fresh.schoolmate,
           comparison: fresh.comparison,
           diagnostics: fresh.diagnostics
@@ -94,6 +96,7 @@ export default function TeacherDayDetailsClient({
         const fresh = await res.json();
         setData(prev => ({
           ...prev,
+          teacher: fresh.teacher || prev.teacher,
           zoom: fresh.zoom,
           comparison: fresh.comparison,
           diagnostics: fresh.diagnostics
@@ -243,7 +246,7 @@ export default function TeacherDayDetailsClient({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="day-details-membership-group" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             {teacher.schoolmateTeacherId && (
               <span className="badge badge-info" style={{ fontSize: 12 }}>
                 Schoolmate ID: {teacher.schoolmateTeacherId}
@@ -254,6 +257,7 @@ export default function TeacherDayDetailsClient({
                 Zoom: {teacher.zoomHostEmail}
               </span>
             )}
+            <ZoomMembershipContext membership={teacher.zoomMembership} />
           </div>
         </div>
       </header>

@@ -11,6 +11,8 @@ import {
 import { logger } from './logger.js';
 import { getHeader, verifyZoomWebhookSignature } from './zoom-signature.js';
 import { toSafeOccurrenceId, normalizeWebhookEventToFacts, reduceOccurrenceFacts } from '../domain/zoom-occurrence.js';
+import { normalizeInvitationAcceptedEvent } from '../domain/zoom-membership.js';
+import { upsertMembershipActivation } from './zoom-membership-store.js';
 
 /**
  * Calculate the union duration in seconds across session intervals,
@@ -157,6 +159,27 @@ async function ingestOccurrenceEvent(event, payload) {
   return { disposition: 'accepted', safeId };
 }
 
+export async function ingestMembershipEvent(body, options = {}) {
+  const normalized = normalizeInvitationAcceptedEvent(body, options.nowMs ?? Date.now());
+  if (!normalized.ok) {
+    return { ok: false, reason: normalized.reason };
+  }
+
+  const activation = {
+    ...normalized.value,
+    receivedAt: new Date(options.nowMs ?? Date.now()).toISOString()
+  };
+  const result = await upsertMembershipActivation(
+    activation,
+    options.redisClient || null
+  );
+  return {
+    ok: true,
+    disposition: result.disposition,
+    activation: result.activation
+  };
+}
+
 /**
  * Zoom Webhook Handler
  * @param {object|Request} reqOrRequest
@@ -285,6 +308,46 @@ export default async function handler(reqOrRequest, optionalRes) {
       if (!sigResult.valid) {
         return responder.send(401, { error: 'Unauthorized: Invalid or missing Zoom webhook signature', reason: sigResult.reason });
       }
+    }
+
+    if (event === 'user.invitation_accepted') {
+      let result;
+      try {
+        result = await ingestMembershipEvent(body);
+      } catch (membershipError) {
+        console.error('[Zoom Webhook] Membership persistence failed:', membershipError);
+        logger.error('ZOOM_MEMBERSHIP_PERSISTENCE_FAILED', 'Zoom membership activation persistence failed', membershipError, {
+          event
+        }).catch(() => {});
+        return responder.send(500, {
+          error: 'ZOOM_MEMBERSHIP_PERSISTENCE_FAILED',
+          message: 'Membership activation persistence failed'
+        });
+      }
+
+      if (!result.ok) {
+        logger.warn('ZOOM_MEMBERSHIP_EVENT_INVALID', 'Rejected malformed Zoom membership event', {
+          event,
+          reason: result.reason
+        }).catch(() => {});
+        return responder.send(400, {
+          error: 'INVALID_ZOOM_MEMBERSHIP_EVENT',
+          reason: result.reason
+        });
+      }
+
+      logger.info('ZOOM_MEMBERSHIP_ACTIVATED', 'Zoom organization membership activation persisted', {
+        event,
+        disposition: result.disposition,
+        account_id: result.activation.accountId,
+        zoom_user_id: result.activation.zoomUserId,
+        accepted_at: result.activation.acceptedAt
+      }).catch(() => {});
+      return responder.send(200, {
+        success: true,
+        event,
+        disposition: result.disposition
+      });
     }
 
     const object = (payload && typeof payload.object === 'object' && payload.object !== null)

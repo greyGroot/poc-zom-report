@@ -9,6 +9,7 @@ import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '../inf
 import { computeTeacherDayComparison, isConductedLesson } from '../domain/comparison-engine.js';
 import { logger } from '../infrastructure/logger.js';
 import { TIMEZONE } from '../utils/timezone.js';
+import { enrichTeacherWithZoomMembership } from './zoom-membership-service.js';
 
 /**
  * Validates whether a given string is a valid ISO calendar date (YYYY-MM-DD).
@@ -93,7 +94,7 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
     return { error: 'Teacher not found', status: 404 };
   }
 
-  const teacherProfile = {
+  let teacherProfile = {
     id: teacher.id,
     fullName: teacher.fullName || `${teacher.lastName || ''} ${teacher.firstName || ''}`.trim() || 'Teacher',
     firstName: teacher.firstName || '',
@@ -106,6 +107,16 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
     city: teacher.city || '',
     nationality: teacher.nationality || ''
   };
+
+  try {
+    teacherProfile = await enrichTeacherWithZoomMembership(teacherProfile);
+  } catch (membershipError) {
+    await logger.warn(
+      'TEACHER_DAY_ZOOM_MEMBERSHIP_ERROR',
+      `Zoom membership enrichment failed for ${teacherId}`,
+      { errorMessage: membershipError.message }
+    );
+  }
 
   // 2. Query Schoolmate lessons independently
   let schoolmateResult = {

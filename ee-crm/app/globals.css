@@ -639,6 +639,74 @@ a:hover {
   border: 1px solid var(--border-color);
 }
 
+.zoom-membership-context {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 9.5rem;
+  max-width: 22rem;
+  white-space: normal;
+}
+
+.zoom-membership-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  border-radius: 12px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.zoom-membership-badge--member {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.zoom-membership-badge--pending,
+.zoom-membership-badge--unavailable {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.zoom-membership-badge--not-invited {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.zoom-membership-badge-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.zoom-membership-date {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.zoom-membership-freshness {
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.zoom-membership-loading {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+td .zoom-membership-context {
+  min-width: 11rem;
+}
+
 /* ==========================================================================
    Tables
    ========================================================================== */
@@ -2453,6 +2521,10 @@ a:hover {
 }
 
 @media (max-width: 768px) {
+  .teacher-profile-membership {
+    flex-basis: 100%;
+  }
+
   .zoom-card-primary {
     flex-direction: column;
     align-items: flex-start;
@@ -2500,6 +2572,12 @@ a:hover {
 }
 
 @media (max-width: 640px) {
+  .day-details-membership-group,
+  .day-details-membership-group .zoom-membership-context {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .day-details-workspace {
     padding: 16px !important;
   }

@@ -194,7 +194,10 @@ export class InMemoryRedis {
     return cloneDeep(val);
   }
 
-  async set(key, value) {
+  async set(key, value, options = {}) {
+    if ((options?.nx || options?.NX) && this.store.has(key)) {
+      return null;
+    }
     this.store.set(key, cloneDeep(value));
     return 'OK';
   }

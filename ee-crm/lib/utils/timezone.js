@@ -3,6 +3,12 @@
 
 export const TIMEZONE = 'Europe/Kyiv';
 
+function toIntlLocale(locale) {
+  if (locale === 'uk') return 'uk-UA';
+  if (locale === 'pl') return 'pl-PL';
+  return 'en-GB';
+}
+
 /**
  * Returns YYYY-MM-DD date string in Europe/Kyiv timezone for a given ISO date or timestamp.
  * @param {string|Date} dateInput
@@ -61,6 +67,33 @@ export function formatKyivDateHeader(dateInput, locale = 'en') {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
+  }).format(d);
+}
+
+export function formatKyivLongDate(dateInput, locale = 'en') {
+  if (!dateInput) return '';
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(d);
+}
+
+export function formatKyivDateTime(dateInput, locale = 'en') {
+  if (!dateInput) return '';
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
   }).format(d);
 }
 

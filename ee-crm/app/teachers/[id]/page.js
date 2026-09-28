@@ -1,5 +1,6 @@
 import { getTeacherById } from '@/lib/infrastructure/db.js';
 import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '@/lib/infrastructure/zoom-occurrences.js';
+import { enrichTeacherWithZoomMembership } from '@/lib/services/zoom-membership-service.js';
 import TeacherScheduleClient from './TeacherScheduleClient';
 
 export default async function TeacherSchedulePage({ params, searchParams }) {
@@ -12,7 +13,8 @@ export default async function TeacherSchedulePage({ params, searchParams }) {
 
   if (teacherId) {
     try {
-      teacher = await getTeacherById(teacherId);
+      const storedTeacher = await getTeacherById(teacherId);
+      teacher = await enrichTeacherWithZoomMembership(storedTeacher);
     } catch (e) {
       console.warn('Error fetching teacher on server:', e.message);
     }
