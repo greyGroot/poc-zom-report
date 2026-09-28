@@ -27,7 +27,8 @@ import {
 } from './lib/services/zoom-membership-service.js';
 import handler, { ingestMembershipEvent } from './lib/infrastructure/zoom-webhook-handler.js';
 import { planBaselineSeed, applyBaselineSeed } from './scripts/crm-012/seed-current-member-baseline.js';
-import { formatKyivLongDate, formatKyivDateTime } from './lib/utils/timezone.js';
+import { formatKyivLongDate, formatKyivShortDate, formatKyivDateTime } from './lib/utils/timezone.js';
+import { translations } from './lib/shared/i18n/translations.js';
 
 let passed = 0;
 let failed = 0;
@@ -329,6 +330,11 @@ await test('Kyiv formatting crosses the UTC day boundary and uses 24-hour time',
   assert.match(formatKyivLongDate(CRM_012_BASELINE_ISO, 'en'), /28 September 2026/);
   assert.match(formatKyivLongDate(CRM_012_BASELINE_ISO, 'uk'), /28 вересня 2026/);
   assert.match(formatKyivLongDate(CRM_012_BASELINE_ISO, 'pl'), /28 września 2026/);
+  assert.equal(formatKyivShortDate(CRM_012_BASELINE_ISO), '28.09.26');
+  assert.equal(
+    translations.en.zoomMembership.memberSince.replace('{date}', formatKyivShortDate(CRM_012_BASELINE_ISO)),
+    'since: 28.09.26'
+  );
   assert.match(formatKyivDateTime('2026-09-28T12:05:00.000Z', 'en'), /15:05/);
 });
 

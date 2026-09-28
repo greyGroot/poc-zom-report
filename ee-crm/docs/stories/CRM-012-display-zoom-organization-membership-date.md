@@ -41,7 +41,7 @@ so that I can understand the teacher’s Zoom membership context while reviewing
 
 1. Persist the signed Zoom `user.invitation_accepted.event_ts` for future organization-membership activations.
 2. During the one-time CRM-012 baseline seed, persist 28 September 2026 for Zoom users confirmed active at the cutoff and record that this is a product-approved baseline.
-3. Display `Zoom member since: {localized date}` in the teachers directory for an active member.
+3. Display `since: {DD.MM.YY}` in the teachers directory for an active member.
 4. Display the same membership date in the teacher page header.
 5. Display the same membership date in the teacher-day page header or teacher context area.
 6. Use the configured Zoom host email when it differs from the teacher email.
@@ -58,7 +58,7 @@ so that I can understand the teacher’s Zoom membership context while reviewing
 Given a teacher’s configured Zoom host email maps to an active Zoom organization member  
 And EE-CRM has either the approved Zoom acceptance timestamp or the approved current-member baseline
 When an administrator opens the directory, teacher page or teacher-day page  
-Then each page displays the same localized `Zoom member since` date.
+Then each page displays the same `since: {DD.MM.YY}` date.
 
 ### Scenario 2: Pending invitation
 Given a teacher’s Zoom organization invitation is pending  

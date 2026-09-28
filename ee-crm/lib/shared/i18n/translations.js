@@ -85,7 +85,7 @@ export const translations = {
       teacherAddedSuccess: 'Teacher {name} registered successfully!',
     },
     zoomMembership: {
-      memberSince: 'Zoom member since: {date}',
+      memberSince: 'since: {date}',
       memberSinceUnavailable: 'Zoom member since: Unavailable',
       loading: 'Loading Zoom membership…',
       statusUnavailable: 'Zoom status unavailable',

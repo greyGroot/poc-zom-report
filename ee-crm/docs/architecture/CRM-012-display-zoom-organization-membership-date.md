@@ -280,7 +280,7 @@ No teacher record is changed and no relational/schema migration is required. The
 ### 11. [`lib/shared/i18n/translations.js`](../../lib/shared/i18n/translations.js), [`lib/utils/timezone.js`](../../lib/utils/timezone.js), and [`app/globals.css`](../../app/globals.css)
 
 - **Existing responsibility:** localized copy, Kyiv date utilities, and shared visual primitives.
-- **Planned changes:** add all approved `zoomMembership.*` keys; add long date and date-time formatters; add wrapping/context/stale/unavailable/live-region styles and responsive rules.
+- **Planned changes:** add all approved `zoomMembership.*` keys; add short membership-date and localized date-time formatters; add wrapping/context/stale/unavailable/live-region styles and responsive rules.
 
 ### 12. `scripts/crm-012/seed-current-member-baseline.js`, `test-crm-012.js`, and `verification/tests/crm-012-zoom-membership.e2e.mjs` — new files
 
@@ -402,7 +402,7 @@ npm run build
 | FR3–5 / three display locations | Shared component in directory, overview, and teacher-day header | Component and E2E assertions on all routes |
 | FR6 / mapped Zoom host email | One normalized mapping function, `zoomHostEmail` precedence | Conflicting-email fixture |
 | FR7–9 / active-only date and unavailable state | Explicit status/memberSince state machine | Active, pending, absent, missing-date tests |
-| FR10 / locale and timezone | Shared Kyiv long-date/date-time helpers and translations | `en`/`uk`/`pl` boundary tests |
+| FR10 / locale and timezone | Shared Kyiv short-date/date-time helpers and translations | `en`/`uk`/`pl` boundary tests |
 | FR11 / freshness and stale source | Atomic snapshot with checked/last-success timestamps and Redis fallback | fresh/stale/unavailable tests |
 | FR12 / read-only behavior | New membership namespace; no teacher/invitation/meeting mutations | Persistence diff assertions |
 | AC1 / same date everywhere | Shared contract and renderer | Cross-surface E2E comparison |

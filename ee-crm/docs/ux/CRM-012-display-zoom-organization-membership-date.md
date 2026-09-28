@@ -38,7 +38,7 @@ Verified on 28 September 2026:
    - the existing localized status badge first;
    - for a confirmed active member, one secondary line containing the membership date or the explicit unavailable state;
    - when applicable, one tertiary freshness or source-error message.
-4. A fresh active member with a captured Zoom acceptance date or approved current-member baseline sees `Zoom member since: {localized date}`.
+4. A fresh active member with a captured Zoom acceptance date or approved current-member baseline sees `since: {DD.MM.YY}`.
 5. A fresh active member for whom the authoritative field is empty or invalid keeps the `Member` badge and sees `Zoom member since: Unavailable`.
 6. A pending or confirmed not-invited teacher keeps the existing badge and sees no `Zoom member since` line.
 7. If refresh fails but EE-CRM has last-known membership data, it preserves that status/date and labels the whole membership context as possibly out of date, including the last successful check time.
@@ -131,13 +131,13 @@ Location: the right-side metadata group in the main profile header on `/teachers
 
 ## UI copy
 
-Dates below are placeholders formatted with the active locale. `dateTime` is a localized school-timezone timestamp.
+Membership dates use `DD.MM.YY`. `dateTime` is a localized school-timezone timestamp.
 
 ### English (`en`)
 
 | Context/key | Copy |
 |---|---|
-| `zoomMembership.memberSince` | `Zoom member since: {date}` |
+| `zoomMembership.memberSince` | `since: {date}` |
 | `zoomMembership.memberSinceUnavailable` | `Zoom member since: Unavailable` |
 | `zoomMembership.loading` | `Loading Zoom membership…` |
 | `zoomMembership.statusUnavailable` | `Zoom status unavailable` |
@@ -198,7 +198,7 @@ Copy rules:
 | Teacher leaves the organization | Fresh Zoom result determines pending/not invited | Remove member-since line | None, unless stale/source unavailable |
 | Teacher leaves and rejoins | Pending product/source decision | Do not infer from stored history | See Open questions |
 
-Long localized dates and freshness messages may wrap to multiple lines. They must not be truncated with ellipsis or hidden in a tooltip.
+Membership dates and freshness messages may wrap to multiple lines. They must not be truncated with ellipsis or hidden in a tooltip.
 
 ## Responsive behavior
 
@@ -283,7 +283,7 @@ Long localized dates and freshness messages may wrap to multiple lines. They mus
 
 ### Formatting and refresh ownership
 
-- Format the member-since value as date only: localized long date with year, for example `27 September 2026`, using `Europe/Kyiv`.
+- Format the member-since value as date only in `DD.MM.YY`, for example `28.09.26`, using `Europe/Kyiv`.
 - Format `checkedAt`/`lastSuccessfulAt` as localized date and 24-hour time in `Europe/Kyiv` so it cannot be confused with the membership date.
 - Client formatting must handle invalid values defensively and render the explicit unavailable state.
 - Status and date update atomically. Pending/not-invited responses clear any previously displayed member-since value.
@@ -304,7 +304,7 @@ Given the configured Zoom host email maps to an active organization member
 And EE-CRM has either a valid acceptance-event timestamp or approved current-member baseline
 When an administrator opens the directory, teacher overview or teacher-day page
 Then the existing `Member` badge is shown
-And `Zoom member since: {localized date}` is shown immediately with it
+And `since: {DD.MM.YY}` is shown immediately with it
 And all three surfaces show the same school-timezone calendar date.
 
 ### Scenario: Active member without a usable source date
@@ -374,7 +374,7 @@ And the underlying membership instant does not change.
 
 ### Scenario: Narrow viewport and text zoom
 
-Given an active member has a long localized date and stale message
+Given an active member has a numeric membership date and stale message
 When the page is viewed at 320 CSS pixels or 200% text zoom
 Then the context wraps without clipping or overlap
 And the directory table scrolls only inside its existing responsive container

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
-import { formatKyivLongDate, formatKyivDateTime } from '@/lib/utils/timezone';
+import { formatKyivShortDate, formatKyivDateTime } from '@/lib/utils/timezone';
 
 function statusPresentation(status, t) {
   if (status === 'member') {
@@ -28,7 +28,7 @@ export default function ZoomMembershipContext({ membership, className = '' }) {
     let memberSinceText = '';
     if (membership.status === 'member') {
       const formatted = membership.memberSince?.state === 'available'
-        ? formatKyivLongDate(membership.memberSince.value, locale)
+        ? formatKyivShortDate(membership.memberSince.value)
         : '';
       memberSinceText = formatted
         ? t('zoomMembership.memberSince', { date: formatted })
