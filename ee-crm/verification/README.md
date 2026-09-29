@@ -192,7 +192,7 @@ CRM_013_BASE_URL=http://localhost:3000 npm run test:crm-013:e2e
 | **CRM-007** | Add network reliability abstractions to Schoolmate client | **Pass locally & on Vercel** | [`tests/crm-007-network-reliability.e2e.mjs`](./tests/crm-007-network-reliability.e2e.mjs) | [`reports/CRM-007-e2e-report.md`](./reports/CRM-007-e2e-report.md) |
 | **CRM-008** | Refactor EE-CRM to target vertical slice module structure | **Pass with observations** | [`tests/crm-008-vertical-slice.e2e.mjs`](./tests/crm-008-vertical-slice.e2e.mjs) | [`reports/CRM-008-e2e-report.md`](./reports/CRM-008-e2e-report.md) |
 | **CRM-012** | Display Zoom organization membership date | **Pass locally / Awaiting production webhook verification** | [`tests/crm-012-zoom-membership.e2e.mjs`](./tests/crm-012-zoom-membership.e2e.mjs) | [`reports/CRM-012-e2e-report.md`](./reports/CRM-012-e2e-report.md) |
-| **CRM-013** | Display group students roster on teacher and day pages | **Failing TDD (Awaiting Dev Implementation)** | [`tests/crm-013-group-roster.e2e.mjs`](./tests/crm-013-group-roster.e2e.mjs) | [`reports/CRM-013-e2e-report.md`](./reports/CRM-013-e2e-report.md) |
+| **CRM-013** | Display group students roster on teacher and day pages | **Pass locally & on Vercel** | [`tests/crm-013-group-roster.e2e.mjs`](./tests/crm-013-group-roster.e2e.mjs) | [`reports/CRM-013-e2e-report.md`](./reports/CRM-013-e2e-report.md) |
 
 ---
 

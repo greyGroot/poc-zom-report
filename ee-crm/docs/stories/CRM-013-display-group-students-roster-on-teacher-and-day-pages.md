@@ -87,6 +87,16 @@ so that I can verify who is in the group and compare them with the Zoom meeting 
    - Apply identically across:
      - Teacher Schedule View: `/teachers/[id]`
      - Teacher Day Details View: `/teachers/[id]/[date]`
+5. **Zoom Missing Data Backfill & Ingestion (26–29 September 2026):**
+   - Ingest and adapt the 49 raw Zoom webhook events from legacy report fixture `ee-crm/verification/fixtures/zoom_raw_events_2026-09-29.json` spanning `2026-09-26T00:00:00.000Z` to `2026-09-29T23:59:59.999Z` into EE-CRM Redis.
+   - Map missing `host_email` fields using known teacher room / topic / meeting ID bindings:
+     - Topic `Olha Kushnirchuk's Personal Meeting Room` / Meeting ID `9258799407` / Host ID `7-WlHk2wSomxqSVrH_gIHA` -> `helhakushnirchuk@gmail.com`
+     - Topic `Зал персональной конференции Irina Zhuravleva` / Meeting ID `5558680499` / Host ID `gYfCkJl0SkSzhXNurZQtWg` -> `zhur.zhur.irene@gmail.com`
+   - Store immutable facts under `zoom:occurrence:events:{safeId}`, reduce deterministic projections, and index safe IDs in `zoom:host:occurrences:{hostEmail}`.
+6. **Automated Test Coverage for Zoom Tracking Integrity:**
+   - Add automated test suites ensuring:
+     - All 12 missing meeting occurrences for 26–29 Sep are restored in Redis and queryable by date and host.
+     - Webhook normalization and fact reduction preserve participant join/leave intervals, waiting-room facts, and host assignments without data loss or wall-clock duration corruption.
 
 ---
 
@@ -123,6 +133,19 @@ so that I can verify who is in the group and compare them with the Zoom meeting 
 ### Check 4: Zoom Comparison
 - **Check:** On the Day view, expanding the group lesson on the left column renders the student names adjacent to the Tracked Zoom meetings column on the right.
 
+### Check 5: Missing Zoom Data Ingestion (26–29 Sep 2026)
+- **Target dates:** `2026-09-26` through `2026-09-29` (inclusive).
+- **Checks:**
+  - [ ] Backfill execution script `ee-crm/scripts/crm-013/backfill-zoom-raw-events.js` parses the 49 events from `ee-crm/verification/fixtures/zoom_raw_events_2026-09-29.json` and writes 12 authoritative occurrences to Redis.
+  - [ ] Olha Kushnirchuk (`helhakushnirchuk@gmail.com`) has 10 restored occurrences (3 completed meetings on Sep 26 with participants, 2 on Sep 28, 5 on Sep 29).
+  - [ ] Irina Zhuravleva (`zhur.zhur.irene@gmail.com`) has 2 restored occurrences (1 on Sep 27, 1 on Sep 29).
+  - [ ] Teacher Day query `/teachers/t_5e3f31e6/2026-09-28` and `/teachers/t_5e3f31e6/2026-09-29` returns the Zoom meetings in the right-hand evidence column.
+
+### Check 6: Automated Zoom Integrity Tests
+- **Checks:**
+  - [ ] `npm run test:crm-013:zoom` passes with 100% assertions green.
+  - [ ] Verifies fact idempotency, interval union duration calculation, host mapping fallback, and date range querying.
+
 ---
 
 ## 8. Multi-Agent Execution Flow
@@ -130,19 +153,19 @@ so that I can verify who is in the group and compare them with the Zoom meeting 
 ```mermaid
 flowchart TD
     A["1. UX Agent"] -->|"Component layout & visual specs"| B["2. Architect Agent"]
-    B -->|"Technical design & API contract"| C["3. QA Agent (TDD Tests)"]
-    C -->|"Failing automated E2E tests"| D["4. Developer Agent"]
-    D -->|"Implementation complete"| E["5. Architect Code Review"]
-    E -->|"Approved architecture & code quality"| F["6. QA Agent (Verification)"]
+    B -->|"Technical design & Backfill specification"| C["3. QA Agent (TDD Tests)"]
+    C -->|"Failing automated E2E & Zoom tests"| D["4. Developer Agent"]
+    D -->|"Roster UI + Backfill script implemented"| E["5. Architect Code Review"]
+    E -->|"Approved architecture & data integrity"| F["6. QA Agent (Verification)"]
     F -->|"All tests GREEN with evidence"| G["7. BA Agent (Sign-off)"]
     G -->|"Status: Done"| H["User Informed / Production Ready"]
 ```
 
 1. **UX Agent:** Plans component display and layout for the student roster in the expanded lesson card drawer based on Screenshot 1.
-2. **Architect Agent:** Specifies technical plan (Schoolmate API integration, caching, data model, component architecture).
-3. **QA Agent (TDD):** Writes automated verification tests for the two URLs (`t_0fa2ff7f` for `GIZ Group 8 English Empire` and `t_759a0536` for `NovaPay A2+/2`). Runs tests to confirm they fail initially.
-4. **Developer Agent:** Implements the feature according to the Architect plan and validates against QA tests.
-5. **Architect Code Review:** Reviews implementation against vertical-slice standards and performance requirements.
+2. **Architect Agent:** Specifies technical plan (Schoolmate API integration, caching, data model, component architecture, and Zoom raw events backfill script).
+3. **QA Agent (TDD):** Writes automated verification tests for the roster URLs (`t_0fa2ff7f`, `t_759a0536`) and missing Zoom occurrences backfill (`2026-09-26` to `2026-09-29`). Confirms tests fail before implementation.
+4. **Developer Agent:** Implements roster display and the backfill script (`ee-crm/scripts/crm-013/backfill-zoom-raw-events.js`), executes ingestion against target DB, and validates against QA tests.
+5. **Architect Code Review:** Reviews implementation against vertical-slice standards, projection idempotency, and performance requirements.
 6. **QA Agent (Final Verification):** Runs test suite and verification tests locally and on Vercel preview; captures evidence.
 7. **BA Agent:** Reviews verification report against acceptance criteria and marks CRM-013 as **Done**.
 
@@ -151,8 +174,8 @@ flowchart TD
 ## 9. Definition of Ready Checklist
 
 - [x] Business objective and primary user clear
-- [x] Problem statement (duration vs. student count conflation) defined
-- [x] Target fixtures and student names explicitly documented
+- [x] Problem statement (duration vs. student count conflation & missing 26-29 Sep Zoom telemetry) defined
+- [x] Target fixtures, student names, and Zoom raw events fixture explicitly documented
 - [x] Acceptance criteria and verification checks defined
 - [x] Execution flow across agent roles specified
 - [x] Out-of-scope boundaries (individual attendance marks `✅/❌/❓` deferred to next story) established
@@ -169,6 +192,7 @@ flowchart TD
 | 29 September 2026 | Decoupled individual attendance marking (`✅`, `❌`, `❓`) to a dedicated follow-up story. |
 | 29 September 2026 | Completed UX spec proposing inline Flow-Style Student Chips (Pill Badges) in expanded lesson drawer instead of table rows for compact side-by-side scanning with Zoom participants. |
 | 29 September 2026 | Completed Technical Architecture Plan specifying Schoolmate group roster retrieval, Redis 24h caching, domain payload enrichment, and reusable `GroupStudentRoster` component. |
+| 29 September 2026 | Expanded CRM-013 scope to include Zoom raw events backfill for 26–29 September (inclusive) from legacy report fixture `zoom_raw_events_2026-09-29.json` and automated Zoom tracking integrity test suite. |
 
 ---
 
@@ -176,3 +200,4 @@ flowchart TD
 
 The detailed architecture and implementation plan is documented in:
 [Architecture: CRM-013 — Display Group Students Roster on Teacher and Day Pages](../architecture/CRM-013-display-group-students-roster-on-teacher-and-day-pages.md).
+

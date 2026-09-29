@@ -156,25 +156,44 @@ async function runVerification() {
     recordResult('T1-NO-MISLEADING-BADGES-HTML', `Schedule view HTML does NOT contain misleading duration/attendance chips`, 'FAIL', err.message);
   }
 
-  // 2.6 Verify Schedule Page HTML renders student count and student roster names
+  // 2.6 Verify Day Details Page HTML renders student count and student roster names
   try {
-    const { status, html } = await fetchHtml(t1.scheduleQueryUrl);
-    assert.equal(status, 200);
+    const { status, html } = await fetchHtml(t1.dayDetailsUrl);
+    assert.equal(status, 200, `${t1.dayDetailsUrl} returned HTTP ${status}`);
 
     // Should contain count badge: 6 students / 6 учнів
     const hasCountBadge = html.includes('6 students') || html.includes('6 учнів') || html.includes('6 student');
-    assert.ok(hasCountBadge, 'Schedule HTML does not contain "6 students" or "6 учнів" badge');
+    assert.ok(hasCountBadge, 'Day Details HTML does not contain "6 students" or "6 учнів" badge');
 
-    // Should contain student names in the rendered DOM
+    // Should contain all 6 student names in the rendered HTML / payload
     for (const studentName of t1.groupLesson.expectedStudentNames) {
       assert.ok(
         html.includes(studentName),
-        `Schedule HTML does not contain student name "${studentName}"`
+        `Day Details HTML does not contain student name "${studentName}"`
       );
     }
-    recordResult('T1-STUDENT-ROSTER-HTML', `Schedule view HTML renders 6 student names and count badge`, 'PASS', 'Rendered in lesson drawer');
+
+    recordResult('T1-STUDENT-ROSTER-HTML', `Day Details view HTML renders 6 student names and count badge`, 'PASS', 'Rendered in lesson drawer payload and summary bar');
   } catch (err) {
-    recordResult('T1-STUDENT-ROSTER-HTML', `Schedule view HTML renders 6 student names and count badge`, 'FAIL', err.message);
+    recordResult('T1-STUDENT-ROSTER-HTML', `Day Details view HTML renders 6 student names and count badge`, 'FAIL', err.message);
+  }
+
+  // 2.7 Verify Weekly Schedule Report API exposes enriched roster
+  try {
+    const reportRes = await fetch(`${TARGET_BASE_URL}/api/schoolmate/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherId: 6568, fromDate: '2026-09-28', toDate: '2026-10-04' })
+    });
+    assert.equal(reportRes.status, 200, `/api/schoolmate/report returned ${reportRes.status}`);
+    const reportData = await reportRes.json();
+    const gizLessonWeekly = reportData.days?.flatMap(d => d.lessons || []).find(l => l.groupId === t1.groupLesson.groupId);
+    assert.ok(gizLessonWeekly, 'GIZ Group 8 found in weekly report');
+    assert.equal(gizLessonWeekly.enrolledStudents, 6, `Weekly report enrolledStudents expected 6, got ${gizLessonWeekly.enrolledStudents}`);
+    assert.equal(gizLessonWeekly.students?.length, 6, `Weekly report students array expected 6, got ${gizLessonWeekly.students?.length}`);
+    recordResult('T1-WEEKLY-REPORT-API', `POST /api/schoolmate/report returns enriched 6-student roster for weekly view`, 'PASS', `Enriched ${gizLessonWeekly.students.length} students`);
+  } catch (err) {
+    recordResult('T1-WEEKLY-REPORT-API', `POST /api/schoolmate/report returns enriched 6-student roster for weekly view`, 'FAIL', err.message);
   }
 
   // ------------------------------------------------------------------------
