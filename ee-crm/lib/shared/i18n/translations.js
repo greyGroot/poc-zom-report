@@ -301,6 +301,14 @@ export const translations = {
       accessRestrictedDesc: 'Only authorized faculty Gmail accounts registered in Google Cloud Console can sign in.',
       accessDeniedError: 'Access Denied: Your Google account is not on the authorized faculty access list. Please contact the administrator.',
       sessionExpired: 'Your session has expired. Please sign in again.',
+    },
+    roster: {
+      enrolledStudents: 'Enrolled Students ({count})',
+      enrolledStudent: 'Enrolled Student:',
+      studentsCount: '{count} students',
+      studentCountSingle: '1 student',
+      noStudents: 'No students enrolled',
+      loadingRoster: 'Loading student roster...',
     }
   },
 
@@ -604,6 +612,14 @@ export const translations = {
       accessRestrictedDesc: 'Лише авторизовані Gmail-акаунти викладачів, додані в Google Cloud Console, мають доступ.',
       accessDeniedError: 'Доступ заборонено: Ваш Google-акаунт відсутній у списку дозволених. Будь ласка, зверніться до адміністратора.',
       sessionExpired: 'Час сесії минув. Будь ласка, увійдіть знову.',
+    },
+    roster: {
+      enrolledStudents: 'Зараховані учні ({count})',
+      enrolledStudent: 'Зарахований учень:',
+      studentsCount: '{count} учнів',
+      studentCountSingle: '1 учень',
+      noStudents: 'Немає зарахованих учнів',
+      loadingRoster: 'Завантаження списку учнів...',
     }
   },
 
@@ -906,6 +922,14 @@ export const translations = {
       accessRestrictedDesc: 'Dostęp mają wyłącznie autoryzowane konta Gmail nauczycieli zarejestrowane w Google Cloud Console.',
       accessDeniedError: 'Odmowa dostępu: Twoje konto Google nie znajduje się na liście uprawnionych. Skontaktuj się z administratorem.',
       sessionExpired: 'Sesja wygasła. Zaloguj się ponownie.',
+    },
+    roster: {
+      enrolledStudents: 'Zapisani studenci ({count})',
+      enrolledStudent: 'Zapisany student:',
+      studentsCount: '{count} studentów',
+      studentCountSingle: '1 student',
+      noStudents: 'Brak zapisanych studentów',
+      loadingRoster: 'Ładowanie listy studentów...',
     }
   }
 };

@@ -9,6 +9,7 @@ import AirbnbDatePicker from './AirbnbDatePicker';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
 import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
+import GroupStudentRoster from '@/app/components/GroupStudentRoster';
 
 export default function TeacherScheduleClient({ initialTeacher = null, initialZoomMeetings = [] }) {
   const params = useParams();
@@ -738,12 +739,9 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                 {lesson.className || lesson.lessonType || 'GE'}
                               </span>
 
-                              {/* Planned Students */}
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                👥 {t('dayDetails.plannedStudents', { count: lesson.enrolledStudents || 1 }) || `Planned: ${lesson.enrolledStudents || 1}`}
-                                {lesson.attendanceChecked && (
-                                  <span>· {t('dayDetails.attendedStudents', { attended: lesson.attendedCount || lesson.enrolledStudents || 1, planned: lesson.enrolledStudents || 1 }) || `Attended: ${lesson.attendedCount || lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1}`}</span>
-                                )}
+                              {/* Enrolled Students Count Badge */}
+                              <span className="lesson-students-count" style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                👥 {lesson.enrolledStudents === 1 ? (t('roster.studentCountSingle') || '1 student') : (t('roster.studentsCount', { count: lesson.enrolledStudents || 1 }) || `${lesson.enrolledStudents || 1} students`)}
                               </span>
 
                               {/* Attendance Status */}
@@ -756,31 +754,12 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                           {/* Accordion Detail Drawer */}
                           {isExpanded && (
                             <div style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {isIndividual ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cleanStudentName}</span>
-                                      <span className="badge badge-neutral" style={{ fontSize: 11 }}>1 {t('dayDetails.enrolledStudent')}</span>
-                                    </div>
-                                    <span style={{ fontSize: 12, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)' }}>
-                                      {lesson.attendanceChecked ? `✅ ${t('dayDetails.attended')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rawGroupName}</span>
-                                      <span className="badge badge-neutral" style={{ fontSize: 11 }}>{lesson.enrolledStudents || 1} {t('dayDetails.enrolledStudentsPlural')}</span>
-                                    </div>
-                                    <span style={{ fontSize: 12, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)' }}>
-                                      {lesson.attendanceChecked
-                                        ? `✅ ${lesson.enrolledStudents || 1}/${lesson.enrolledStudents || 1} ${t('dayDetails.attended')}`
-                                        : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              <GroupStudentRoster
+                                students={lesson.students}
+                                isIndividual={isIndividual}
+                                fallbackStudentName={cleanStudentName}
+                                attendanceChecked={lesson.attendanceChecked}
+                              />
 
                               {/* Class Notes / Additional Details if present */}
                               {(lesson.classDetailsAdded || lesson.notes) && (

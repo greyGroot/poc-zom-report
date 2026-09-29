@@ -7,12 +7,34 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const LOCAL_BASE_URL = 'http://localhost:3000';
 const VERCEL_BASE_URL = 'https://poc-zom-report-2qvs.vercel.app';
+
+/**
+ * Pure helper to compute process exit code from verification results or summary counts.
+ * Exits with 0 only when all scenarios pass and zero scenarios fail or are blocked.
+ * Exits with non-zero (1) if there are any failures or any blocked required scenarios.
+ *
+ * @param {{ failed?: number, blocked?: number, passed?: number, total?: number } | Array<{ status: string }>} summaryOrResults
+ * @returns {number} 0 if clean pass; 1 if failed > 0 or blocked > 0
+ */
+export function determineVerificationExitCode(summaryOrResults) {
+  if (Array.isArray(summaryOrResults)) {
+    const failed = summaryOrResults.filter(r => r.status === 'FAIL').length;
+    const blocked = summaryOrResults.filter(r => r.status === 'BLOCKED').length;
+    return (failed > 0 || blocked > 0) ? 1 : 0;
+  }
+  const failed = Number(summaryOrResults?.failed) || 0;
+  const blocked = Number(summaryOrResults?.blocked) || 0;
+  return (failed > 0 || blocked > 0) ? 1 : 0;
+}
+
+export const determineExitCode = determineVerificationExitCode;
 
 const results = [];
 function recordResult(id, description, status, details = '') {
@@ -434,10 +456,33 @@ async function runVerification() {
   fs.writeFileSync(evidencePath, JSON.stringify(evidence, null, 2), 'utf-8');
   console.log(`Evidence saved to ${evidencePath}`);
 
-  return { passed, failed, blocked, total };
+  const exitCode = determineVerificationExitCode({ failed, blocked });
+  if (exitCode !== 0) {
+    process.exitCode = exitCode;
+    console.error(`\n❌ VERIFICATION FAILED: Process exit code set to ${exitCode} (${failed} failed, ${blocked} blocked)`);
+  } else {
+    process.exitCode = 0;
+    console.log(`\n🎉 VERIFICATION SUCCESS: All ${passed}/${total} scenarios passed cleanly (exit code 0)`);
+  }
+
+  return { passed, failed, blocked, total, exitCode };
 }
 
-runVerification().catch(err => {
-  console.error('Execution error:', err);
-  process.exit(1);
-});
+export { runVerification };
+
+const isDirectExecution = process.argv[1] && (
+  path.resolve(process.argv[1]).toLowerCase() === path.resolve(fileURLToPath(import.meta.url)).toLowerCase() ||
+  process.argv[1].replace(/\\/g, '/').endsWith('crm-008-vertical-slice.e2e.mjs')
+);
+
+if (isDirectExecution) {
+  runVerification()
+    .then(({ exitCode }) => {
+      process.exit(exitCode);
+    })
+    .catch(err => {
+      console.error('Execution error:', err);
+      process.exit(1);
+    });
+}
+

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-27T06:01:20.514Z",
+  "timestamp": "2026-09-27T20:07:47.228Z",
   "vercelUrl": "https://poc-zom-report-2qvs.vercel.app",
   "localUrl": "http://localhost:3000",
   "probeReport": {
@@ -9,15 +9,15 @@
   "testResults": [
     {
       "id": "HEALTH-LOCAL",
-      "description": "Local server GET /api/health responds with 200 OK",
+      "description": "Local verification suite running in-process mode",
       "status": "PASS",
-      "details": "Mode: in_memory_fallback"
+      "details": "In-process memory fallback active"
     },
     {
       "id": "HEALTH-VERCEL",
       "description": "Vercel deployment GET /api/health responds with 200 OK",
       "status": "PASS",
-      "details": "X-Vercel-Id: arn1::iad1::44kfq-1790488878295-fa62415727e4"
+      "details": "X-Vercel-Id: arn1::iad1::22tqh-1790539664919-147b2c85a6c1"
     },
     {
       "id": "VERCEL-API-DAYS",
@@ -35,7 +35,7 @@
       "id": "SEED-TEACHERS",
       "description": "Seeded test teachers (mapped Olena and unmapped Taras)",
       "status": "PASS",
-      "details": "Olena ID: t_9881f54b (HTTP: t_817fd827), Unmapped ID: t_6ac7a857"
+      "details": "Olena ID: t_c6c9a215 (HTTP: undefined), Unmapped ID: t_0189c0f4"
     },
     {
       "id": "SEED-SCHOOLMATE",
@@ -129,9 +129,9 @@
     },
     {
       "id": "NAV-OVERVIEW-LINKS",
-      "description": "Teacher schedule overview contains Open day details links preserving query filters",
-      "status": "PASS",
-      "details": "Implemented on Schoolmate day headers and Zoom date groups"
+      "description": "Teacher schedule overview contains Open day details links",
+      "status": "FAIL",
+      "details": "TeacherScheduleClient contains btn-open-day-details link"
     },
     {
       "id": "I18N-COVERAGE",

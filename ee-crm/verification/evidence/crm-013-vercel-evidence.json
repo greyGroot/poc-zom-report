@@ -1,0 +1,104 @@
+{
+  "story": "CRM-013",
+  "targetUrl": "https://poc-zom-report-2qvs.vercel.app",
+  "environment": "Vercel Production",
+  "testedAt": "2026-09-29T20:07:49.654Z",
+  "summary": {
+    "total": 15,
+    "passed": 6,
+    "failed": 9,
+    "blocked": 0
+  },
+  "results": [
+    {
+      "id": "HEALTH-PROBE",
+      "description": "GET /api/health responds with 200 OK (upstash)",
+      "status": "PASS",
+      "details": "Status: ok"
+    },
+    {
+      "id": "T1-API-DAY-DATA",
+      "description": "GET /api/teachers/t_0fa2ff7f/days/2026-09-28 returns 200 OK",
+      "status": "PASS",
+      "details": "Total lessons: 4"
+    },
+    {
+      "id": "T1-NO-MISLEADING-BADGES-API",
+      "description": "GIZ Group 8 does NOT return duration-derived enrolledStudents (9)",
+      "status": "FAIL",
+      "details": "enrolledStudents is still duration-derived (9) instead of true headcount (6)"
+    },
+    {
+      "id": "T1-ENROLLED-COUNT-API",
+      "description": "GIZ Group 8 exposes true enrolledStudents count (6) in API",
+      "status": "FAIL",
+      "details": "enrolledStudents expected 6, got 9\n\n9 !== 6\n"
+    },
+    {
+      "id": "T1-STUDENT-ROSTER-API",
+      "description": "GIZ Group 8 returns all 6 student names in students array",
+      "status": "FAIL",
+      "details": "gizLesson.students is not an array (got undefined)"
+    },
+    {
+      "id": "T1-NO-MISLEADING-BADGES-HTML",
+      "description": "Schedule view HTML does NOT contain misleading duration/attendance chips",
+      "status": "PASS",
+      "details": "Cleaned summary badges"
+    },
+    {
+      "id": "T1-STUDENT-ROSTER-HTML",
+      "description": "Schedule view HTML renders 6 student names and count badge",
+      "status": "FAIL",
+      "details": "Schedule HTML does not contain \"6 students\" or \"6 учнів\" badge"
+    },
+    {
+      "id": "T2-API-DAY-DATA",
+      "description": "GET /api/teachers/t_759a0536/days/2026-09-28 returns 200 OK",
+      "status": "PASS",
+      "details": "Total lessons: 5"
+    },
+    {
+      "id": "T2-NO-MISLEADING-BADGES-API",
+      "description": "NovaPay A2+/2 does NOT return misleading enrolledStudents (5)",
+      "status": "FAIL",
+      "details": "enrolledStudents is 5 instead of true headcount (4)"
+    },
+    {
+      "id": "T2-ENROLLED-COUNT-API",
+      "description": "NovaPay A2+/2 exposes true enrolledStudents count (4) in API",
+      "status": "FAIL",
+      "details": "enrolledStudents expected 4, got 5\n\n5 !== 4\n"
+    },
+    {
+      "id": "T2-STUDENT-ROSTER-API",
+      "description": "NovaPay A2+/2 returns all 4 student names in students array",
+      "status": "FAIL",
+      "details": "novaLesson.students is not an array (got undefined)"
+    },
+    {
+      "id": "T2-STUDENT-ROSTER-HTML",
+      "description": "NovaPay A2+/2 Day Details HTML renders 4 student names",
+      "status": "FAIL",
+      "details": "Day Details HTML does not contain student name \"Bevz Serhii\""
+    },
+    {
+      "id": "T3-INDIVIDUAL-LESSONS",
+      "description": "1-on-1 lessons preserve enrolledStudents: 1 and isIndividual: true",
+      "status": "FAIL",
+      "details": "Individual lesson isIndividual expected true, got undefined\n\u001b[32m+ actual\u001b[39m \u001b[31m- expected\u001b[39m\n\n\u001b[32m+\u001b[39m undefined\n\u001b[31m- \u001b[39mtrue\n"
+    },
+    {
+      "id": "T4-SIDE-BY-SIDE-PARITY",
+      "description": "Day Details API returns dual Schoolmate and Zoom structures for side-by-side verification",
+      "status": "PASS",
+      "details": "SM Lessons: 4, Zoom State: empty (Verified 2026-09-25 with 1 live Zoom meetings)"
+    },
+    {
+      "id": "API-CACHE-HEADERS",
+      "description": "Teacher day API returns Cache-Control: no-store, private",
+      "status": "PASS",
+      "details": "no-store, private"
+    }
+  ]
+}

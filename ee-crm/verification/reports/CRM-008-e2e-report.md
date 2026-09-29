@@ -2,17 +2,17 @@
 
 ## Overall status
 
-**Pass with observations** (Local application & Vercel production pass; 1 defect identified in verification suite runner)
+**Pass** (All 14 CRM-008 E2E scenarios pass; all cumulative verification suites restored and passing; BUG-001 resolved)
 
 ---
 
 ## Test summary
 
-- **Local status:** Pass (13/14 automated checks pass; 1 defect in historical verification runners)
+- **Local status:** Pass (14/14 automated checks pass; cumulative verification suites passing)
 - **Vercel status:** Pass (6/6 live production endpoints verified)
 - **Vercel URL:** <https://poc-zom-report-2qvs.vercel.app/>
 - **Authentication status:** Active via `proxy.js` (`withAuth` wrapper with default bypass enabled in development/production)
-- **Tested branch/commit/deployment:** Commit `2147e0a` (`feat(crm-008): refactor ee-crm to target vertical slice module structure`)
+- **Tested branch/commit/deployment:** Commit `1763435` (`fix(crm-008): resolve review findings and fix BUG-001 stale imports in verification suites`)
 - **Date:** 2026-09-27
 
 ---
@@ -50,7 +50,7 @@
 | **AC-2** | Codebase matches targeted structure (`domain/`, `services/`, `infrastructure/`, `utils/`, `shared/`); zero root files in `lib/` | **Pass** | **Pass** | Directory scan of `lib/` | 5 subdirectories present; 0 files in root of `lib/` |
 | **AC-3** | Weekly lessons route is a thin transport adapter (< 50 lines) delegating to `weekly-schedule-service.js` | **Pass** | **Pass** | `app/api/teachers/weekly-lessons/route.js` (41 lines) | Parameter parsing, JSON validation, and error mapping only |
 | **AC-4** | Dead QoS code (`fetchZoomMeetingQoS`, `enrichMeetingWithQoS`) removed; `middleware.js` migrated to `proxy.js` | **Pass** | **Pass** | `lib/infrastructure/zoom.js`, `proxy.js` | QoS methods removed; `proxy.js` handles routing without deprecation warnings |
-| **AC-5** | Build and runtime stability: `npm run build` and test suites pass | **Pass with observation** | **Pass** | Next.js build clean; `npm test` & `test:crm-008` pass; `npm run test:crm-006:e2e` fails due to stale verification imports | Defect filed as [BUG-001](../../docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) |
+| **AC-5** | Build and runtime stability: `npm run build` and test suites pass | **Pass** | **Pass** | Next.js build clean; `npm test`, `test:crm-008`, `test:crm-004:e2e`, `test:crm-006:e2e`, and `test:crm-007:e2e` pass 100% | BUG-001 resolved & verified |
 | **AC-6** | Domain isolation: `lib/domain/zoom-occurrence.js` and `comparison-engine.js` contain zero infrastructure/Upstash imports | **Pass** | N/A (Static) | `lib/domain/` scan | Pure logic only; zero imports of `@upstash/redis` or `infrastructure/` |
 
 ---
@@ -129,16 +129,10 @@
 
 ### BUG-001: Stale Flat `lib/` Imports in Verification E2E Test Suites
 - **Severity:** High
+- **Status:** **Resolved & Verified** (Fixed in commit `1763435`)
 - **Bug task file:** [`ee-crm/docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md`](../../docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md)
 - **Environment and URL:** Local (`verification/tests/`)
-- **Preconditions:** Node.js v20+, execute `npm run test:crm-006:e2e` or `npm run test:crm-007:e2e`
-- **Steps to reproduce:** Run `npm run test:crm-006:e2e`
-- **Expected:** Tests resolve modules under new `lib/` layers and run without ESM resolution errors.
-- **Actual:** Throws `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../lib/redis.js'`
-- **Frequency:** 100% on broken suites (`crm-001`, `crm-002`, `crm-004`, `crm-006`, `crm-007`)
-- **Related requirement:** CRM-008 AC-5 (Runtime stability & all test suites passing)
-- **Evidence:** [`verification/evidence/crm-008-local-e2e.log`](../evidence/crm-008-local-e2e.log)
-- **Suspected area:** Line 336 of `test-crm-008.js` excluded `verification` from the stale import audit.
+- **Verification outcome:** Developer updated all 5 verification test suites to target module layer paths, updated CRM-001 proxy assertion for `proxy.js`, and removed the blanket `verification` directory exclusion in `test-crm-008.js`. All cumulative test suites now pass 100%.
 
 ---
 
@@ -168,9 +162,14 @@ Provide exact links and step-by-step instructions so the user can test the chang
 
 ## Regression testing
 
-- Developer unit & integration test runner `npm test` passed 100% (10 CRM-006 tests, 16 CRM-007 tests, 13 CRM-008 tests, live Schoolmate integration test).
-- Next.js production build (`npm run build`) completed with zero errors and zero deprecation warnings.
-- Next.js 16 Proxy (`proxy.js`) verified replacing legacy `middleware.js`.
+- **Unit & Integration Suite (`npm test`):** Passed 100% (10 CRM-006 tests, 16 CRM-007 tests, 18 CRM-008 tests including error-bubbling and deterministic exit-code semantics tests, and live Schoolmate integration test).
+- **Cumulative E2E Verification Suites:**
+  - `npm run test:crm-004:e2e`: **20/20 PASS**
+  - `npm run test:crm-006:e2e`: **11/11 PASS**
+  - `npm run test:crm-007:e2e`: **17/17 PASS**
+  - `node verification/tests/crm-008-vertical-slice.e2e.mjs`: **14/14 PASS**
+- **Production Build (`npm run build`):** Next.js 16.3.5 Turbopack completed successfully with 0 errors and 0 deprecation warnings.
+- **Next.js 16 Proxy (`proxy.js`):** Verified active, replacing legacy `middleware.js`.
 
 ---
 
@@ -190,10 +189,10 @@ Provide exact links and step-by-step instructions so the user can test the chang
 
 ## Risks and observations
 
-- **Risk:** Existing verification suites in `verification/tests/` will not run in CI/CD until [BUG-001](../../docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) is resolved by updating import paths to the new layer structure.
+- **None remaining:** [BUG-001](../../docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) is resolved. The whole-repository stale-import test in `test-crm-008.js` now scans `verification/tests/`, ensuring ongoing protection against import drift.
 
 ---
 
 ## Recommendation
 
-**Ready for acceptance with observations** (Production and core application are completely stable and functional; assign [BUG-001](../../docs/bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) to developer via `/dev BUG-001` to restore cumulative verification test runner paths).
+**Ready for acceptance** (All acceptance criteria pass; Vercel production verified with live data; BUG-001 resolved with 100% cumulative test suite pass rate).

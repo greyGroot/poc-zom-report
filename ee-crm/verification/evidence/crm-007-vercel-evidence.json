@@ -1,6 +1,6 @@
 {
   "suite": "CRM-007 Network Reliability Abstractions E2E Verification",
-  "timestamp": "2026-09-27T20:03:34.026Z",
+  "timestamp": "2026-09-27T20:20:02.988Z",
   "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
   "totalScenarios": 17,
   "passed": 17,
@@ -28,7 +28,7 @@
       "id": "E2E-PROD-LIVE-REPORT",
       "description": "Vercel live Schoolmate report query executes successfully via group class detail pipeline with real data",
       "status": "PASS",
-      "details": "Lessons: 20, Minutes: 1200, Wage: 6000.00 ₴, Duration: 4193ms"
+      "details": "Lessons: 20, Minutes: 1200, Wage: 6000.00 ₴, Duration: 4141ms"
     },
     {
       "id": "E2E-PROD-TEACHER-DAY",

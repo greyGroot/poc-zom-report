@@ -2,6 +2,7 @@
 // Unit & Integration Test Suite for CRM-008: Vertical Slice Module Structure Refactoring
 
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,6 +16,10 @@ import {
   getWeeklyLessonSummaries
 } from './lib/services/weekly-schedule-service.js';
 import { SchoolmateUnavailableError } from './lib/infrastructure/schoolmate.js';
+import {
+  determineExitCode,
+  determineVerificationExitCode
+} from './verification/tests/crm-008-vertical-slice.e2e.mjs';
 
 console.log('====================================================');
 console.log('🧪 CRM-008 Target Vertical Slice Module Structure Suite');
@@ -389,6 +394,76 @@ await test('Scenario 7: Zero stale flat lib imports remain across app, scripts, 
   }
 
   assert.deepEqual(badFiles, [], `Files with stale flat lib imports: ${badFiles.join(', ')}`);
+});
+
+// ----------------------------------------------------------------------------
+// 8. Verification Suite Exit Semantics & Deterministic Failure Exit Coverage
+// ----------------------------------------------------------------------------
+console.log('\n--- 8. Verification Suite Exit Semantics & Failure Guards ---');
+
+await test('Scenario 8a: determineVerificationExitCode returns 0 when all scenarios PASS (failed = 0, blocked = 0)', () => {
+  assert.equal(determineVerificationExitCode({ passed: 14, failed: 0, blocked: 0, total: 14 }), 0);
+  assert.equal(determineExitCode({ passed: 14, failed: 0, blocked: 0, total: 14 }), 0);
+  assert.equal(determineVerificationExitCode([
+    { id: 'E2E-PROD-HEALTH', status: 'PASS' },
+    { id: 'AC-1-ADR-001', status: 'PASS' }
+  ]), 0);
+});
+
+await test('Scenario 8b: determineVerificationExitCode returns non-zero when at least one scenario FAILS (failed > 0)', () => {
+  const codeCount = determineVerificationExitCode({ passed: 13, failed: 1, blocked: 0, total: 14 });
+  assert.notEqual(codeCount, 0, 'Exit code must be non-zero when failed > 0');
+  assert.equal(codeCount, 1);
+
+  const codeArray = determineVerificationExitCode([
+    { id: 'E2E-PROD-HEALTH', status: 'PASS' },
+    { id: 'AC-1-ADR-001', status: 'FAIL' }
+  ]);
+  assert.notEqual(codeArray, 0, 'Exit code must be non-zero when failed > 0');
+  assert.equal(codeArray, 1);
+});
+
+await test('Scenario 8c: determineVerificationExitCode returns non-zero when at least one required scenario is BLOCKED (blocked > 0)', () => {
+  const codeCount = determineVerificationExitCode({ passed: 12, failed: 0, blocked: 2, total: 14 });
+  assert.notEqual(codeCount, 0, 'Exit code must be non-zero when blocked > 0');
+  assert.equal(codeCount, 1);
+
+  const codeArray = determineVerificationExitCode([
+    { id: 'E2E-PROD-HEALTH', status: 'PASS' },
+    { id: 'E2E-LOCAL-WEEKLY-EMPTY', status: 'BLOCKED' }
+  ]);
+  assert.notEqual(codeArray, 0, 'Exit code must be non-zero when blocked > 0');
+  assert.equal(codeArray, 1);
+});
+
+await test('Scenario 8d: Subprocess exit code reflects determineVerificationExitCode deterministically without live dependencies', async () => {
+  const runSubprocessProbe = (payload) => {
+    return new Promise((resolve) => {
+      const child = spawn(
+        process.execPath,
+        [
+          '-e',
+          `import { determineExitCode } from './verification/tests/crm-008-vertical-slice.e2e.mjs';
+           const code = determineExitCode(${JSON.stringify(payload)});
+           process.exit(code);`
+        ],
+        { stdio: 'ignore' }
+      );
+      child.on('close', code => resolve(code));
+    });
+  };
+
+  // 1. All PASS -> child process exits with code 0
+  const passExit = await runSubprocessProbe({ passed: 10, failed: 0, blocked: 0 });
+  assert.equal(passExit, 0, 'Process must exit with 0 for all-pass scenario');
+
+  // 2. 1 FAIL -> child process exits non-zero (1)
+  const failExit = await runSubprocessProbe({ passed: 9, failed: 1, blocked: 0 });
+  assert.equal(failExit, 1, 'Process must exit with 1 for failing scenario');
+
+  // 3. 1 BLOCKED -> child process exits non-zero (1)
+  const blockedExit = await runSubprocessProbe({ passed: 9, failed: 0, blocked: 1 });
+  assert.equal(blockedExit, 1, 'Process must exit with 1 for blocked required scenario');
 });
 
 console.log('\n====================================================');

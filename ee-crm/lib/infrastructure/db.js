@@ -8,6 +8,7 @@ const TEACHERS_KEY = 'ee:teachers:map';
 const LOGS_KEY = 'ee:app:logs';
 const REPORT_KEY_PREFIX = 'ee:report:';
 const WEEKLY_LESSONS_PREFIX = 'ee:lessons:week:';
+const GROUP_ROSTER_PREFIX = 'ee:group:roster:';
 
 // In-Memory Fallback store for local testing
 class MemoryStore {
@@ -15,6 +16,7 @@ class MemoryStore {
     this.teachers = new Map();
     this.reports = new Map();
     this.weeklyLessons = new Map();
+    this.groupRosters = new Map();
     this.logs = [];
   }
 
@@ -22,6 +24,7 @@ class MemoryStore {
     this.teachers.clear();
     this.reports.clear();
     this.weeklyLessons.clear();
+    this.groupRosters.clear();
     this.logs = [];
   }
 }
@@ -321,16 +324,18 @@ export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds
 }
 
 /**
- * Prunes all weekly lessons and report caches from Redis or in-memory store
+ * Prunes all weekly lessons, report, and group roster caches from Redis or in-memory store
  */
 export async function pruneAllCaches() {
   const redis = getRedisClient();
   if (!isMockClient()) {
     const lessonKeys = await redis.keys(`${WEEKLY_LESSONS_PREFIX}*`);
     const reportKeys = await redis.keys(`${REPORT_KEY_PREFIX}*`);
+    const rosterKeys = await redis.keys(`${GROUP_ROSTER_PREFIX}*`);
     const allKeys = [
       ...(Array.isArray(lessonKeys) ? lessonKeys : []),
-      ...(Array.isArray(reportKeys) ? reportKeys : [])
+      ...(Array.isArray(reportKeys) ? reportKeys : []),
+      ...(Array.isArray(rosterKeys) ? rosterKeys : [])
     ];
     for (let i = 0; i < allKeys.length; i += 100) {
       const batch = allKeys.slice(i, i + 100);
@@ -343,6 +348,34 @@ export async function pruneAllCaches() {
 
   memoryStore.weeklyLessons.clear();
   memoryStore.reports.clear();
+  memoryStore.groupRosters.clear();
+}
+
+// -------------------------------------------------------------
+// Group Roster Cache (TTL 24 hours)
+// -------------------------------------------------------------
+
+export async function getGroupRosterCache(groupId) {
+  if (!groupId) return null;
+  const key = `${GROUP_ROSTER_PREFIX}${groupId}`;
+  const redis = getRedisClient();
+  if (!isMockClient()) {
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
+  return memoryStore.groupRosters.get(key) || null;
+}
+
+export async function setGroupRosterCache(groupId, students, ttlSeconds = 86400) {
+  if (!groupId || !Array.isArray(students)) return;
+  const key = `${GROUP_ROSTER_PREFIX}${groupId}`;
+  const redis = getRedisClient();
+  if (!isMockClient()) {
+    await redis.set(key, JSON.stringify(students), { ex: ttlSeconds });
+    return;
+  }
+  memoryStore.groupRosters.set(key, students);
 }
 
 // -------------------------------------------------------------

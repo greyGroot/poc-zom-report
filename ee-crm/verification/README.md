@@ -16,7 +16,8 @@ ee-crm/verification/
 │   ├── crm-002-teacher-day-details.e2e.mjs
 │   ├── crm-004-activity-comparison.e2e.mjs
 │   ├── crm-006-persistence-fallbacks.e2e.mjs
-│   └── crm-007-network-reliability.e2e.mjs
+│   ├── crm-007-network-reliability.e2e.mjs
+│   └── crm-012-zoom-membership.e2e.mjs
 ├── archive/                # Non-runnable historical verification artifacts
 │   ├── README.md
 │   └── crm-003-zoom-migration.e2e.mjs.archived
@@ -151,6 +152,32 @@ node verification/tests/crm-008-vertical-slice.e2e.mjs
 npm run test:crm-008    # CRM-008 vertical slice module structure tests (13 checks)
 ```
 
+### Run CRM-012 Verification
+
+```bash
+# Local app availability and API contract
+CRM_012_BASE_URL=http://localhost:3000 node verification/tests/crm-012-zoom-membership.e2e.mjs
+
+# Vercel live baseline and cross-surface API consistency
+CRM_012_BASE_URL=https://poc-zom-report-2qvs.vercel.app \
+CRM_012_TEACHER_ID=t_759a0536 \
+CRM_012_DAY=2026-09-25 \
+node verification/tests/crm-012-zoom-membership.e2e.mjs
+
+# Developer acceptance suite
+npm run test:crm-012
+```
+
+### Run CRM-013 E2E Verification Suite
+
+```bash
+# In ee-crm directory (runs against live Vercel deployment by default):
+npm run test:crm-013:e2e
+
+# Or targeting local server:
+CRM_013_BASE_URL=http://localhost:3000 npm run test:crm-013:e2e
+```
+
 ---
 
 ## Story Coverage Index
@@ -164,6 +191,8 @@ npm run test:crm-008    # CRM-008 vertical slice module structure tests (13 chec
 | **CRM-006** | Remove silent in-memory persistence fallbacks | **Pass locally & on Vercel** | [`tests/crm-006-persistence-fallbacks.e2e.mjs`](./tests/crm-006-persistence-fallbacks.e2e.mjs) | [`reports/CRM-006-e2e-report.md`](./reports/CRM-006-e2e-report.md) |
 | **CRM-007** | Add network reliability abstractions to Schoolmate client | **Pass locally & on Vercel** | [`tests/crm-007-network-reliability.e2e.mjs`](./tests/crm-007-network-reliability.e2e.mjs) | [`reports/CRM-007-e2e-report.md`](./reports/CRM-007-e2e-report.md) |
 | **CRM-008** | Refactor EE-CRM to target vertical slice module structure | **Pass with observations** | [`tests/crm-008-vertical-slice.e2e.mjs`](./tests/crm-008-vertical-slice.e2e.mjs) | [`reports/CRM-008-e2e-report.md`](./reports/CRM-008-e2e-report.md) |
+| **CRM-012** | Display Zoom organization membership date | **Pass locally / Awaiting production webhook verification** | [`tests/crm-012-zoom-membership.e2e.mjs`](./tests/crm-012-zoom-membership.e2e.mjs) | [`reports/CRM-012-e2e-report.md`](./reports/CRM-012-e2e-report.md) |
+| **CRM-013** | Display group students roster on teacher and day pages | **Failing TDD (Awaiting Dev Implementation)** | [`tests/crm-013-group-roster.e2e.mjs`](./tests/crm-013-group-roster.e2e.mjs) | [`reports/CRM-013-e2e-report.md`](./reports/CRM-013-e2e-report.md) |
 
 ---
 

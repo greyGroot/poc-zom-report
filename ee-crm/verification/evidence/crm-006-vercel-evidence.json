@@ -1,6 +1,6 @@
 {
   "suite": "CRM-006 Persistence Fallbacks & Reliability E2E Verification",
-  "timestamp": "2026-09-27T20:03:19.507Z",
+  "timestamp": "2026-09-27T20:19:48.974Z",
   "vercelBaseUrl": "https://poc-zom-report-2qvs.vercel.app",
   "totalScenarios": 11,
   "passed": 11,

@@ -2,6 +2,8 @@
 // High-performance direct HTTP client for Empire English Schoolmate EU with network reliability,
 // bounded timeouts, exponential backoff retries, session recovery, and typed errors.
 
+import { getGroupRosterCache, setGroupRosterCache } from './db.js';
+
 export class SchoolmateTimeoutError extends Error {
   constructor(message, { pathname = '', timeoutMs = 0, cause = null } = {}) {
     super(message);
@@ -685,6 +687,88 @@ export class SchoolmateClient {
   }
 
   /**
+   * Fetch group student roster from Schoolmate and cache in Redis / memory.
+   * @param {object} params
+   * @param {number|string} params.groupId
+   * @param {number|string} [params.groupLessonId]
+   * @param {string} [params.date] - YYYY-MM-DD
+   * @returns {Promise<Array<{ id: number, fullName: string, firstName?: string, lastName?: string }>>}
+   */
+  async getGroupStudentRoster({ groupId, groupLessonId = 0, date = '' }) {
+    if (!groupId) return [];
+
+    // 1. Check cache first
+    try {
+      const cached = await getGroupRosterCache(groupId);
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(`[Schoolmate] Group roster cache read failed for group ${groupId}: ${err.message}`);
+    }
+
+    // 2. Fetch from Schoolmate API
+    const dateObj = date || new Date().toISOString().split('T')[0];
+    const payload = {
+      type: 1,
+      schoolId: 221,
+      userId: this.requestUserId,
+      groupId: Number(groupId),
+      dateObj,
+      dateMoveType: 0,
+      isGroupLesson: Boolean(groupLessonId),
+      groupLessonId: Number(groupLessonId) || 0,
+      requestuserId: this.requestUserId,
+      roleId: 2
+    };
+
+    try {
+      const url = `${this.baseUrl}/group/getgroupattendancedetails`;
+      const json = await this._requestAuthenticated(
+        url,
+        (sessionId) => ({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+            'Accept': 'application/json, text/plain, */*'
+          },
+          body: JSON.stringify(payload)
+        }),
+        { consume: (r) => r.json() }
+      );
+
+      const rawStudents = json?.Data?.AttendanceList || json?.Data?.AttendanceStudentList || (json?.Data?.GroupLessonList && json.Data.GroupLessonList[0]?.AttendanceStudentList) || [];
+      const roster = rawStudents.map(s => {
+        const studentId = Number(s.StudentId || s.PrimaryKeyId || s.id || 0);
+        const fullName = (s.Name || s.fullName || `${s.FirstName || ''} ${s.LastName || ''}`).trim();
+        const parts = fullName.split(/\s+/);
+        const lastName = parts[0] || '';
+        const firstName = parts.slice(1).join(' ') || '';
+        return {
+          id: studentId,
+          fullName,
+          firstName,
+          lastName
+        };
+      }).filter(s => s.fullName.length > 0);
+
+      if (roster.length > 0) {
+        try {
+          await setGroupRosterCache(groupId, roster, 86400); // 24h TTL
+        } catch (cacheErr) {
+          this.logger.warn(`[Schoolmate] Group roster cache write failed for group ${groupId}: ${cacheErr.message}`);
+        }
+      }
+
+      return roster;
+    } catch (err) {
+      this.logger.warn(`[Schoolmate] Failed to fetch group student roster for group ${groupId}: ${err.message}`);
+      return [];
+    }
+  }
+
+  /**
    * Fetch complete schedule for all groups of a teacher in batches of 2-3.
    * Aggregates lessons into a Daily Timeline with status markings and wage calculations.
    * @param {object} params
@@ -877,6 +961,42 @@ export class SchoolmateClient {
         dayInfo.lessons.push(lessonObj);
         dayInfo.subtotalMinutes += durationMinutes;
         dayInfo.subtotalWage += rateNumeric;
+      }
+    }
+
+    // 3.5 Enrich lessons with authoritative group student rosters from Schoolmate
+    const groupRosterPromises = new Map();
+    for (const lesson of allLessons) {
+      if (lesson.groupId && !groupRosterPromises.has(lesson.groupId)) {
+        groupRosterPromises.set(
+          lesson.groupId,
+          this.getGroupStudentRoster({
+            groupId: lesson.groupId,
+            groupLessonId: lesson.groupLessonId,
+            date: lesson.date
+          }).catch(() => [])
+        );
+      }
+    }
+
+    const groupRosters = new Map();
+    for (const [groupId, promise] of groupRosterPromises.entries()) {
+      const roster = await promise;
+      groupRosters.set(groupId, roster);
+    }
+
+    for (const lesson of allLessons) {
+      const roster = groupRosters.get(lesson.groupId) || [];
+      if (roster.length > 0) {
+        lesson.students = roster;
+        lesson.enrolledStudents = roster.length;
+        lesson.isIndividual = roster.length <= 1;
+      } else {
+        lesson.students = [];
+        lesson.isIndividual = (lesson.enrolledStudents || 1) <= 1;
+      }
+      if (lesson.attendanceChecked) {
+        lesson.attendedCount = lesson.enrolledStudents;
       }
     }
 

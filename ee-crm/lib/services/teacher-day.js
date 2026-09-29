@@ -201,6 +201,8 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
               endTime: l.endTime || null,
               enrolledStudents: enrolled,
               attendedCount: attended,
+              isIndividual: l.isIndividual !== undefined ? Boolean(l.isIndividual) : (enrolled <= 1),
+              students: Array.isArray(l.students) ? l.students : [],
               isConducted: l.isConducted !== undefined ? Boolean(l.isConducted) : conductedInfo.isConducted,
               statusCategory: l.statusCategory || conductedInfo.statusCategory
             };

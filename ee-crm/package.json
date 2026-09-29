@@ -22,6 +22,8 @@
     "test:crm-007:e2e": "node verification/tests/crm-007-network-reliability.e2e.mjs",
     "test:crm-008": "node test-crm-008.js",
     "test:crm-012": "node test-crm-012.js",
+    "test:crm-013": "node test-crm-013.js",
+    "test:crm-013:e2e": "node verification/tests/crm-013-group-roster.e2e.mjs",
     "test:e2e": "node test-qa-e2e.mjs",
     "migration:crm-005:snapshot": "node scripts/crm-005/export-poc-snapshot.js",
     "migration:crm-005:plan": "node scripts/crm-005/plan-zoom-migration.js",
