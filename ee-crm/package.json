@@ -32,7 +32,8 @@
     "migration:crm-005:verify": "node scripts/crm-005/verify-zoom-migration.js",
     "migration:crm-005:rollback": "node scripts/crm-005/rollback-zoom-migration.js",
     "migration:crm-012:baseline": "node scripts/crm-012/seed-current-member-baseline.js",
-    "migration:crm-013:backfill": "node scripts/crm-013/backfill-zoom-raw-events.js"
+    "migration:crm-013:backfill": "node scripts/crm-013/backfill-zoom-raw-events.js",
+    "sync:zoom:reports": "node scripts/crm-016/sync-zoom-reports.js"
   },
   "keywords": [],
   "author": "",
