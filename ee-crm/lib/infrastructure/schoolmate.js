@@ -782,32 +782,51 @@ export class SchoolmateClient {
   async getTeacherClassesSchedule({ teacherId, fromDate, toDate, teacherName = '', batchSize = 3 }) {
     const overallStart = Date.now();
 
-    // 1. Fetch group list and scheduler events in parallel
-    const [groups, schedulerRes] = await Promise.all([
+    // Generate dates in 7-day increments to cover the full query range
+    const weekDates = [];
+    let curDate = new Date(`${fromDate}T00:00:00Z`);
+    const endDate = new Date(`${toDate}T00:00:00Z`);
+    while (curDate <= endDate) {
+      weekDates.push(curDate.toISOString().split('T')[0]);
+      curDate = new Date(curDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+    const toDateIso = endDate.toISOString().split('T')[0];
+    if (!weekDates.includes(toDateIso)) {
+      weekDates.push(toDateIso);
+    }
+
+    // 1. Fetch group list and scheduler events across all weeks in parallel
+    const [groups, ...schedulerResponses] = await Promise.all([
       this.getTeacherGroupClassList({ teacherId, fromDate, toDate }),
-      this.getSchedulerEvents({ date: fromDate }).catch((err) => {
-        this.logger.warn(`[Schoolmate] Warning: scheduler enrichment failed: ${err.message}`);
-        return { events: [] };
-      })
+      ...weekDates.map(d =>
+        this.getSchedulerEvents({ date: d }).catch((err) => {
+          this.logger.warn(`[Schoolmate] Warning: scheduler enrichment failed for ${d}: ${err.message}`);
+          return { events: [] };
+        })
+      )
     ]);
 
     const timeMap = new Map();
-    for (const ev of (schedulerRes.events || [])) {
-      for (const l of (ev.SchedulerLessons || [])) {
-        if (l.GroupLessonId) {
-          let s = null;
-          let e = null;
-          if (l.LessonTime && l.LessonTime.includes('-')) {
-            const parts = l.LessonTime.split('-');
-            s = parts[0].trim();
-            e = parts[1].trim();
+    for (const schedulerRes of schedulerResponses) {
+      for (const ev of (schedulerRes?.events || [])) {
+        for (const l of (ev.SchedulerLessons || [])) {
+          if (l.GroupLessonId) {
+            let s = null;
+            let e = null;
+            if (l.LessonTime && l.LessonTime.includes('-')) {
+              const parts = l.LessonTime.split('-');
+              s = parts[0].trim();
+              e = parts[1].trim();
+            }
+            if (!timeMap.has(l.GroupLessonId) || (!timeMap.get(l.GroupLessonId).startTime && s)) {
+              timeMap.set(l.GroupLessonId, {
+                startTime: s,
+                endTime: e,
+                enrolledStudents: l.EnrolledStudents,
+                groupName: l.GroupName
+              });
+            }
           }
-          timeMap.set(l.GroupLessonId, {
-            startTime: s,
-            endTime: e,
-            enrolledStudents: l.EnrolledStudents,
-            groupName: l.GroupName
-          });
         }
       }
     }

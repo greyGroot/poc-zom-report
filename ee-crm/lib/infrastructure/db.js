@@ -39,14 +39,101 @@ export function resetDbMemoryStore() {
 // Teachers CRUD
 // -------------------------------------------------------------
 
+/**
+ * Defensively deduplicates teacher records based on schoolmateTeacherId or email.
+ * Prefers records with richer metadata or more recent timestamps.
+ * Merges any missing fields from duplicates into the retained record.
+ *
+ * @param {Array<object>} teachers
+ * @returns {Array<object>} Deduplicated teachers list
+ */
+export function deduplicateTeachers(teachers = []) {
+  if (!Array.isArray(teachers) || teachers.length <= 1) return teachers || [];
+
+  const richness = (t) => {
+    let score = 0;
+    const fields = [
+      'phone',
+      'telegramId',
+      'schoolmateLogin',
+      'city',
+      'nationality',
+      'contractType',
+      'zoomHostEmail',
+      'firstName',
+      'lastName'
+    ];
+    for (const f of fields) {
+      if (t[f] && String(t[f]).trim()) score++;
+    }
+    const time = new Date(t.updatedAt || t.createdAt || 0).getTime() || 0;
+    return { score, time };
+  };
+
+  const merged = [];
+  const seenSmIds = new Map();
+  const seenEmails = new Map();
+
+  for (const t of teachers) {
+    if (!t) continue;
+    const smId = t.schoolmateTeacherId ? Number(t.schoolmateTeacherId) : null;
+    const email = t.email ? t.email.toLowerCase().trim() : null;
+    const zoomEmail = t.zoomHostEmail ? t.zoomHostEmail.toLowerCase().trim() : null;
+
+    let existingIndex = null;
+    if (smId && seenSmIds.has(smId)) {
+      existingIndex = seenSmIds.get(smId);
+    } else if (email && seenEmails.has(email)) {
+      existingIndex = seenEmails.get(email);
+    } else if (zoomEmail && seenEmails.has(zoomEmail)) {
+      existingIndex = seenEmails.get(zoomEmail);
+    }
+
+    if (existingIndex === null) {
+      const newIdx = merged.length;
+      merged.push({ ...t });
+      if (smId) seenSmIds.set(smId, newIdx);
+      if (email) seenEmails.set(email, newIdx);
+      if (zoomEmail) seenEmails.set(zoomEmail, newIdx);
+    } else {
+      const existing = merged[existingIndex];
+      const rExisting = richness(existing);
+      const rNew = richness(t);
+
+      const useNewAsBase =
+        rNew.score > rExisting.score ||
+        (rNew.score === rExisting.score && rNew.time > rExisting.time);
+
+      const winner = useNewAsBase ? { ...t } : { ...existing };
+      const loser = useNewAsBase ? existing : t;
+
+      for (const key of Object.keys(loser)) {
+        if ((winner[key] === undefined || winner[key] === '' || winner[key] === null) && loser[key]) {
+          winner[key] = loser[key];
+        }
+      }
+
+      merged[existingIndex] = winner;
+      if (smId) seenSmIds.set(smId, existingIndex);
+      if (email) seenEmails.set(email, existingIndex);
+      if (zoomEmail) seenEmails.set(zoomEmail, existingIndex);
+    }
+  }
+
+  return merged;
+}
+
 export async function getTeachers() {
   const redis = getRedisClient();
+  let list = [];
   if (!isMockClient()) {
     const all = await redis.hgetall(TEACHERS_KEY);
     if (!all) return [];
-    return Object.values(all).map(t => (typeof t === 'string' ? JSON.parse(t) : t));
+    list = Object.values(all).map(t => (typeof t === 'string' ? JSON.parse(t) : t));
+  } else {
+    list = Array.from(memoryStore.teachers.values());
   }
-  return Array.from(memoryStore.teachers.values());
+  return deduplicateTeachers(list);
 }
 
 export async function getTeacherById(id) {
