@@ -29,7 +29,7 @@ class MemoryStore {
   }
 }
 
-const memoryStore = new MemoryStore();
+const memoryStore = globalThis.__eeCrmDbMemoryStore || (globalThis.__eeCrmDbMemoryStore = new MemoryStore());
 
 export function resetDbMemoryStore() {
   memoryStore.reset();

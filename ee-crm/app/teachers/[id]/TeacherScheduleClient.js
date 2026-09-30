@@ -591,7 +591,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
               {day.date && (
                 <Link
                   href={formatUrl(`/teachers/${teacherId}/${day.date}?from=${fromDate}&to=${toDate}${activePreset ? `&preset=${activePreset}` : ''}${statusFilter !== 'all' ? `&filter=${statusFilter}` : ''}`)}
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-sm btn-open-day-details"
                   style={{
                     fontSize: 12,
                     fontWeight: 600,

@@ -26,7 +26,7 @@ class OccurrenceMemoryStore {
   }
 }
 
-const memoryStore = new OccurrenceMemoryStore();
+const memoryStore = globalThis.__eeCrmOccurrenceMemoryStore || (globalThis.__eeCrmOccurrenceMemoryStore = new OccurrenceMemoryStore());
 
 export function resetOccurrenceMemoryStore() {
   memoryStore.reset();
