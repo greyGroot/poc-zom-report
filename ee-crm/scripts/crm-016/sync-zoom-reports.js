@@ -24,8 +24,9 @@ const candidateDirs = [
   path.resolve(process.cwd(), '../../..')
 ];
 for (const dir of candidateDirs) {
-  dotenv.config({ path: path.resolve(dir, '.env.local'), quiet: true });
   dotenv.config({ path: path.resolve(dir, '.env'), quiet: true });
+  dotenv.config({ path: path.resolve(dir, '.env.local'), quiet: true });
+  dotenv.config({ path: path.resolve(dir, '.env.vercel'), quiet: true });
 }
 
 export const DEFAULT_FROM_DATE = '2026-09-01';

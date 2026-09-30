@@ -33,8 +33,11 @@ export default function ZoomMeetingCard({ occurrence }) {
   }
 
   // Participants count label with singular / plural
+  const singularTranslation = t('schedule.participantsCountSingular');
   const participantsCountLabel = pCount === 1
-    ? (t('schedule.participantsCountSingular') || '1 participant')
+    ? (singularTranslation && singularTranslation !== 'schedule.participantsCountSingular'
+        ? singularTranslation
+        : (locale === 'uk' ? '1 учасник' : locale === 'pl' ? '1 uczestnik' : '1 participant'))
     : `${pCount} ${locale === 'uk' ? 'учасників' : locale === 'pl' ? 'uczestników' : 'participants'}`;
 
   // Clipboard copy
