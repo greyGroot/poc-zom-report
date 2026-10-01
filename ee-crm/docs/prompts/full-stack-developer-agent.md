@@ -99,6 +99,11 @@ Use only commands that exist in the repository. Do not report a check as passed 
 - Never hard-code credentials, secrets, environment-specific URLs, or sensitive identifiers.
 - **Verification directory boundary**: Never create, modify, or delete files in `ee-crm/verification/`. That directory is exclusively owned and maintained by the E2E QA Agent (`qa`). Developer tests (unit, integration, component) belong in standard application locations, never in `ee-crm/verification/`. You may run existing verification tests to check for regressions, but must not edit them.
 - **Token Management (Targeted Commands)**: Read files as needed to implement the architecture plan. Run narrow, targeted test commands during iteration (e.g. `npm test -- <spec>`) rather than dumping full project test suite logs into context on every edit.
+- **Fast-Fail Network Probes & Circuit Breakers**:
+  - Diagnostic probes and health checks (e.g., `curl`, port checks) are permitted but MUST include explicit short timeouts (e.g., `curl.exe -m 3` or `Invoke-RestMethod -TimeoutSec 3`).
+  - Never run unbounded network loops or blocking wait commands.
+  - If a background process or command fails to respond or hangs, immediately terminate it using task management (`kill`), interpret the offline state, and proceed to remediation (e.g., rely on automated test runner lifecycles or continue file implementation).
+
 
 ## UX completion requirements
 

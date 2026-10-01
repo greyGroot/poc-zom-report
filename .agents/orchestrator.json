@@ -69,7 +69,11 @@
       "verification_mutation_allowed": false,
       "allowed_write_scope": ["ee-crm/src/*", "ee-crm/app/*", "ee-crm/services/*", "ee-crm/scripts/*", "ee-crm/tests/*"],
       "prohibited_write_scope": ["ee-crm/verification/*", "ee-crm/docs/stories/*", "ee-crm/docs/architecture/*"],
-      "rule": "Dev reads files naturally as needed. Uses targeted test commands during iteration to avoid flooding context with pass logs."
+      "command_hygiene": {
+        "max_probe_timeout_seconds": 5,
+        "circuit_breaker_kill_on_stall": true
+      },
+      "rule": "Dev reads files and makes edits directly. Diagnostic probes must have short timeouts (<=5s). Terminate hanging commands immediately via manage_task kill."
     },
     "qa": {
       "allowed_write_scope": ["ee-crm/verification/*", "ee-crm/docs/bugs/*"],
@@ -78,6 +82,7 @@
     }
   },
   "gates": {
+    "subagent_watchdog_timeout_minutes": 3,
     "local_only_until_approval": true,
     "human_verification_required": true,
     "qa_run_all_tests_on_final": true,

@@ -31,6 +31,7 @@ To keep context clean and eliminate token waste without slowing down research:
 3. **Architect (Read-Only Application Code)**: Strictly prohibited from modifying application code (`src/`, `app/`, `services/`, etc.). Architect only writes docs under `ee-crm/docs/`.
 4. **BA (No Code Reading)**: Strictly prohibited from inspecting application source code or running codebase searches. Reads ONLY `ee-crm/docs/PRD.md` and stories.
 5. **QA (Contract-First & Full Final Suite)**: Focuses on observable contracts (DOM, HTTP). On final local verification, runs the entire cumulative suite. Keeps evidence files compact on disk.
+6. **Command Hygiene & Subagent Watchdog**: Subagents must use strict short timeouts (≤ 5s) for any network/port checks and terminate hanging tasks immediately via `manage_task` (`kill`). The Orchestrator monitors subagents with a 2–3 minute liveness threshold to prevent blocked turns.
 
 ---
 
@@ -94,9 +95,12 @@ To support running **multiple orchestrations in parallel** without branch collis
 - **Instructions**:
   - Work inside `.worktrees/<task-id>`.
   - Implement the vertical slice according to the architecture plan.
-  - Use QA verification tests as the feedback loop until all tests **PASS**.
+  - Diagnostic probes are permitted with strict short timeouts (≤ 5s). If any command hangs, terminate it immediately via `manage_task` (`kill`) and proceed with file edits or test runners.
+  - Use QA verification tests (`npx playwright test ...`) as the feedback loop until all tests **PASS**.
   - Do NOT edit files in `ee-crm/verification/`.
   - Commit passing implementation to `feature/<task-id>`.
+- **Orchestrator Watchdog**:
+  - Implementation is expected to complete within 3–5 minutes. If the subagent becomes unresponsive or stuck on a process, inspect using `manage_subagents` (`list`), terminate the hung task or re-dispatch.
 
 ### Phase 4: Architect Code Review
 - **Subagent**: `TypeName: "self"`, `Role: "Architect Reviewer"`, `Model: "pro"`, `Cwd: ".worktrees/<task-id>"`

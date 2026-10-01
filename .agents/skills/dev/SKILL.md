@@ -24,6 +24,7 @@ Read and strictly adopt the role, workflow, and instructions defined in:
 - Push to production will be performed only after Architect review passes, QA runs post-implementation testing, and the human user verifies locally.
 - **Never claim a migration/task is Done based on local mocks alone.**
 - If an operation requires human credentials or manual launch, mark status as `Awaiting User Action`, present the `⚠️ User Action Required` block, and offer to do it now together or later.
+- **Fast-Fail & Circuit Breaker**: Any diagnostic HTTP/port request must use an explicit short timeout (≤ 5 seconds). If a command hangs or server is unreachable, kill the task immediately, handle the offline state, and proceed with code editing or test runners.
 - Keep the final response short and scannable (under 40 lines).
 
 ## Role boundaries & Token Management
