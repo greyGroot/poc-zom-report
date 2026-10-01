@@ -8,8 +8,7 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token }) => {
-        // Temporary authentication bypass: active unless explicitly disabled with 'false'
-        if (process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS === 'true' || process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS !== 'false') {
+        if (process.env.NEXT_PUBLIC_EE_CRM_AUTH_BYPASS === 'true') {
           return true;
         }
         return !!token;
