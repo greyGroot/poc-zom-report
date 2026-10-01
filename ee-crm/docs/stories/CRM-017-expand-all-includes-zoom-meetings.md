@@ -117,6 +117,7 @@ Clear, descriptive, and understandable checks defining what needs to happen to s
 
 - [CRM-001 — Display tracked Zoom meetings on teacher page](CRM-001-display-tracked-zoom-meetings-on-teacher-page.md)
 - [CRM-002 — View teacher-day details](CRM-002-teacher-day-details-page.md)
+- [Architecture Plan](../architecture/CRM-017-expand-all-includes-zoom-meetings.md)
 
 ## Recommended subtasks
 
