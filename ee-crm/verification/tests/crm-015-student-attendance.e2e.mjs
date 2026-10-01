@@ -219,7 +219,10 @@ async function runVerification() {
   console.log(`E2E EXECUTION SUMMARY: ${passCount} PASSED, ${failCount} FAILED out of ${results.length} checks`);
   console.log('========================================================================\n');
 
-  const evidenceDir = path.resolve(process.cwd(), 'verification/evidence');
+  const baseDir = fs.existsSync(path.resolve(process.cwd(), 'ee-crm'))
+    ? path.resolve(process.cwd(), 'ee-crm')
+    : process.cwd();
+  const evidenceDir = path.resolve(baseDir, 'verification/evidence');
   if (!fs.existsSync(evidenceDir)) fs.mkdirSync(evidenceDir, { recursive: true });
   const evidenceFilePath = path.join(evidenceDir, 'crm-015-local-evidence.json');
 
