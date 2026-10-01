@@ -1,7 +1,7 @@
 # CRM-015 — Display Per-Student Attendance Status for Group Lessons
 
 **Story ID:** CRM-015  
-**Status:** Ready  
+**Status:** Done  
 **Primary user:** School administrator / Academic manager  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Related UX Spec:** [UX Requirements](#ux-requirements)  
@@ -119,13 +119,13 @@ Then per-student attendance is dynamically proxied and rendered without saving t
 
 ## 8. Definition of Done: Verifiable To-Dos
 
-1. Verify that the generic person icon (`👤`) on group student chips is replaced with `✅` (Present), `❌` (Absent), or `❓` (Unchecked) based on Schoolmate response data.
-2. Verify that `short_name: null` / `attendance_status_color: null` maps to `✅` Present.
-3. Verify that `short_name: "AB"` / `attendance_status_color: "red"` maps to `❌` Absent.
-4. Verify that unrecorded or missing attendance records map to `❓` Unchecked.
-5. Verify that no Schoolmate attendance API calls are made for future lessons (`startTime > now`).
-6. Verify that per-student attendance records are **not** written to or stored in the EE-CRM database (proxy-only operation).
-7. Verify that per-student attendance indicators render correctly on both `/teachers/[id]` (Teacher Schedule) and `/teachers/[id]/[date]` (Teacher Day Details) for all teachers and group lessons.
+- [x] Verify that the generic person icon (`👤`) on group student chips is replaced with `✅` (Present), `❌` (Absent), or `❓` (Unchecked) based on Schoolmate response data.
+- [x] Verify that `short_name: null` / `attendance_status_color: null` maps to `✅` Present.
+- [x] Verify that `short_name: "AB"` / `attendance_status_color: "red"` maps to `❌` Absent.
+- [x] Verify that unrecorded or missing attendance records map to `❓` Unchecked.
+- [x] Verify that no Schoolmate attendance API calls are made for future lessons (`startTime > now`).
+- [x] Verify that per-student attendance records are **not** written to or stored in the EE-CRM database (proxy-only operation).
+- [x] Verify that per-student attendance indicators render correctly on both `/teachers/[id]` (Teacher Schedule) and `/teachers/[id]/[date]` (Teacher Day Details) for all teachers and group lessons.
 
 ---
 
@@ -147,3 +147,4 @@ Then per-student attendance is dynamically proxied and rendered without saving t
 |---|---|
 | 29 September 2026 | Created initial CRM-015 draft for per-student attendance status indicators. |
 | 01 October 2026 | Updated CRM-015 based on product requirements: universal scope across all teachers/groups, proxy-only strategy (no DB persistence), no requests for future lessons, and chip icon replacement (`✅`, `❌`, `❓`). |
+| 01 October 2026 | Marked CRM-015 as Done following successful implementation, testing, verification, and deployment of per-student attendance status indicators. |
