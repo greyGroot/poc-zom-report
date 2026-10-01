@@ -22,6 +22,7 @@ export default function TeacherDayDetailsClient({
   const [isRefreshingSchoolmate, setIsRefreshingSchoolmate] = useState(false);
   const [isRefreshingZoom, setIsRefreshingZoom] = useState(false);
   const [expandedLessons, setExpandedLessons] = useState(new Set());
+  const [expandedZoomMeetings, setExpandedZoomMeetings] = useState(new Set());
 
   // Diagnostics panel state
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
@@ -102,6 +103,18 @@ export default function TeacherDayDetailsClient({
       return next;
     });
   }, [fetchLessonAttendance]);
+
+  const toggleZoomMeeting = useCallback((id) => {
+    setExpandedZoomMeetings(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   // Independent refresh for Schoolmate
   const handleRefreshSchoolmate = useCallback(async () => {
@@ -201,6 +214,38 @@ export default function TeacherDayDetailsClient({
 
   const { teacher, schoolmate, zoom, comparison, diagnostics, previousDate, nextDate, timezone } = data;
   const formattedDate = formatKyivDateHeader(date, locale);
+
+  const visibleLessons = useMemo(() => {
+    return Array.isArray(schoolmate?.lessons) ? schoolmate.lessons : [];
+  }, [schoolmate?.lessons]);
+
+  const visibleZoomMeetings = useMemo(() => {
+    return Array.isArray(zoom?.meetings) ? zoom.meetings : [];
+  }, [zoom?.meetings]);
+
+  const allLessonKeys = useMemo(() => {
+    return visibleLessons.map((l, idx) => (l.id !== undefined && l.id !== null ? l.id : `lesson_${idx}`));
+  }, [visibleLessons]);
+
+  const allZoomKeys = useMemo(() => {
+    return visibleZoomMeetings.map((m, idx) => m.id || `zoom_${idx}`);
+  }, [visibleZoomMeetings]);
+
+  const totalItems = allLessonKeys.length + allZoomKeys.length;
+
+  const isAllExpanded = totalItems > 0 &&
+    allLessonKeys.every(k => expandedLessons.has(k)) &&
+    allZoomKeys.every(k => expandedZoomMeetings.has(k));
+
+  const toggleAll = useCallback(() => {
+    if (isAllExpanded) {
+      setExpandedLessons(new Set());
+      setExpandedZoomMeetings(new Set());
+    } else {
+      setExpandedLessons(new Set(allLessonKeys));
+      setExpandedZoomMeetings(new Set(allZoomKeys));
+    }
+  }, [isAllExpanded, allLessonKeys, allZoomKeys]);
 
   // Determine active diagnostics JSON string
   const activeJsonString = useMemo(() => {
@@ -395,6 +440,19 @@ export default function TeacherDayDetailsClient({
         </p>
       </section>
 
+      {/* Expand / Collapse All Controls */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="btn btn-sm btn-secondary"
+          disabled={totalItems === 0}
+          aria-expanded={isAllExpanded}
+        >
+          {isAllExpanded ? 'Collapse All' : 'Expand All'}
+        </button>
+      </div>
+
       {/* Two-Panel Body (50% Schoolmate left, 50% Zoom right) */}
       <div className="day-details-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(320px, 1fr)', gap: 20 }}>
         {/* ========================================================= */}
@@ -471,7 +529,8 @@ export default function TeacherDayDetailsClient({
             {!isRefreshingSchoolmate && schoolmate?.state === 'available' && (
               <div className="lesson-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {schoolmate.lessons.map((lesson, idx) => {
-                  const isExpanded = expandedLessons.has(lesson.id || idx);
+                  const lessonKey = lesson.id !== undefined && lesson.id !== null ? lesson.id : `lesson_${idx}`;
+                  const isExpanded = expandedLessons.has(lessonKey);
                   const isFutureLesson = isLessonInFuture(date, lesson.startTime);
                   const hasStatus = Boolean(lesson.lessonStatusName);
                   const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
@@ -489,7 +548,7 @@ export default function TeacherDayDetailsClient({
 
                   return (
                     <article
-                      key={lesson.id || `lesson_${idx}`}
+                      key={lessonKey}
                       className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
                       style={statusColor ? { borderLeftColor: statusColor } : {}}
                       aria-label={`${rawGroupName || 'Class'}, ${lesson.durationMinutes} min`}
@@ -497,15 +556,15 @@ export default function TeacherDayDetailsClient({
                       {/* Summary Bar - 2-row layout */}
                       <div
                         className="lesson-summary-bar-vertical"
-                        onClick={() => toggleLesson(lesson.id || idx, lesson)}
+                        onClick={() => toggleLesson(lessonKey, lesson)}
                         role="button"
                         tabIndex={0}
                         aria-expanded={isExpanded}
-                        aria-controls={`lesson-drawer-${lesson.id || idx}`}
+                        aria-controls={`lesson-drawer-${lessonKey}`}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            toggleLesson(lesson.id || idx, lesson);
+                            toggleLesson(lessonKey, lesson);
                           }
                         }}
                         style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -585,7 +644,7 @@ export default function TeacherDayDetailsClient({
 
                       {/* Detail Drawer */}
                       <div
-                        id={`lesson-drawer-${lesson.id || idx}`}
+                        id={`lesson-drawer-${lessonKey}`}
                         style={{
                           display: isExpanded ? 'block' : 'none',
                           padding: '10px 14px',
@@ -720,9 +779,17 @@ export default function TeacherDayDetailsClient({
             {/* Zoom Meeting Cards */}
             {!isRefreshingZoom && zoom?.state === 'available' && (
               <div className="zoom-meeting-cards-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {zoom.meetings.map(occ => (
-                  <ZoomMeetingCard key={occ.id} occurrence={occ} />
-                ))}
+                {zoom.meetings.map((occ, idx) => {
+                  const occKey = occ.id || `zoom_${idx}`;
+                  return (
+                    <ZoomMeetingCard
+                      key={occKey}
+                      occurrence={occ}
+                      isExpanded={expandedZoomMeetings.has(occKey)}
+                      onToggle={() => toggleZoomMeeting(occKey)}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
