@@ -95,11 +95,6 @@ export default function ZoomMembershipContext({ membership, className = '' }) {
       {view.memberSinceText && (
         <span className="zoom-membership-date">{view.memberSinceText}</span>
       )}
-      {view.freshnessText && (
-        <span className="zoom-membership-freshness">
-          <span aria-hidden="true">⚠ </span>{view.freshnessText}
-        </span>
-      )}
       <span className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</span>
     </span>
   );

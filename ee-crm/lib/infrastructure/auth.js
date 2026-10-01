@@ -1,11 +1,15 @@
 import GoogleProvider from 'next-auth/providers/google';
 
+const getGoogleProvider = typeof GoogleProvider === 'function' ? GoogleProvider : GoogleProvider?.default || GoogleProvider;
+
 export const authOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    }),
+    ...(typeof getGoogleProvider === 'function' ? [
+      getGoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID || '',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      })
+    ] : []),
   ],
   pages: {
     signIn: '/login',

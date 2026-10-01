@@ -7,7 +7,9 @@ export default function GroupStudentRoster({
   students = [],
   isIndividual = false,
   fallbackStudentName = '',
-  attendanceChecked = false
+  attendanceChecked = false,
+  attendanceData = {},
+  isFuture = false
 }) {
   const { t } = useLanguage();
 
@@ -20,24 +22,87 @@ export default function GroupStudentRoster({
   const count = roster.length;
   const isSingle = isIndividual || count === 1;
 
+  const getStudentAttendance = (student) => {
+    if (isFuture) {
+      return {
+        status: 'unchecked',
+        icon: '❓',
+        title: t('attendance.notMarked') || 'Not marked',
+        ariaLabel: t('attendance.notMarked') || 'Not marked'
+      };
+    }
+
+    const studentId = student.id;
+    const studentName = (typeof student === 'string' ? student : (student.fullName || '')).trim().toLowerCase();
+
+    // Check attendanceData map
+    let record = null;
+    if (attendanceData && typeof attendanceData === 'object') {
+      if (studentId && attendanceData[studentId]) record = attendanceData[studentId];
+      else if (studentId && attendanceData[String(studentId)]) record = attendanceData[String(studentId)];
+      else if (studentName && attendanceData[studentName]) record = attendanceData[studentName];
+    }
+
+    if (record) {
+      const isAbsent = record.status === 'absent' ||
+                       record.shortName === 'AB' ||
+                       (record.color && (record.color.toLowerCase() === '#ff0000' || record.color.toLowerCase() === 'red'));
+      if (isAbsent) {
+        return {
+          status: 'absent',
+          icon: '❌',
+          title: t('attendance.absent') || 'Absent',
+          ariaLabel: t('attendance.absent') || 'Absent'
+        };
+      }
+
+      const isPresent = record.status === 'present' ||
+                        (!record.shortName && !record.color && record.attendanceChecked) ||
+                        (record.isStudentAttend && record.shortName !== 'AB');
+      if (isPresent) {
+        return {
+          status: 'present',
+          icon: '✅',
+          title: t('attendance.present') || 'Present',
+          ariaLabel: t('attendance.present') || 'Present'
+        };
+      }
+
+      return {
+        status: 'unchecked',
+        icon: '❓',
+        title: t('attendance.notMarked') || 'Not marked',
+        ariaLabel: t('attendance.notMarked') || 'Not marked'
+      };
+    }
+
+    // Fallback if attendanceData not provided for student, but lesson is marked checked
+    if (attendanceChecked) {
+      return {
+        status: 'present',
+        icon: '✅',
+        title: t('attendance.present') || 'Present',
+        ariaLabel: t('attendance.present') || 'Present'
+      };
+    }
+
+    return {
+      status: 'unchecked',
+      icon: '❓',
+      title: t('attendance.notMarked') || 'Not marked',
+      ariaLabel: t('attendance.notMarked') || 'Not marked'
+    };
+  };
+
   return (
     <div
       role="region"
       aria-label={isSingle ? (t('roster.enrolledStudent') || 'Enrolled Student:') : (t('roster.enrolledStudents', { count }) || `Enrolled Students (${count})`)}
+      title={isSingle ? (t('roster.studentCountSingle') || '1 student') : (t('roster.studentsCount', { count }) || `${count} students`)}
+      data-students-count={count}
       className="group-student-roster"
       style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          👥 {isSingle ? (t('roster.enrolledStudent') || 'Enrolled Student:') : (t('roster.enrolledStudents', { count }) || `Enrolled Students (${count}):`)}
-        </span>
-        {count > 0 && (
-          <span className="badge badge-neutral" style={{ fontSize: 10, padding: '1px 6px' }}>
-            {isSingle ? (t('roster.studentCountSingle') || '1 student') : (t('roster.studentsCount', { count }) || `${count} students`)}
-          </span>
-        )}
-      </div>
-
       {count === 0 ? (
         <div style={{ padding: '6px 10px', backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e2e8f0', color: 'var(--text-muted)', fontSize: 12 }}>
           ⚪ {t('roster.noStudents') || 'No students enrolled'}
@@ -60,11 +125,12 @@ export default function GroupStudentRoster({
               ? student
               : (student.fullName || `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student');
             const key = student.id || `student-${idx}-${name}`;
+            const att = getStudentAttendance(student);
 
             return (
               <li
                 key={key}
-                className="student-chip-item"
+                className={`student-chip-item student-chip-${att.status}`}
                 role="listitem"
                 style={{
                   display: 'inline-flex',
@@ -84,9 +150,18 @@ export default function GroupStudentRoster({
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap'
                 }}
-                title={name}
+                title={`${name} (${att.title})`}
+                aria-label={`${name}: ${att.ariaLabel}`}
               >
-                <span style={{ fontSize: 12, opacity: 0.8, flexShrink: 0 }} aria-hidden="true">👤</span>
+                <span
+                  className="student-attendance-status"
+                  role="img"
+                  title={att.title}
+                  aria-label={att.ariaLabel}
+                  style={{ fontSize: 12, flexShrink: 0 }}
+                >
+                  {att.icon}
+                </span>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {name}
                 </span>

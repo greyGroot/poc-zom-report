@@ -129,3 +129,32 @@ export function formatDuration(minutes, locale = 'en') {
   }
   return `${minutes} min`;
 }
+
+/**
+ * Determines whether a lesson is in the future based on its date and start time.
+ * Handles Europe/Kyiv school local time.
+ * @param {string} lessonDate - YYYY-MM-DD
+ * @param {string} [lessonStartTime] - HH:mm
+ * @returns {boolean}
+ */
+export function isLessonInFuture(lessonDate, lessonStartTime) {
+  if (!lessonDate) return false;
+  const now = new Date();
+  const timeStr = lessonStartTime && /^\d{1,2}:\d{2}$/.test(lessonStartTime) ? lessonStartTime : '00:00';
+  
+  const kyivNowStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now);
+  // kyivNowStr is "YYYY-MM-DD, HH:mm:ss"
+  const [currDatePart, currTimePart] = kyivNowStr.split(', ');
+  if (lessonDate > currDatePart) return true;
+  if (lessonDate < currDatePart) return false;
+  return timeStr > currTimePart.slice(0, 5);
+}

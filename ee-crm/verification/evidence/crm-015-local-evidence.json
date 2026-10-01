@@ -1,0 +1,61 @@
+{
+  "story": "CRM-015",
+  "targetUrl": "http://localhost:3000",
+  "environment": "Local Environment (http://localhost:3000)",
+  "testedAt": "2026-10-01T08:49:08.181Z",
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "CRM015-CHK1-ICONS",
+      "description": "DoD Check 1: Generic person icon (👤) replaced with attendance indicators",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "id": "CRM015-CHK2-PRESENT",
+      "description": "DoD Check 2: short_name: null / attendance_status_color: null maps to ✅ Present",
+      "status": "PASS",
+      "details": "Vira status=present, icon=✅"
+    },
+    {
+      "id": "CRM015-CHK3-ABSENT",
+      "description": "DoD Check 3: short_name: \"AB\" / attendance_status_color: \"red\" maps to ❌ Absent",
+      "status": "PASS",
+      "details": "Pynzaru status=absent, icon=❌"
+    },
+    {
+      "id": "CRM015-CHK4-UNRECORDED",
+      "description": "DoD Check 4: Unrecorded or missing attendance records map to ❓ Unchecked",
+      "status": "PASS",
+      "details": "Sample student status=unchecked, icon=❓"
+    },
+    {
+      "id": "CRM015-CHK5-FUTURE-EXCLUSION",
+      "description": "DoD Check 5: Future lessons (startTime > now) skip Schoolmate calls and render neutral",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "id": "CRM015-CHK6-PROXY-ONLY",
+      "description": "DoD Check 6: Per-student attendance records are NOT stored in persistent EE-CRM DB (proxy-only with TTL cache)",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "id": "CRM015-CHK7-SURFACES-PARITY",
+      "description": "DoD Check 7: Attendance indicators render on both Teacher Schedule and Day Details pages",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "id": "CRM015-CHK8-API-VALIDATION",
+      "description": "API Route validates required parameters (returns HTTP 400)",
+      "status": "PASS",
+      "details": ""
+    }
+  ]
+}

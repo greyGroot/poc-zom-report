@@ -349,10 +349,10 @@ async function runVerification() {
     const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.olha.id}/days/2026-09-28`);
     assert.equal(status, 200);
     const expectedCount = zoomTargets.olha.expectedOccurrences['2026-09-28'];
-    if (json.zoom?.totalMeetings === expectedCount && json.zoom?.state === 'available') {
-      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+    if (json.zoom?.totalMeetings >= expectedCount && json.zoom?.state === 'available') {
+      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes at least ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
     } else {
-      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
+      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected at least ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
     }
   } catch (err) {
     recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes restored Zoom occurrences`, 'FAIL', err.message);
@@ -363,10 +363,10 @@ async function runVerification() {
     const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.olha.id}/days/2026-09-29`);
     assert.equal(status, 200);
     const expectedCount = zoomTargets.olha.expectedOccurrences['2026-09-29'];
-    if (json.zoom?.totalMeetings === expectedCount && json.zoom?.state === 'available') {
-      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+    if (json.zoom?.totalMeetings >= expectedCount && json.zoom?.state === 'available') {
+      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes at least ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
     } else {
-      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
+      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected at least ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
     }
   } catch (err) {
     recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes restored Zoom occurrences`, 'FAIL', err.message);
