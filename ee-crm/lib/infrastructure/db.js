@@ -9,6 +9,7 @@ const LOGS_KEY = 'ee:app:logs';
 const REPORT_KEY_PREFIX = 'ee:report:';
 const WEEKLY_LESSONS_PREFIX = 'ee:lessons:week:';
 const GROUP_ROSTER_PREFIX = 'ee:group:roster:';
+const LESSON_ATTENDANCE_PREFIX = 'ee:lesson:attendance:';
 
 // In-Memory Fallback store for local testing
 class MemoryStore {
@@ -17,6 +18,7 @@ class MemoryStore {
     this.reports = new Map();
     this.weeklyLessons = new Map();
     this.groupRosters = new Map();
+    this.lessonAttendance = new Map();
     this.logs = [];
   }
 
@@ -25,6 +27,7 @@ class MemoryStore {
     this.reports.clear();
     this.weeklyLessons.clear();
     this.groupRosters.clear();
+    this.lessonAttendance.clear();
     this.logs = [];
   }
 }
@@ -411,7 +414,7 @@ export async function setMultipleWeeklyLessonsCache(weekKey, entries, ttlSeconds
 }
 
 /**
- * Prunes all weekly lessons, report, and group roster caches from Redis or in-memory store
+ * Prunes all weekly lessons, report, group roster, and lesson attendance caches from Redis or in-memory store
  */
 export async function pruneAllCaches() {
   const redis = getRedisClient();
@@ -419,10 +422,12 @@ export async function pruneAllCaches() {
     const lessonKeys = await redis.keys(`${WEEKLY_LESSONS_PREFIX}*`);
     const reportKeys = await redis.keys(`${REPORT_KEY_PREFIX}*`);
     const rosterKeys = await redis.keys(`${GROUP_ROSTER_PREFIX}*`);
+    const attendanceKeys = await redis.keys(`${LESSON_ATTENDANCE_PREFIX}*`);
     const allKeys = [
       ...(Array.isArray(lessonKeys) ? lessonKeys : []),
       ...(Array.isArray(reportKeys) ? reportKeys : []),
-      ...(Array.isArray(rosterKeys) ? rosterKeys : [])
+      ...(Array.isArray(rosterKeys) ? rosterKeys : []),
+      ...(Array.isArray(attendanceKeys) ? attendanceKeys : [])
     ];
     for (let i = 0; i < allKeys.length; i += 100) {
       const batch = allKeys.slice(i, i + 100);
@@ -436,6 +441,34 @@ export async function pruneAllCaches() {
   memoryStore.weeklyLessons.clear();
   memoryStore.reports.clear();
   memoryStore.groupRosters.clear();
+  memoryStore.lessonAttendance.clear();
+}
+
+// -------------------------------------------------------------
+// Lesson Attendance Cache (TTL 15 minutes / 900s)
+// -------------------------------------------------------------
+
+export async function getLessonAttendanceCache(groupId, fromDate, toDate) {
+  if (!groupId) return null;
+  const key = `${LESSON_ATTENDANCE_PREFIX}${groupId}:${fromDate}_${toDate || fromDate}`;
+  const redis = getRedisClient();
+  if (!isMockClient()) {
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
+  return memoryStore.lessonAttendance.get(key) || null;
+}
+
+export async function setLessonAttendanceCache(groupId, fromDate, toDate, data, ttlSeconds = 900) {
+  if (!groupId || !data) return;
+  const key = `${LESSON_ATTENDANCE_PREFIX}${groupId}:${fromDate}_${toDate || fromDate}`;
+  const redis = getRedisClient();
+  if (!isMockClient()) {
+    await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
+    return;
+  }
+  memoryStore.lessonAttendance.set(key, data);
 }
 
 // -------------------------------------------------------------

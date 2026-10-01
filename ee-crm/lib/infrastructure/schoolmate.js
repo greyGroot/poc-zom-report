@@ -2,7 +2,36 @@
 // High-performance direct HTTP client for Empire English Schoolmate EU with network reliability,
 // bounded timeouts, exponential backoff retries, session recovery, and typed errors.
 
-import { getGroupRosterCache, setGroupRosterCache } from './db.js';
+import { getGroupRosterCache, setGroupRosterCache, getLessonAttendanceCache, setLessonAttendanceCache } from './db.js';
+
+/**
+ * Determines whether a lesson is in the future based on its date and start time.
+ * Handles Europe/Kyiv school local time.
+ * @param {string} lessonDate - YYYY-MM-DD
+ * @param {string} [lessonStartTime] - HH:mm
+ * @returns {boolean}
+ */
+export function isLessonInFuture(lessonDate, lessonStartTime) {
+  if (!lessonDate) return false;
+  const now = new Date();
+  const timeStr = lessonStartTime && /^\d{1,2}:\d{2}$/.test(lessonStartTime) ? lessonStartTime : '00:00';
+  
+  const kyivNowStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Kyiv',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now);
+  // kyivNowStr is "YYYY-MM-DD, HH:mm:ss"
+  const [currDatePart, currTimePart] = kyivNowStr.split(', ');
+  if (lessonDate > currDatePart) return true;
+  if (lessonDate < currDatePart) return false;
+  return timeStr > currTimePart.slice(0, 5);
+}
 
 export class SchoolmateTimeoutError extends Error {
   constructor(message, { pathname = '', timeoutMs = 0, cause = null } = {}) {
@@ -769,6 +798,259 @@ export class SchoolmateClient {
   }
 
   /**
+   * Normalizes Schoolmate getlessonattendancedata response into indexed student attendance data.
+   * Mapped strictly according to CRM-015 story requirements:
+   * - Present (✅): short_name: null, attendance_status_color: null
+   * - Absent (❌): short_name: "AB", attendance_status_color: "red" (or hex red)
+   * - Unchecked (❓): lesson attendance record missing, or lesson marked unrecorded
+   *
+   * @param {object} data - json.Data from Schoolmate
+   * @param {number|string} [targetGroupLessonId] - optional groupLessonId to prioritize
+   * @returns {object} { studentMap, attendedCount, absentCount, uncheckedCount, lessons }
+   */
+  _normalizeLessonAttendance(data, targetGroupLessonId = null) {
+    if (!data) return { studentMap: {}, attendedCount: 0, absentCount: 0, uncheckedCount: 0, lessons: {} };
+
+    const studentList = Array.isArray(data.StudentAttendanceList) ? data.StudentAttendanceList : [];
+    const studentMap = {};
+    const lessonsMap = {};
+    let attendedCount = 0;
+    let absentCount = 0;
+    let uncheckedCount = 0;
+
+    for (const student of studentList) {
+      const studentId = Number(student.StudentId || 0);
+      const studentName = (student.Name || '').trim();
+      const attendanceList = Array.isArray(student.AttendanceList) ? student.AttendanceList : [];
+
+      for (const item of attendanceList) {
+        const glId = Number(item.GroupLessonId || 0);
+        if (!lessonsMap[glId]) {
+          lessonsMap[glId] = {
+            groupLessonId: glId,
+            attendanceChecked: Boolean(item.AttendanceChecked),
+            studentMap: {},
+            attendedCount: 0,
+            absentCount: 0,
+            uncheckedCount: 0
+          };
+        }
+
+        const shortName = item.ShortName ? String(item.ShortName).trim().toUpperCase() : null;
+        const color = item.AttendanceStatusColor ? String(item.AttendanceStatusColor).trim().toLowerCase() : null;
+        const isChecked = Boolean(item.AttendanceChecked);
+
+        let status = 'unchecked';
+        let icon = '❓';
+        let label = 'Not marked';
+
+        if (isChecked) {
+          const isAbsent = shortName === 'AB' || color === '#ff0000' || color === 'red';
+          if (isAbsent) {
+            status = 'absent';
+            icon = '❌';
+            label = 'Absent';
+          } else {
+            status = 'present';
+            icon = '✅';
+            label = 'Present';
+          }
+        }
+
+        const studentStatusObj = {
+          studentId,
+          studentName,
+          status,
+          icon,
+          label,
+          shortName: item.ShortName || null,
+          color: item.AttendanceStatusColor || null,
+          attendanceChecked: isChecked
+        };
+
+        lessonsMap[glId].studentMap[studentId] = studentStatusObj;
+        lessonsMap[glId].studentMap[String(studentId)] = studentStatusObj;
+        if (studentName) {
+          lessonsMap[glId].studentMap[studentName.toLowerCase()] = studentStatusObj;
+        }
+
+        if (status === 'present') lessonsMap[glId].attendedCount++;
+        else if (status === 'absent') lessonsMap[glId].absentCount++;
+        else lessonsMap[glId].uncheckedCount++;
+      }
+
+      // If targetGroupLessonId is specified, find matching item
+      let targetItem = null;
+      if (targetGroupLessonId) {
+        targetItem = attendanceList.find(a => Number(a.GroupLessonId) === Number(targetGroupLessonId));
+      } else if (attendanceList.length === 1) {
+        targetItem = attendanceList[0];
+      }
+
+      const shortName = targetItem?.ShortName ? String(targetItem.ShortName).trim().toUpperCase() : null;
+      const color = targetItem?.AttendanceStatusColor ? String(targetItem.AttendanceStatusColor).trim().toLowerCase() : null;
+      const isChecked = Boolean(targetItem?.AttendanceChecked);
+
+      let status = 'unchecked';
+      let icon = '❓';
+      let label = 'Not marked';
+
+      if (isChecked) {
+        const isAbsent = shortName === 'AB' || color === '#ff0000' || color === 'red';
+        if (isAbsent) {
+          status = 'absent';
+          icon = '❌';
+          label = 'Absent';
+        } else {
+          status = 'present';
+          icon = '✅';
+          label = 'Present';
+        }
+      }
+
+      const statusObj = {
+        studentId,
+        studentName,
+        status,
+        icon,
+        label,
+        shortName: targetItem?.ShortName || null,
+        color: targetItem?.AttendanceStatusColor || null,
+        attendanceChecked: isChecked
+      };
+
+      studentMap[studentId] = statusObj;
+      studentMap[String(studentId)] = statusObj;
+      if (studentName) {
+        studentMap[studentName.toLowerCase()] = statusObj;
+      }
+
+      if (status === 'present') attendedCount++;
+      else if (status === 'absent') absentCount++;
+      else uncheckedCount++;
+    }
+
+    return {
+      studentMap,
+      attendedCount,
+      absentCount,
+      uncheckedCount,
+      lessons: lessonsMap
+    };
+  }
+
+  /**
+   * Fetch lesson attendance data from Schoolmate proxy and cache in Redis / memory.
+   * Strictly proxy-only (no DB persistence).
+   * Guards against future lessons (if startTime > now, returns empty/skipped).
+   *
+   * @param {object} params
+   * @param {number|string} params.groupId
+   * @param {string} params.fromDate - YYYY-MM-DD
+   * @param {string} [params.toDate] - YYYY-MM-DD
+   * @param {number|string} [params.groupLessonId]
+   * @param {string} [params.startTime] - HH:mm
+   * @returns {Promise<object|null>}
+   */
+  async getLessonAttendanceData({ groupId, fromDate, toDate = null, groupLessonId = null, startTime = null }) {
+    if (!groupId) return null;
+    const fromStr = fromDate || new Date().toISOString().split('T')[0];
+    const toStr = toDate || fromStr;
+
+    // Guard: Never query Schoolmate for future lessons
+    if (isLessonInFuture(fromStr, startTime)) {
+      return {
+        studentMap: {},
+        attendedCount: 0,
+        absentCount: 0,
+        uncheckedCount: 0,
+        lessons: {},
+        isFuture: true
+      };
+    }
+
+    // 1. Check cache first
+    try {
+      const cached = await getLessonAttendanceCache(groupId, fromStr, toStr);
+      if (cached) {
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(`[Schoolmate] Lesson attendance cache read failed for group ${groupId}: ${err.message}`);
+    }
+
+    // 2. Fetch from Schoolmate API
+    const payload = {
+      groupId: Number(groupId),
+      lessonSearchModel: {
+        LessonFromDate: fromStr,
+        LessonToDate: toStr,
+        IsShowSkippedDates: false,
+        IsShowDischarged: false,
+        LessonFilter: {
+          IsAddedClassesDetails: null,
+          IsAttendanceChecked: null,
+          IsOnline: null,
+          IsConflict: null,
+          IsClassesModified: null,
+          IsFilesAdded: null
+        },
+        SchedularTypeId: 0,
+        IsShowMyLessonOnly: false,
+        GroupId: 0,
+        StrLessonFromDate: '',
+        StrLessonToDate: '',
+        IsAdmin: false,
+        IsSubstitute: false,
+        DateOfPayment: null,
+        RecordIds: null,
+        CalenderColorType: 0,
+        FromDate: `${fromStr}T00:00:00.000Z`,
+        ToDate: `${toStr}T23:59:59.000Z`,
+        StrFromDate: '',
+        StrToDate: '',
+        FacilityRoomId: 0,
+        CompanyId: 0,
+        CalendarUserId: 0
+      },
+      requestuserId: this.requestUserId || 743140,
+      roleId: 2
+    };
+
+    try {
+      const url = `${this.baseUrl}/group/getlessonattendancedata`;
+      const json = await this._requestAuthenticated(
+        url,
+        (sessionId) => ({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': `ASP.NET_SessionId=${sessionId}; SelectedCulture=en-GB;`,
+            'Accept': 'application/json, text/plain, */*'
+          },
+          body: JSON.stringify(payload)
+        }),
+        { consume: (r) => r.json() }
+      );
+
+      const parsed = this._normalizeLessonAttendance(json?.Data, groupLessonId);
+
+      if (parsed) {
+        try {
+          await setLessonAttendanceCache(groupId, fromStr, toStr, parsed, 900); // 15 min TTL
+        } catch (cacheErr) {
+          this.logger.warn(`[Schoolmate] Lesson attendance cache write failed for group ${groupId}: ${cacheErr.message}`);
+        }
+      }
+
+      return parsed;
+    } catch (err) {
+      this.logger.warn(`[Schoolmate] Failed to fetch lesson attendance for group ${groupId}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
    * Fetch complete schedule for all groups of a teacher in batches of 2-3.
    * Aggregates lessons into a Daily Timeline with status markings and wage calculations.
    * @param {object} params
@@ -1004,6 +1286,34 @@ export class SchoolmateClient {
       groupRosters.set(groupId, roster);
     }
 
+    // 3.6 Enrich lessons with per-student attendance from Schoolmate proxy
+    const attendancePromises = new Map();
+    for (const lesson of allLessons) {
+      if (lesson.groupId && !isLessonInFuture(lesson.date, lesson.startTime)) {
+        const attKey = `${lesson.groupId}:${lesson.date}`;
+        if (!attendancePromises.has(attKey)) {
+          attendancePromises.set(
+            attKey,
+            this.getLessonAttendanceData({
+              groupId: lesson.groupId,
+              fromDate: lesson.date,
+              toDate: lesson.date,
+              groupLessonId: lesson.groupLessonId,
+              startTime: lesson.startTime
+            }).catch(() => null)
+          );
+        }
+      }
+    }
+
+    const attendanceMap = new Map();
+    for (const [attKey, promise] of attendancePromises.entries()) {
+      const attData = await promise;
+      if (attData) {
+        attendanceMap.set(attKey, attData);
+      }
+    }
+
     for (const lesson of allLessons) {
       const roster = groupRosters.get(lesson.groupId) || [];
       if (roster.length > 0) {
@@ -1014,8 +1324,24 @@ export class SchoolmateClient {
         lesson.students = [];
         lesson.isIndividual = (lesson.enrolledStudents || 1) <= 1;
       }
-      if (lesson.attendanceChecked) {
-        lesson.attendedCount = lesson.enrolledStudents;
+
+      const isFuture = isLessonInFuture(lesson.date, lesson.startTime);
+      if (isFuture) {
+        lesson.attendanceData = {};
+        lesson.attendanceChecked = false;
+        lesson.attendedCount = 0;
+      } else {
+        const attKey = `${lesson.groupId}:${lesson.date}`;
+        const attObj = attendanceMap.get(attKey);
+        const lessonAtt = (attObj?.lessons && lesson.groupLessonId && attObj.lessons[Number(lesson.groupLessonId)]) || attObj;
+        if (lessonAtt?.studentMap) {
+          lesson.attendanceData = lessonAtt.studentMap;
+          if (lessonAtt.attendedCount !== undefined && lesson.attendanceChecked) {
+            lesson.attendedCount = lessonAtt.attendedCount;
+          }
+        } else {
+          lesson.attendanceData = {};
+        }
       }
     }
 

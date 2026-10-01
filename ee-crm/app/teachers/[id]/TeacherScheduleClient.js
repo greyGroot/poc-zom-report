@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
-import { getKyivDateString, formatKyivDateHeader } from '@/lib/utils/timezone';
+import { getKyivDateString, formatKyivDateHeader, isLessonInFuture } from '@/lib/utils/timezone';
 import AirbnbDatePicker from './AirbnbDatePicker';
 import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
@@ -205,14 +205,55 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
     }
   }, [teacher?.schoolmateTeacherId, fromDate, toDate, handleFetchReport]);
 
+  const fetchLessonAttendance = useCallback(async (lesson, lessonDate) => {
+    const lDate = lessonDate || lesson?.date;
+    if (!lesson || !lesson.groupId || !lDate || isLessonInFuture(lDate, lesson.startTime)) return;
+    const lessonKey = lesson.groupLessonId || lesson.id;
+    try {
+      const res = await fetch(`/api/lessons/${lessonKey}/attendance?groupId=${lesson.groupId}&date=${lDate}&startTime=${lesson.startTime || ''}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.attendance) {
+          setReport(prev => {
+            if (!prev) return prev;
+            const updateLesson = (l) => {
+              if ((l.groupLessonId && l.groupLessonId === lesson.groupLessonId) || l.id === lesson.id) {
+                return {
+                  ...l,
+                  attendanceData: json.attendance,
+                  attendedCount: json.attendedCount !== undefined && l.attendanceChecked ? json.attendedCount : l.attendedCount
+                };
+              }
+              return l;
+            };
+
+            return {
+              ...prev,
+              lessons: prev.lessons ? prev.lessons.map(updateLesson) : [],
+              days: prev.days ? prev.days.map(d => ({
+                ...d,
+                lessons: d.lessons ? d.lessons.map(updateLesson) : []
+              })) : []
+            };
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch attendance for lesson in schedule:', e.message);
+    }
+  }, []);
+
   // Toggle single lesson accordion
-  const toggleLesson = (id) => {
+  const toggleLesson = (id, lessonObj = null, lessonDate = null) => {
     setExpandedLessons(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
       } else {
         next.add(id);
+        if (lessonObj && (!lessonObj.attendanceData || Object.keys(lessonObj.attendanceData).length === 0)) {
+          fetchLessonAttendance(lessonObj, lessonDate);
+        }
       }
       return next;
     });
@@ -389,7 +430,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
               )}
               {teacher?.schoolmateLogin && (
                 <span className="badge badge-neutral">
-                  👤 Login: {teacher.schoolmateLogin}
+                  🔑 Login: {teacher.schoolmateLogin}
                 </span>
               )}
             </div>
@@ -634,6 +675,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                   <div className="lesson-list" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {day.filteredLessons.map((lesson, idx) => {
                       const isExpanded = expandedLessons.has(lesson.id);
+                      const isFutureLesson = isLessonInFuture(day.date || lesson.date, lesson.startTime);
                       const hasStatus = Boolean(lesson.lessonStatusName);
                       const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
                       const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
@@ -657,14 +699,14 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                           {/* Summary Bar - 2-row layout */}
                           <div
                             className="lesson-summary-bar-vertical"
-                            onClick={() => toggleLesson(lesson.id)}
+                            onClick={() => toggleLesson(lesson.id, lesson, day.date)}
                             role="button"
                             tabIndex={0}
                             aria-expanded={isExpanded}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                toggleLesson(lesson.id);
+                                toggleLesson(lesson.id, lesson, day.date);
                               }
                             }}
                             style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -680,7 +722,7 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                       <span className="sm-tooltip-text">{t('dayDetails.classNotesAdded') || 'Added classes details'}</span>
                                     </div>
                                   )}
-                                  {lesson.attendanceChecked && (
+                                  {lesson.attendanceChecked && !isFutureLesson && (
                                     <div className="sm-tooltip-wrapper">
                                       <span className="ribbon-bookmark ribbon-blue" />
                                       <span className="sm-tooltip-text">{t('dayDetails.attendanceMarked') || 'Attendance checked'}</span>
@@ -745,30 +787,41 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                               </span>
 
                               {/* Attendance Status */}
-                              <span style={{ fontSize: 11, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
-                                {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked') || 'Attendance marked'}` : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
+                              <span style={{ fontSize: 11, color: (lesson.attendanceChecked && !isFutureLesson) ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
+                                {(lesson.attendanceChecked && !isFutureLesson)
+                                  ? `${lesson.attendedCount !== undefined && lesson.enrolledStudents ? `${lesson.attendedCount}/${lesson.enrolledStudents} ` : ''}✅ ${t('dayDetails.attendanceMarked') || 'Attendance marked'}`
+                                  : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
                               </span>
                             </div>
                           </div>
 
                           {/* Accordion Detail Drawer */}
-                          {isExpanded && (
-                            <div style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
-                              <GroupStudentRoster
-                                students={lesson.students}
-                                isIndividual={isIndividual}
-                                fallbackStudentName={cleanStudentName}
-                                attendanceChecked={lesson.attendanceChecked}
-                              />
+                          <div
+                            id={`lesson-drawer-${lesson.id || idx}`}
+                            style={{
+                              display: isExpanded ? 'block' : 'none',
+                              padding: '10px 14px',
+                              backgroundColor: '#f8fafc',
+                              borderTop: '1px solid var(--border-color)',
+                              fontSize: 12
+                            }}
+                          >
+                            <GroupStudentRoster
+                              students={lesson.students}
+                              isIndividual={isIndividual}
+                              fallbackStudentName={cleanStudentName}
+                              attendanceChecked={isFutureLesson ? false : lesson.attendanceChecked}
+                              attendanceData={lesson.attendanceData || {}}
+                              isFuture={isFutureLesson}
+                            />
 
-                              {/* Class Notes / Additional Details if present */}
-                              {(lesson.classDetailsAdded || lesson.notes) && (
-                                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
-                                  📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                            {/* Class Notes / Additional Details if present */}
+                            {(lesson.classDetailsAdded || lesson.notes) && (
+                              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
+                              </div>
+                            )}
+                          </div>
                         </article>
                       );
                     })}

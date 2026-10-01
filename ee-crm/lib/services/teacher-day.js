@@ -4,7 +4,7 @@
 // Strictly factual: No inferred matching, flags, tags, or payroll conclusions.
 
 import { getTeacherById, getCachedReport, saveCachedReport } from '../infrastructure/db.js';
-import { SchoolmateClient, isSchoolmateUnavailableError } from '../infrastructure/schoolmate.js';
+import { SchoolmateClient, isSchoolmateUnavailableError, isLessonInFuture } from '../infrastructure/schoolmate.js';
 import { getZoomOccurrencesForTeacher, formatOccurrenceForDisplay } from '../infrastructure/zoom-occurrences.js';
 import { computeTeacherDayComparison, isConductedLesson } from '../domain/comparison-engine.js';
 import { logger } from '../infrastructure/logger.js';
@@ -210,6 +210,56 @@ export async function getTeacherDayData(paramsOrTeacherId, dateParam) {
           subtotalMinutes = targetDay.subtotalMinutes || 0;
           subtotalWage = targetDay.subtotalWageFormatted || null;
           subtotalWageNumeric = targetDay.subtotalWageNumeric || 0;
+        }
+      }
+
+      // Enrich day lessons with per-student attendance data from Schoolmate proxy
+      const attClient = new SchoolmateClient();
+      const attendancePromises = new Map();
+      for (const lesson of dayLessons) {
+        const isFuture = isLessonInFuture(normalizedDate, lesson.startTime);
+        if (isFuture) {
+          lesson.attendanceData = {};
+          lesson.attendanceChecked = false;
+          lesson.attendedCount = 0;
+        } else if (lesson.groupId && (!lesson.attendanceData || Object.keys(lesson.attendanceData).length === 0)) {
+          const key = `${lesson.groupId}:${normalizedDate}`;
+          if (!attendancePromises.has(key)) {
+            attendancePromises.set(
+              key,
+              attClient.getLessonAttendanceData({
+                groupId: lesson.groupId,
+                fromDate: normalizedDate,
+                toDate: normalizedDate,
+                groupLessonId: lesson.groupLessonId,
+                startTime: lesson.startTime
+              }).catch(() => null)
+            );
+          }
+        }
+      }
+
+      if (attendancePromises.size > 0) {
+        const attendanceMap = new Map();
+        for (const [key, promise] of attendancePromises.entries()) {
+          const att = await promise;
+          if (att) attendanceMap.set(key, att);
+        }
+
+        for (const lesson of dayLessons) {
+          if (!isLessonInFuture(normalizedDate, lesson.startTime) && (!lesson.attendanceData || Object.keys(lesson.attendanceData).length === 0)) {
+            const key = `${lesson.groupId}:${normalizedDate}`;
+            const attObj = attendanceMap.get(key);
+            const lessonAtt = (attObj?.lessons && lesson.groupLessonId && attObj.lessons[Number(lesson.groupLessonId)]) || attObj;
+            if (lessonAtt?.studentMap) {
+              lesson.attendanceData = lessonAtt.studentMap;
+              if (lessonAtt.attendedCount !== undefined && lesson.attendanceChecked) {
+                lesson.attendedCount = lessonAtt.attendedCount;
+              }
+            } else {
+              lesson.attendanceData = {};
+            }
+          }
         }
       }
     }

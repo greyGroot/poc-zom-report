@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
-import { formatKyivDateHeader } from '@/lib/utils/timezone';
+import { formatKyivDateHeader, isLessonInFuture } from '@/lib/utils/timezone';
 import ZoomMeetingCard from '../ZoomMeetingCard';
 import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
 import GroupStudentRoster from '@/app/components/GroupStudentRoster';
@@ -54,17 +54,54 @@ export default function TeacherDayDetailsClient({
     [teacherId, fromParam, toParam, presetParam, filterParam, formatUrl]
   );
 
-  const toggleLesson = useCallback((lessonId) => {
+  const fetchLessonAttendance = useCallback(async (lesson) => {
+    if (!lesson || !lesson.groupId || isLessonInFuture(date, lesson.startTime)) return;
+    const lessonKey = lesson.groupLessonId || lesson.id;
+    try {
+      const res = await fetch(`/api/lessons/${lessonKey}/attendance?groupId=${lesson.groupId}&date=${date}&startTime=${lesson.startTime || ''}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.attendance) {
+          setData(prev => {
+            if (!prev?.schoolmate?.lessons) return prev;
+            return {
+              ...prev,
+              schoolmate: {
+                ...prev.schoolmate,
+                lessons: prev.schoolmate.lessons.map(l => {
+                  if ((l.groupLessonId && l.groupLessonId === lesson.groupLessonId) || l.id === lesson.id) {
+                    return {
+                      ...l,
+                      attendanceData: json.attendance,
+                      attendedCount: json.attendedCount !== undefined && l.attendanceChecked ? json.attendedCount : l.attendedCount
+                    };
+                  }
+                  return l;
+                })
+              }
+            };
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch attendance for lesson:', e.message);
+    }
+  }, [date]);
+
+  const toggleLesson = useCallback((lessonId, lessonObj = null) => {
     setExpandedLessons(prev => {
       const next = new Set(prev);
       if (next.has(lessonId)) {
         next.delete(lessonId);
       } else {
         next.add(lessonId);
+        if (lessonObj && (!lessonObj.attendanceData || Object.keys(lessonObj.attendanceData).length === 0)) {
+          fetchLessonAttendance(lessonObj);
+        }
       }
       return next;
     });
-  }, []);
+  }, [fetchLessonAttendance]);
 
   // Independent refresh for Schoolmate
   const handleRefreshSchoolmate = useCallback(async () => {
@@ -435,6 +472,7 @@ export default function TeacherDayDetailsClient({
               <div className="lesson-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {schoolmate.lessons.map((lesson, idx) => {
                   const isExpanded = expandedLessons.has(lesson.id || idx);
+                  const isFutureLesson = isLessonInFuture(date, lesson.startTime);
                   const hasStatus = Boolean(lesson.lessonStatusName);
                   const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
                   const isZeroRate = parseFloat(String(lesson.teacherRatePerLesson || '0')) === 0;
@@ -459,7 +497,7 @@ export default function TeacherDayDetailsClient({
                       {/* Summary Bar - 2-row layout */}
                       <div
                         className="lesson-summary-bar-vertical"
-                        onClick={() => toggleLesson(lesson.id || idx)}
+                        onClick={() => toggleLesson(lesson.id || idx, lesson)}
                         role="button"
                         tabIndex={0}
                         aria-expanded={isExpanded}
@@ -467,7 +505,7 @@ export default function TeacherDayDetailsClient({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            toggleLesson(lesson.id || idx);
+                            toggleLesson(lesson.id || idx, lesson);
                           }
                         }}
                         style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -483,7 +521,7 @@ export default function TeacherDayDetailsClient({
                                   <span className="sm-tooltip-text">{t('dayDetails.classNotesAdded')}</span>
                                 </div>
                               )}
-                              {lesson.attendanceChecked && (
+                              {lesson.attendanceChecked && !isFutureLesson && (
                                 <div className="sm-tooltip-wrapper">
                                   <span className="ribbon-bookmark ribbon-blue" />
                                   <span className="sm-tooltip-text">{t('dayDetails.attendanceMarked')}</span>
@@ -542,30 +580,41 @@ export default function TeacherDayDetailsClient({
                           </span>
 
                           {/* Attendance Status */}
-                          <span style={{ fontSize: 11, color: lesson.attendanceChecked ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
-                            {lesson.attendanceChecked ? `✅ ${t('dayDetails.attendanceMarked')}` : `⚪ ${t('dayDetails.attendanceNotMarked')}`}
+                          <span style={{ fontSize: 11, color: (lesson.attendanceChecked && !isFutureLesson) ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
+                            {(lesson.attendanceChecked && !isFutureLesson)
+                              ? `${lesson.attendedCount !== undefined && lesson.enrolledStudents ? `${lesson.attendedCount}/${lesson.enrolledStudents} ` : ''}✅ ${t('dayDetails.attendanceMarked') || 'Attended'}`
+                              : `⚪ ${t('dayDetails.attendanceNotMarked') || 'Attendance not marked'}`}
                           </span>
                         </div>
                       </div>
 
-                      {/* Detail Drawer (Expanded) */}
-                      {isExpanded && (
-                        <div id={`lesson-drawer-${lesson.id || idx}`} style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', fontSize: 12 }}>
-                          <GroupStudentRoster
-                            students={lesson.students}
-                            isIndividual={isIndividual}
-                            fallbackStudentName={cleanStudentName}
-                            attendanceChecked={lesson.attendanceChecked}
-                          />
+                      {/* Detail Drawer */}
+                      <div
+                        id={`lesson-drawer-${lesson.id || idx}`}
+                        style={{
+                          display: isExpanded ? 'block' : 'none',
+                          padding: '10px 14px',
+                          backgroundColor: '#f8fafc',
+                          borderTop: '1px solid var(--border-color)',
+                          fontSize: 12
+                        }}
+                      >
+                        <GroupStudentRoster
+                          students={lesson.students}
+                          isIndividual={isIndividual}
+                          fallbackStudentName={cleanStudentName}
+                          attendanceChecked={isFutureLesson ? false : lesson.attendanceChecked}
+                          attendanceData={lesson.attendanceData || {}}
+                          isFuture={isFutureLesson}
+                        />
 
-                          {/* Class Notes / Additional Details if present */}
-                          {(lesson.classDetailsAdded || lesson.notes) && (
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
-                              📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {/* Class Notes / Additional Details if present */}
+                        {(lesson.classDetailsAdded || lesson.notes) && (
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
+                            📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
+                          </div>
+                        )}
+                      </div>
                     </article>
                   );
                 })}
