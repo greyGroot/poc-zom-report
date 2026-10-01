@@ -1,8 +1,8 @@
 {
   "story": "CRM-015",
-  "targetUrl": "http://localhost:3000",
+  "targetUrl": "https://poc-zom-report-2qvs.vercel.app",
   "environment": "Local Environment (http://localhost:3000)",
-  "testedAt": "2026-10-01T08:49:08.181Z",
+  "testedAt": "2026-10-01T09:01:27.244Z",
   "summary": {
     "total": 8,
     "passed": 8,
