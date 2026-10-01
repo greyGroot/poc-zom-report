@@ -1,7 +1,7 @@
 # CRM-017 — Expand/Collapse All Includes Zoom Meetings
 
 **Story ID:** CRM-017  
-**Status:** Ready  
+**Status:** Done  
 **Primary user:** School administrator / Academic manager  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Depends on:** CRM-001 — Display tracked Zoom meetings on teacher page, CRM-002 — View teacher-day details  
@@ -86,12 +86,12 @@ And clicking "Expand All" expands that collapsed Zoom meeting back.
 
 Clear, descriptive, and understandable checks defining what needs to happen to see that this story is done. E2E QA will create automated verification tests directly against each numbered to-do before development starts:
 
-1. Verify that clicking "Expand All" on the Teacher Day Details page (`/teachers/[id]/[date]`) expands all Schoolmate lesson cards and reveals their details/rosters.
-2. Verify that clicking "Expand All" on the Teacher Day Details page (`/teachers/[id]/[date]`) expands all Zoom meeting cards and reveals meeting details and participant lists.
-3. Verify that clicking "Collapse All" on the Teacher Day Details page collapses all Schoolmate lesson cards and all Zoom meeting cards.
-4. Verify that clicking "Expand All" on the Teacher Schedule view (`/teachers/[id]`) expands all Schoolmate lessons and all Zoom meetings across the displayed date range.
-5. Verify that clicking "Collapse All" on the Teacher Schedule view collapses all Schoolmate lessons and all Zoom meetings across the displayed date range.
-6. Verify that on a page with only Zoom meetings (no Schoolmate lessons), "Expand All" and "Collapse All" correctly expand and collapse all Zoom meeting cards.
+- [x] 1. Verify that clicking "Expand All" on the Teacher Day Details page (`/teachers/[id]/[date]`) expands all Schoolmate lesson cards and reveals their details/rosters.
+- [x] 2. Verify that clicking "Expand All" on the Teacher Day Details page (`/teachers/[id]/[date]`) expands all Zoom meeting cards and reveals meeting details and participant lists.
+- [x] 3. Verify that clicking "Collapse All" on the Teacher Day Details page collapses all Schoolmate lesson cards and all Zoom meeting cards.
+- [x] 4. Verify that clicking "Expand All" on the Teacher Schedule view (`/teachers/[id]`) expands all Schoolmate lessons and all Zoom meetings across the displayed date range.
+- [x] 5. Verify that clicking "Collapse All" on the Teacher Schedule view collapses all Schoolmate lessons and all Zoom meetings across the displayed date range.
+- [x] 6. Verify that on a page with only Zoom meetings (no Schoolmate lessons), "Expand All" and "Collapse All" correctly expand and collapse all Zoom meeting cards.
 
 ## Business rules
 
@@ -166,3 +166,4 @@ flowchart TD
 | Date | Decision |
 |---|---|
 | 30 September 2026 | Created CRM-017 to expand both Schoolmate lessons and Zoom meetings on "Expand All" action. |
+| 01 October 2026 | Story completed. E2E test verification passed for all 6 To-Dos. Approved for production deployment. |
