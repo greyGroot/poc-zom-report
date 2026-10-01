@@ -781,11 +781,6 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                                 {lesson.className || lesson.lessonType || 'GE'}
                               </span>
 
-                              {/* Enrolled Students Count Badge */}
-                              <span className="lesson-students-count" style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                👥 {lesson.enrolledStudents === 1 ? (t('roster.studentCountSingle') || '1 student') : (t('roster.studentsCount', { count: lesson.enrolledStudents || 1 }) || `${lesson.enrolledStudents || 1} students`)}
-                              </span>
-
                               {/* Attendance Status */}
                               <span style={{ fontSize: 11, color: (lesson.attendanceChecked && !isFutureLesson) ? '#047857' : 'var(--text-muted)', fontWeight: 500 }}>
                                 {(lesson.attendanceChecked && !isFutureLesson)
@@ -816,9 +811,9 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                             />
 
                             {/* Class Notes / Additional Details if present */}
-                            {(lesson.classDetailsAdded || lesson.notes) && (
+                            {lesson.notes && typeof lesson.notes === 'string' && lesson.notes.trim().length > 0 && (
                               <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 12, color: 'var(--text-secondary)' }}>
-                                📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes || t('dayDetails.classNotesAdded')}
+                                📝 <span style={{ fontWeight: 600 }}>{t('dayDetails.classNotes') || 'Class Notes'}:</span> {lesson.notes}
                               </div>
                             )}
                           </div>

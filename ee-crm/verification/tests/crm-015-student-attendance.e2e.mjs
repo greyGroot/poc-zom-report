@@ -117,10 +117,16 @@ async function runVerification() {
   // ------------------------------------------------------------------------
   console.log('\n--- Check 4: Unrecorded / Missing Status Mapping (DoD Check 4) ---');
   try {
-    // Calling for an unrecorded past date or querying HTML on unrecorded lesson
-    const { html } = await fetchHtml(`/teachers/${teacherId}/${pastDate}`);
-    assert.ok(html.includes('❓') || html.includes('student-chip-unchecked') || html.includes('Not marked'), 'Unrecorded attendance renders ❓ / Not marked');
-    recordResult('CRM015-CHK4-UNRECORDED', 'DoD Check 4: Unrecorded or missing attendance records map to ❓ Unchecked', 'PASS');
+    // DoD Check 4: Verify unrecorded or missing attendance records map to ❓ Unchecked / unmarked
+    const { status, json } = await fetchJson(`/api/lessons/9999999/attendance?groupId=${groupId}&date=2026-09-01`);
+    assert.equal(status, 200, 'API returns 200 for unrecorded lesson query');
+    assert.ok(json.success, 'API returns success');
+    const sampleStudent = Object.values(json.attendance || {})[0];
+    assert.ok(sampleStudent, 'Unrecorded lesson returns student entries with unchecked status');
+    assert.equal(sampleStudent.status, 'unchecked', 'Unrecorded student status should be unchecked');
+    assert.equal(sampleStudent.icon, '❓', 'Unrecorded student icon should be ❓');
+    
+    recordResult('CRM015-CHK4-UNRECORDED', 'DoD Check 4: Unrecorded or missing attendance records map to ❓ Unchecked', 'PASS', `Sample student status=${sampleStudent.status}, icon=${sampleStudent.icon}`);
   } catch (err) {
     recordResult('CRM015-CHK4-UNRECORDED', 'DoD Check 4: Unrecorded or missing attendance records map to ❓ Unchecked', 'FAIL', err.message);
   }

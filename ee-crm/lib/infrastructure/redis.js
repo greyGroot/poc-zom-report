@@ -409,8 +409,8 @@ let isMock = false;
  */
 export function resolvePersistenceMode(env = process.env) {
   const nodeEnv = env.NODE_ENV;
-  const url = (env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL || '').trim();
-  const token = (env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN || '').trim();
+  const url = (env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL || env.POC_UPSTASH_REDIS_REST_URL || '').trim();
+  const token = (env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN || env.POC_UPSTASH_REDIS_REST_TOKEN || '').trim();
   const hasUrl = Boolean(url);
   const hasToken = Boolean(token);
   const hasCreds = hasUrl && hasToken;
@@ -488,8 +488,8 @@ export function getRedisClient(options = {}) {
     return currentClient;
   }
 
-  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL).trim();
-  const token = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN).trim();
+  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.POC_UPSTASH_REDIS_REST_URL || '').trim();
+  const token = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.POC_UPSTASH_REDIS_REST_TOKEN || '').trim();
 
   const client = new Redis({ url, token });
   if (typeof client.zrangebyscore !== 'function') {
@@ -556,8 +556,8 @@ export async function checkRedisHealth() {
     return { ok: false, connected: false, configured: true, mode: 'unavailable', error: 'PING_FAILED' };
   } catch (err) {
     const isConfigured = Boolean(
-      (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) &&
-      (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN)
+      (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.POC_UPSTASH_REDIS_REST_URL) &&
+      (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.POC_UPSTASH_REDIS_REST_TOKEN)
     );
     return {
       ok: false,

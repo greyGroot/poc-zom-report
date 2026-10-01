@@ -187,6 +187,8 @@ export const translations = {
       connectedAtLeast: 'Connected at least {duration}',
       leaveNotRecorded: 'Leave not recorded',
       participantsInTopic: 'Participants in {topic}',
+      zoomEmpty: 'No tracked Zoom meetings for this date.',
+      zoomEmptyBody: 'No Zoom meeting occurrences were recorded for this teacher on {date}.',
       refreshZoomFailed: "Couldn't refresh Zoom meetings. Showing the previous results for {period}.",
       openDayDetails: 'Open day details'
     },
@@ -243,6 +245,7 @@ export const translations = {
       timeUnavailable: 'Time unavailable',
       attendanceMarked: 'Attendance marked',
       attendanceNotMarked: 'Attendance not marked',
+      classNotes: 'Class Notes',
       classNotesAdded: 'Added classes details',
       noClassNotes: 'No class notes',
       internalLessonId: 'Internal Lesson ID',
@@ -310,6 +313,14 @@ export const translations = {
       studentCountSingle: '1 student',
       noStudents: 'No students enrolled',
       loadingRoster: 'Loading student roster...',
+    },
+    attendance: {
+      present: 'Present',
+      absent: 'Absent',
+      notMarked: 'Not marked',
+      attended: 'Attended',
+      attendanceMarked: 'Attendance marked',
+      attendanceNotMarked: 'Attendance not marked',
     }
   },
 
@@ -499,6 +510,8 @@ export const translations = {
       connectedAtLeast: 'Підключено щонайменше {duration}',
       leaveNotRecorded: 'Вихід не зафіксовано',
       participantsInTopic: 'Учасники в {topic}',
+      zoomEmpty: 'За цей день не зафіксовано зустрічей у Zoom.',
+      zoomEmptyBody: 'Для цього викладача не зафіксовано зустрічей Zoom на {date}.',
       refreshZoomFailed: 'Не вдалося оновити конференції Zoom. Відображаються попередні результати за {period}.',
       openDayDetails: 'Деталі дня'
     },
@@ -555,6 +568,7 @@ export const translations = {
       timeUnavailable: 'Час не вказано',
       attendanceMarked: 'Відвідуваність відмічено',
       attendanceNotMarked: 'Відвідуваність не відмічено',
+      classNotes: 'Нотатки до заняття',
       classNotesAdded: 'Деталі занять додано',
       noClassNotes: 'Немає нотаток',
       internalLessonId: 'Внутрішній ID заняття',
@@ -622,6 +636,14 @@ export const translations = {
       studentCountSingle: '1 учень',
       noStudents: 'Немає зарахованих учнів',
       loadingRoster: 'Завантаження списку учнів...',
+    },
+    attendance: {
+      present: 'Був присутній',
+      absent: 'Відсутній',
+      notMarked: 'Не відмічено',
+      attended: 'Був присутній',
+      attendanceMarked: 'Відвідуваність відмічено',
+      attendanceNotMarked: 'Відвідуваність не відмічено',
     }
   },
 
@@ -810,6 +832,8 @@ export const translations = {
       connectedAtLeast: 'Połączono co najmniej {duration}',
       leaveNotRecorded: 'Brak zapisu opuszczenia',
       participantsInTopic: 'Uczestnicy w {topic}',
+      zoomEmpty: 'Brak zarejestrowanych spotkań Zoom w tym dniu.',
+      zoomEmptyBody: 'Brak zarejestrowanych spotkań Zoom dla tego nauczyciela w dniu {date}.',
       refreshZoomFailed: 'Nie udało się odświeżyć spotkań Zoom. Wyświetlanie poprzednich wyników dla okresu {period}.',
       openDayDetails: 'Szczegóły dnia'
     },
@@ -866,6 +890,7 @@ export const translations = {
       timeUnavailable: 'Godzina niedostępna',
       attendanceMarked: 'Frekwencja sprawdzona',
       attendanceNotMarked: 'Frekwencja niesprawdzona',
+      classNotes: 'Notatki do zajęć',
       classNotesAdded: 'Dodano szczegóły zajęć',
       noClassNotes: 'Brak notatek do zajęć',
       internalLessonId: 'Wewnętrzne ID lekcji',
@@ -933,6 +958,14 @@ export const translations = {
       studentCountSingle: '1 student',
       noStudents: 'Brak zapisanych studentów',
       loadingRoster: 'Ładowanie listy studentów...',
+    },
+    attendance: {
+      present: 'Obecny',
+      absent: 'Nieobecny',
+      notMarked: 'Nieoznaczony',
+      attended: 'Obecny',
+      attendanceMarked: 'Obecność sprawdzona',
+      attendanceNotMarked: 'Obecność niesprawdzona',
     }
   }
 };

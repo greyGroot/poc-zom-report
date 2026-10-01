@@ -2,7 +2,7 @@
   "story": "CRM-015",
   "targetUrl": "http://localhost:3000",
   "environment": "Local Environment (http://localhost:3000)",
-  "testedAt": "2026-10-01T08:10:18.377Z",
+  "testedAt": "2026-10-01T08:48:38.490Z",
   "summary": {
     "total": 8,
     "passed": 8,
@@ -31,7 +31,7 @@
       "id": "CRM015-CHK4-UNRECORDED",
       "description": "DoD Check 4: Unrecorded or missing attendance records map to ❓ Unchecked",
       "status": "PASS",
-      "details": ""
+      "details": "Sample student status=unchecked, icon=❓"
     },
     {
       "id": "CRM015-CHK5-FUTURE-EXCLUSION",
