@@ -1,8 +1,8 @@
-[PASS] HEALTH-LOCAL: Local verification suite running in-process mode - In-process memory fallback active
-[PASS] HEALTH-VERCEL: Vercel deployment GET /api/health responds with 200 OK - X-Vercel-Id: arn1::iad1::22tqh-1790539664919-147b2c85a6c1
-[PASS] VERCEL-API-DAYS: Vercel GET /api/teachers/[id]/days/[date] endpoint operational - HTTP 200: Savchuk Yuliia - 5 lessons, 1 meetings
+[PASS] HEALTH-LOCAL: Local server GET /api/health responds with 200 OK - Mode: upstash_cloud
+[PASS] HEALTH-VERCEL: Vercel deployment GET /api/health responds with 200 OK - X-Vercel-Id: arn1::iad1::pz27c-1790841703249-18b7473e3f6e
+[PASS] VERCEL-API-DAYS: Vercel GET /api/teachers/[id]/days/[date] endpoint operational - HTTP 200: Savchuk Yuliia - 5 lessons, 2 meetings
 [PASS] VERCEL-PAGE-DAY: Vercel GET /teachers/[id]/[date] page route renders successfully - HTTP 200: Renders Savchuk Yuliia day workspace
-[PASS] SEED-TEACHERS: Seeded test teachers (mapped Olena and unmapped Taras) - Olena ID: t_c6c9a215 (HTTP: undefined), Unmapped ID: t_0189c0f4
+[PASS] SEED-TEACHERS: Seeded test teachers (mapped Olena and unmapped Taras) - Olena ID: t_d7979cc2 (HTTP: t_8ae17670), Unmapped ID: t_fb4c1981
 [PASS] SEED-SCHOOLMATE: Seeded Schoolmate schedule cache for 2026-09-18 - 2 lessons, 150 min, 750 UAH
 [PASS] SEED-ZOOM: Seeded 3 Zoom occurrences (reconnects, overlapping devices, incomplete boundary, reused numeric ID) - 
 [PASS] SCENARIO-08-TEACHER: Scenario 8: Non-existent teacher returns status 404 - Teacher not found
@@ -18,5 +18,5 @@
 [PASS] HTTP-API-DAYS-200: API Route Contract GET /api/teachers/[id]/days/[date] returns 200 with Cache-Control: no-store, private - Status: 200, SM: 2, Zoom: 3
 [PASS] HTTP-API-DAYS-404: API Route Contract GET /api/teachers/[id]/days/[date] returns 404 for missing teacher - Teacher not found
 [PASS] HTTP-API-DAYS-400: API Route Contract GET /api/teachers/[id]/days/[date] returns 400 for invalid date - Invalid date format (expected YYYY-MM-DD)
-[FAIL] NAV-OVERVIEW-LINKS: Teacher schedule overview contains Open day details links - TeacherScheduleClient contains btn-open-day-details link
+[PASS] NAV-OVERVIEW-LINKS: Teacher schedule overview contains Open day details links preserving query filters - Implemented on Schoolmate day headers and Zoom date groups
 [PASS] I18N-COVERAGE: Teacher-day translations and localized route wrappers present across EN, UK, PL - Verified app/uk/... and app/pl/... routes exist

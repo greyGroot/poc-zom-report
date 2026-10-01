@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-27T20:07:47.228Z",
+  "timestamp": "2026-10-01T08:01:49.939Z",
   "vercelUrl": "https://poc-zom-report-2qvs.vercel.app",
   "localUrl": "http://localhost:3000",
   "probeReport": {
@@ -9,21 +9,21 @@
   "testResults": [
     {
       "id": "HEALTH-LOCAL",
-      "description": "Local verification suite running in-process mode",
+      "description": "Local server GET /api/health responds with 200 OK",
       "status": "PASS",
-      "details": "In-process memory fallback active"
+      "details": "Mode: upstash_cloud"
     },
     {
       "id": "HEALTH-VERCEL",
       "description": "Vercel deployment GET /api/health responds with 200 OK",
       "status": "PASS",
-      "details": "X-Vercel-Id: arn1::iad1::22tqh-1790539664919-147b2c85a6c1"
+      "details": "X-Vercel-Id: arn1::iad1::pz27c-1790841703249-18b7473e3f6e"
     },
     {
       "id": "VERCEL-API-DAYS",
       "description": "Vercel GET /api/teachers/[id]/days/[date] endpoint operational",
       "status": "PASS",
-      "details": "HTTP 200: Savchuk Yuliia - 5 lessons, 1 meetings"
+      "details": "HTTP 200: Savchuk Yuliia - 5 lessons, 2 meetings"
     },
     {
       "id": "VERCEL-PAGE-DAY",
@@ -35,7 +35,7 @@
       "id": "SEED-TEACHERS",
       "description": "Seeded test teachers (mapped Olena and unmapped Taras)",
       "status": "PASS",
-      "details": "Olena ID: t_c6c9a215 (HTTP: undefined), Unmapped ID: t_0189c0f4"
+      "details": "Olena ID: t_d7979cc2 (HTTP: t_8ae17670), Unmapped ID: t_fb4c1981"
     },
     {
       "id": "SEED-SCHOOLMATE",
@@ -129,9 +129,9 @@
     },
     {
       "id": "NAV-OVERVIEW-LINKS",
-      "description": "Teacher schedule overview contains Open day details links",
-      "status": "FAIL",
-      "details": "TeacherScheduleClient contains btn-open-day-details link"
+      "description": "Teacher schedule overview contains Open day details links preserving query filters",
+      "status": "PASS",
+      "details": "Implemented on Schoolmate day headers and Zoom date groups"
     },
     {
       "id": "I18N-COVERAGE",

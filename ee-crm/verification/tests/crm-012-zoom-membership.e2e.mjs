@@ -63,7 +63,8 @@ const selected = expectedTeacherId
 
 if (selected) {
   await check('member date is identical across list and detail APIs', async () => {
-    const { json: detail } = await getJson(`/api/teachers/${encodeURIComponent(selected.id)}`);
+    const { json: resJson } = await getJson(`/api/teachers/${encodeURIComponent(selected.id)}`);
+    const detail = resJson.teacher || resJson;
     assert.equal(detail.zoomMembership.status, 'member');
     assert.equal(detail.zoomMembership.memberSince.state, 'available');
     assert.equal(detail.zoomMembership.memberSince.value, selected.zoomMembership.memberSince.value);
