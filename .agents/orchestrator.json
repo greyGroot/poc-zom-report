@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EE-CRM Agent Orchestrator Configuration",
+  "version": "1.4.0",
+  "workflow": {
+    "name": "EE-CRM Multi-Agent SDLC Pipeline",
+    "description": "Orchestrates technical stories from planning through failing E2E tests, local implementation, architectural review, full local QA test suite, and human acceptance before production cutover."
+  },
+  "worktree": {
+    "enabled": true,
+    "commit_plan_to_main": true,
+    "directory_pattern": ".worktrees/{task_id}",
+    "branch_pattern": "feature/{task_id}",
+    "purpose": "Enables multiple orchestrations to run in parallel without branch conflicts or dirty working tree collisions."
+  },
+  "models": {
+    "architect_plan": {
+      "role": "Architect (Implementation Planning)",
+      "target_model": "Gemini 3.7 Flash (High)",
+      "subagent_model_tier": "pro",
+      "description": "Deep architectural analysis, layer boundary enforcement, and verification checks mapping. Commits plan to main."
+    },
+    "qa_red_phase": {
+      "role": "QA (Pre-Implementation Test Authoring)",
+      "target_model": "Gemini 3.7 Flash (High)",
+      "subagent_model_tier": "pro",
+      "description": "Runs in task worktree. Authors automated End-to-End browser tests (Playwright/Puppeteer) directly mapped to story to-dos, confirmed failing."
+    },
+    "architect_review": {
+      "role": "Architect (Code & Architecture Review)",
+      "target_model": "Gemini 3.7 Flash (High)",
+      "subagent_model_tier": "pro",
+      "description": "Runs in task worktree. Code diff review against plan, boundary isolation check (UI vs services), and invariant verification."
+    },
+    "dev_implementation": {
+      "role": "Developer (Local Implementation)",
+      "target_model": "Gemini 3.7 Flash (Medium)",
+      "subagent_model_tier": "flash",
+      "description": "Runs in task worktree. Full-stack code changes according to plan; uses QA tests locally to double-check until all turn green."
+    },
+    "qa_green_phase": {
+      "role": "QA (Post-Implementation Local Testing)",
+      "target_model": "Gemini 3.7 Flash (Medium)",
+      "subagent_model_tier": "flash",
+      "description": "Runs in task worktree. Executes ALL tests across the entire cumulative verification suite on localhost:3000 to guarantee zero regression."
+    },
+    "ba_story_status": {
+      "role": "BA (Story Status & Documentation Updates)",
+      "target_model": "Gemini 3.7 Flash (Low)",
+      "subagent_model_tier": "flash_lite",
+      "description": "Updates story status, Definition of Done checklist, and audit trail without reading source code."
+    }
+  },
+  "token_management": {
+    "terminal_output_control": {
+      "rule": "Avoid dumping massive terminal logs. Run targeted tests with specific paths (e.g. npm test -- <spec>) during iteration. Use git diff --stat or narrow diffs."
+    },
+    "ba": {
+      "code_reading_allowed": false,
+      "allowed_read_scope": ["ee-crm/docs/PRD.md", "ee-crm/docs/stories/*"],
+      "rule": "BA must never inspect application source code, components, services, or run codebase searches."
+    },
+    "architect": {
+      "code_mutation_allowed": false,
+      "allowed_write_scope": ["ee-crm/docs/architecture/*", "ee-crm/docs/stories/*"],
+      "rule": "Architect is strictly read-only for application code. Prohibited from editing application source files unless requested."
+    },
+    "dev": {
+      "verification_mutation_allowed": false,
+      "allowed_write_scope": ["ee-crm/src/*", "ee-crm/app/*", "ee-crm/services/*", "ee-crm/scripts/*", "ee-crm/tests/*"],
+      "prohibited_write_scope": ["ee-crm/verification/*", "ee-crm/docs/stories/*", "ee-crm/docs/architecture/*"],
+      "rule": "Dev reads files naturally as needed. Uses targeted test commands during iteration to avoid flooding context with pass logs."
+    },
+    "qa": {
+      "allowed_write_scope": ["ee-crm/verification/*", "ee-crm/docs/bugs/*"],
+      "prohibited_write_scope": ["ee-crm/src/*", "ee-crm/app/*", "ee-crm/services/*"],
+      "rule": "QA tests external contracts. On final green-phase verification, QA MUST run ALL tests in the verification suite."
+    }
+  },
+  "gates": {
+    "local_only_until_approval": true,
+    "human_verification_required": true,
+    "qa_run_all_tests_on_final": true,
+    "post_deploy_prod_verification": true,
+    "local_url": "http://localhost:3000",
+    "production_url": "https://poc-zom-report-2qvs.vercel.app/"
+  }
+}

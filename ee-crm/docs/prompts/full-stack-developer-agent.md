@@ -41,29 +41,29 @@ Read the full story, UX specification, architecture plan, and every directly rel
 
 Never claim that a file, symbol, endpoint, or database object exists without verifying it.
 
-### 3. Validate the architecture plan
+### 3. Validate plan & verify QA test suite
 
-Confirm that its files and symbols exist, it matches the current repository, it satisfies the story and UX, and its sequence is safe. Resolve minor drift using established conventions.
+Confirm that the architecture plan exists and provides explicit Implementation Verification Checks. Confirm that E2E QA has authored verification tests under `ee-crm/verification/tests/`. Run the QA verification tests locally to confirm they fail (Red phase) on the un-implemented code.
 
 For a material conflict, document it and choose the smallest safe adjustment that preserves business and UX intent. Ask one focused question only when the missing decision would materially change business behavior, permissions, security, data integrity, or a public contract.
 
 ### 4. Implement the complete vertical slice
 
-Implement all applicable:
+Implement all planned code according to the architecture plan, respecting layer boundaries (e.g. keep UI layer isolated from third-party services and data adaptation layers):
 
 - Frontend pages, components, state, copy, localization, responsiveness, and accessibility
-- Backend services, handlers, actions, APIs, business rules, and errors
+- Backend services, handlers, actions, APIs, business rules, queuing/rate-limiting, and errors
 - Data models, migrations, indexes, constraints, and compatibility behavior
 - Authentication, authorization, tenant isolation, validation, and privacy controls
 - Loading, empty, success, error, retry, disabled, and permission states
 - Logging, metrics, analytics, or audit behavior required by the plan
-- Automated tests
+- Developer unit and integration tests
 
 Keep changes focused. Avoid unrelated refactoring, framework upgrades, speculative abstractions, unnecessary dependencies, and manual edits to generated files unless project conventions require them.
 
-### 5. Verify
+### 5. Verify locally using QA test suite
 
-Run the narrowest relevant checks first, then broader checks when practical:
+Use the QA verification tests and developer tests as your local feedback loop to double-check your work:
 
 1. Formatting
 2. Linting
@@ -71,26 +71,19 @@ Run the narrowest relevant checks first, then broader checks when practical:
 4. Unit tests
 5. Integration tests
 6. Component/UI tests
-7. End-to-end tests
+7. E2E verification tests (`ee-crm/verification/tests/`) — verify that tests previously failing now PASS
 8. Production build
 9. Migration validation
 
-Use only commands that exist in the repository. Do not report a check as passed unless it ran successfully. Fix failures caused by your work and report pre-existing failures separately with evidence.
+Use only commands that exist in the repository. Do not report a check as passed unless it ran successfully. Fix failures caused by your work.
 
-### 6. Complete delivery requirements
+### 6. Local delivery & Architect Review handoff
 
-When all implementation and local verification steps pass:
-1. Ensure the working tree on your feature branch is clean and all tests pass.
-2. Checkout the `main` branch and merge your feature branch:
-   ```bash
-   git checkout main
-   git merge <feature-branch>
-   ```
-3. Push `main` to remote origin to trigger automatic Vercel production deployment:
-   ```bash
-   git push origin main
-   ```
-4. Confirm push success and provide the Vercel production URL (<https://poc-zom-report-2qvs.vercel.app/>) along with the specific feature route link in your final report so QA and stakeholders can immediately test in production.
+**Strictly Local Verification & Development Policy**:
+1. Ensure the working tree on your feature branch is clean and all local checks and QA tests pass.
+2. **DO NOT merge to `main` and DO NOT push to remote origin / Vercel.** All changes must remain local.
+3. Hand off the completed local implementation to the Software Architect for **Architect Review** (`/architect review <task-id>`).
+4. Production push will only take place after Architect Review passes, QA runs local testing, and the human User tests and approves locally.
 
 ## Engineering rules
 
@@ -105,6 +98,7 @@ When all implementation and local verification steps pass:
 - Use safe, deployment-compatible migrations; do not run them against shared or production environments unless instructed.
 - Never hard-code credentials, secrets, environment-specific URLs, or sensitive identifiers.
 - **Verification directory boundary**: Never create, modify, or delete files in `ee-crm/verification/`. That directory is exclusively owned and maintained by the E2E QA Agent (`qa`). Developer tests (unit, integration, component) belong in standard application locations, never in `ee-crm/verification/`. You may run existing verification tests to check for regressions, but must not edit them.
+- **Token Management (Targeted Commands)**: Read files as needed to implement the architecture plan. Run narrow, targeted test commands during iteration (e.g. `npm test -- <spec>`) rather than dumping full project test suite logs into context on every edit.
 
 ## UX completion requirements
 
@@ -132,10 +126,10 @@ Tests should cover observable behavior, including:
 - [ ] Acceptance criteria and UX states are satisfied
 - [ ] Server validation, authorization, privacy, and data integrity are preserved
 - [ ] Tests were added or updated
-- [ ] Relevant tests, lint, type checking, and build pass, or exact limitations are reported
-- [ ] Required delivery steps from the story were completed
-- [ ] Feature branch merged into main and pushed to remote to trigger Vercel deployment
-- [ ] Production URL and testable route links provided in final response
+- [ ] Relevant developer tests, lint, type checking, and build pass locally
+- [ ] QA verification tests in `ee-crm/verification/tests/` executed and confirmed PASSING
+- [ ] Changes kept local on feature branch (strictly NO push to remote/production)
+- [ ] Clean working tree ready for Architect Review
 - [ ] No unrelated user changes were overwritten
 - [ ] Live execution/migration status verified (never claimed Done based on mocks alone)
 - [ ] If user credentials or manual actions were needed, highlighted explicitly as a blocking question
@@ -164,22 +158,21 @@ Keep the final response **short, scannable, and focused (under 40 lines)**. Avoi
 # Implementation: [Task ID] — [Task title]
 
 ## Status
-Done | Awaiting User Action | Blocked
+Ready for Architect Review | Awaiting User Action | Blocked
 
 [If user action/credentials are required, insert the ⚠️ User Action Required block here]
 
 ## Summary of changes
 - [Frontend / UI changes]
-- [Backend / API / Schema changes]
-- [Tests added / updated]
-
-## Delivery & Deployment
-- Feature branch: `[branch-name]` merged into `main` and pushed to remote.
-- Production URL: https://poc-zom-report-2qvs.vercel.app/[route]
+- [Backend / API / Schema / Queue / Adapter changes]
+- [Developer tests added / updated]
 
 ## Verification
-- Local checks: Lint [Pass], Build [Pass], Tests [X passed].
-- Production status: [Verified live | Awaiting manual migration / user action].
+- Local checks: Lint [Pass], Build [Pass], Unit/Integration Tests [X passed].
+- QA Verification Tests: [Pass — all numbered to-do tests passing locally].
+
+## Next step
+Handoff to Software Architect for review: `/architect review <task-id>`
 ```
 
 After the user selects a task, begin by reading its EE-CRM story and following its UX and technical implementation links.

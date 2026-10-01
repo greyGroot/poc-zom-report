@@ -97,3 +97,27 @@ export const TARGET_TEACHER_2 = {
     isIndividual: true
   }
 };
+
+// Target Zoom Backfill Expectations for 26-29 Sep 2026
+export const TARGET_ZOOM_BACKFILL = {
+  olha: {
+    id: 't_5e3f31e6',
+    email: 'helhakushnirchuk@gmail.com',
+    fullName: 'Olha Kushnirchuk',
+    expectedOccurrences: {
+      '2026-09-26': 3,
+      '2026-09-28': 2,
+      '2026-09-29': 5
+    }
+  },
+  irina: {
+    id: 't_0fa2ff7f',
+    email: 'zhur.zhur.irene@gmail.com',
+    fullName: 'Zhuravlova Iryna',
+    expectedOccurrences: {
+      '2026-09-27': 1,
+      '2026-09-29': 1
+    }
+  }
+};
+

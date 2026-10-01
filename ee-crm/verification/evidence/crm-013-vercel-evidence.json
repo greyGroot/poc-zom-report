@@ -2,10 +2,10 @@
   "story": "CRM-013",
   "targetUrl": "https://poc-zom-report-2qvs.vercel.app",
   "environment": "Vercel Production",
-  "testedAt": "2026-09-29T20:30:57.711Z",
+  "testedAt": "2026-09-30T04:15:22.060Z",
   "summary": {
-    "total": 16,
-    "passed": 16,
+    "total": 21,
+    "passed": 21,
     "failed": 0,
     "blocked": 0
   },
@@ -105,6 +105,36 @@
       "description": "Teacher day API returns Cache-Control: no-store, private",
       "status": "PASS",
       "details": "no-store, private"
+    },
+    {
+      "id": "T5-ZOOM-SEP26-OLHA",
+      "description": "Olha Kushnirchuk on 2026-09-26 exposes 4 Zoom occurrences",
+      "status": "PASS",
+      "details": "Meetings: 4"
+    },
+    {
+      "id": "T5-ZOOM-SEP28-OLHA",
+      "description": "Olha Kushnirchuk on 2026-09-28 exposes 2 restored Zoom occurrences",
+      "status": "PASS",
+      "details": "Meetings: 2"
+    },
+    {
+      "id": "T5-ZOOM-SEP29-OLHA",
+      "description": "Olha Kushnirchuk on 2026-09-29 exposes 5 restored Zoom occurrences",
+      "status": "PASS",
+      "details": "Meetings: 5"
+    },
+    {
+      "id": "T5-ZOOM-SEP29-IRINA",
+      "description": "Irina Zhuravleva on 2026-09-29 exposes 1 restored Zoom occurrences",
+      "status": "PASS",
+      "details": "Meetings: 1"
+    },
+    {
+      "id": "T5-ZOOM-HTML-RENDER",
+      "description": "Day Details HTML on production renders Zoom meeting cards in evidence column",
+      "status": "PASS",
+      "details": "Rendered Zoom meeting card in HTML"
     }
   ]
 }

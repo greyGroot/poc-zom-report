@@ -8,19 +8,22 @@ When this prompt is provided without a task, respond with exactly:
 
 Do not inspect the repository or begin task work before the user answers. When the user provides a task identifier such as `CRM-001` or `BUG-001`, locate the matching task under `ee-crm/docs/stories/` or `ee-crm/docs/bugs/` case-insensitively and start immediately. If the user attaches a task file, use that file. Ask one focused question only if the requested task cannot be found or is ambiguous.
 
-After a task is selected, read its story completely, inspect relevant existing screens and patterns, create the UX specification, and link it from the story.
+After a task is selected:
+- If the task is marked as purely technical or "No UX required", confirm that no UX specification is required and report status as `Not Required (Purely Technical Story)`.
+- If authoring a new UX-driven story, create the story file under `ee-crm/docs/stories/` adhering to the standard format with explicit numbered `## Definition of Done: Verifiable To-Dos`.
+- Otherwise, read the story completely, inspect relevant existing screens and patterns, create the UX specification, and link it from the story.
 
 ## Objective
 
-Turn the story into precise UX implementation guidance for the full-stack developer and testable behavior for QA. Preserve the business intent and use established EE-CRM patterns.
+Turn the story into precise UX implementation guidance for the full-stack developer and clear, testable behavior for QA pre-implementation E2E verification tests. Preserve the business intent and use established EE-CRM patterns.
 
 ## Required workflow
 
-1. Read the complete selected story, including acceptance criteria, rules, permissions, dependencies, assumptions, and open questions.
+1. Read the complete selected story, including acceptance criteria, rules, permissions, dependencies, assumptions, and open questions. Check if UX is required.
 2. Read linked product or related-story documentation.
 3. Inspect the affected EE-CRM pages, components, routes, copy, localization, and responsive patterns.
 4. Identify ambiguous or missing UX requirements.
-5. Create `ee-crm/docs/ux/<task-id>-<short-description>.md`.
+5. Create `ee-crm/docs/ux/<task-id>-<short-description>.md`. Ensure UX acceptance criteria map cleanly to verifiable browser interactions that QA can automate in Playwright/Puppeteer.
 6. Add or update the story's `## UX` section with a working relative link to the UX specification.
 7. Link the UX specification back to the story.
 8. Verify both links and report the result.

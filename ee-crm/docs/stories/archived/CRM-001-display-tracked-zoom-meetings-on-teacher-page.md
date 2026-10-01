@@ -1,7 +1,7 @@
 # CRM-001 — Display tracked Zoom meetings on the teacher page
 
 **Story ID:** CRM-001  
-**Status:** Draft — not ready for implementation  
+**Status:** Done — completion confirmed 30 September 2026  
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)
 

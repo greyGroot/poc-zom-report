@@ -168,14 +168,18 @@ node verification/tests/crm-012-zoom-membership.e2e.mjs
 npm run test:crm-012
 ```
 
-### Run CRM-013 E2E Verification Suite
+### Run CRM-013 E2E & Zoom Telemetry Suites
 
 ```bash
-# In ee-crm directory (runs against live Vercel deployment by default):
+# Developer acceptance suites:
+npm run test:crm-013        # Roster domain & Schoolmate client tests (5 checks)
+npm run test:crm-013:zoom   # Zoom raw events backfill integrity tests (6 checks)
+
+# Production E2E verification:
 npm run test:crm-013:e2e
 
-# Or targeting local server:
-CRM_013_BASE_URL=http://localhost:3000 npm run test:crm-013:e2e
+# Production backfill migration:
+npm run migration:crm-013:backfill
 ```
 
 ---
@@ -192,7 +196,7 @@ CRM_013_BASE_URL=http://localhost:3000 npm run test:crm-013:e2e
 | **CRM-007** | Add network reliability abstractions to Schoolmate client | **Pass locally & on Vercel** | [`tests/crm-007-network-reliability.e2e.mjs`](./tests/crm-007-network-reliability.e2e.mjs) | [`reports/CRM-007-e2e-report.md`](./reports/CRM-007-e2e-report.md) |
 | **CRM-008** | Refactor EE-CRM to target vertical slice module structure | **Pass with observations** | [`tests/crm-008-vertical-slice.e2e.mjs`](./tests/crm-008-vertical-slice.e2e.mjs) | [`reports/CRM-008-e2e-report.md`](./reports/CRM-008-e2e-report.md) |
 | **CRM-012** | Display Zoom organization membership date | **Pass locally / Awaiting production webhook verification** | [`tests/crm-012-zoom-membership.e2e.mjs`](./tests/crm-012-zoom-membership.e2e.mjs) | [`reports/CRM-012-e2e-report.md`](./reports/CRM-012-e2e-report.md) |
-| **CRM-013** | Display group students roster on teacher and day pages | **Pass locally & on Vercel** | [`tests/crm-013-group-roster.e2e.mjs`](./tests/crm-013-group-roster.e2e.mjs) | [`reports/CRM-013-e2e-report.md`](./reports/CRM-013-e2e-report.md) |
+| **CRM-013** | Display group students roster & Zoom backfill | **Pass locally / Awaiting prod migration** | [`tests/crm-013-group-roster.e2e.mjs`](./tests/crm-013-group-roster.e2e.mjs) | [`reports/CRM-013-e2e-report.md`](./reports/CRM-013-e2e-report.md) |
 
 ---
 

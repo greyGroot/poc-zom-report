@@ -1,7 +1,7 @@
 # CRM-012 — Display Zoom organization membership date
 
 **Story ID:** CRM-012  
-**Status:** Implemented locally — awaiting production rollout and baseline execution
+**Status:** Done — completion confirmed 30 September 2026
 **Primary user:** School administrator  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)
 

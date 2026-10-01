@@ -11,7 +11,8 @@ import {
   PROD_VERIFICATION_BASE_URL,
   LOCAL_VERIFICATION_BASE_URL,
   TARGET_TEACHER_1,
-  TARGET_TEACHER_2
+  TARGET_TEACHER_2,
+  TARGET_ZOOM_BACKFILL
 } from '../fixtures/crm-013-roster-fixtures.mjs';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -324,6 +325,75 @@ async function runVerification() {
     recordResult('API-CACHE-HEADERS', `Teacher day API returns Cache-Control: no-store, private`, 'PASS', cacheControl);
   } catch (err) {
     recordResult('API-CACHE-HEADERS', `Teacher day API returns Cache-Control: no-store, private`, 'FAIL', err.message);
+  }
+
+  // ------------------------------------------------------------------------
+  // Group 7: Missing Zoom Telemetry Backfill (26–29 Sep 2026)
+  // ------------------------------------------------------------------------
+  console.log('\n--- Group 7: Missing Zoom Telemetry Backfill (26–29 Sep 2026) ---');
+  const zoomTargets = TARGET_ZOOM_BACKFILL;
+
+  // 7.1 Olha Kushnirchuk on 2026-09-26
+  try {
+    const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.olha.id}/days/2026-09-26`);
+    assert.equal(status, 200);
+    assert.equal(json.zoom?.state, 'available', `Zoom state expected "available", got "${json.zoom?.state}"`);
+    assert.ok(json.zoom?.totalMeetings >= zoomTargets.olha.expectedOccurrences['2026-09-26'], `Expected at least ${zoomTargets.olha.expectedOccurrences['2026-09-26']} meetings, got ${json.zoom?.totalMeetings}`);
+    recordResult('T5-ZOOM-SEP26-OLHA', `Olha Kushnirchuk on 2026-09-26 exposes ${json.zoom?.totalMeetings} Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+  } catch (err) {
+    recordResult('T5-ZOOM-SEP26-OLHA', `Olha Kushnirchuk on 2026-09-26 exposes restored Zoom occurrences`, 'FAIL', err.message);
+  }
+
+  // 7.2 Olha Kushnirchuk on 2026-09-28
+  try {
+    const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.olha.id}/days/2026-09-28`);
+    assert.equal(status, 200);
+    const expectedCount = zoomTargets.olha.expectedOccurrences['2026-09-28'];
+    if (json.zoom?.totalMeetings === expectedCount && json.zoom?.state === 'available') {
+      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+    } else {
+      recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
+    }
+  } catch (err) {
+    recordResult('T5-ZOOM-SEP28-OLHA', `Olha Kushnirchuk on 2026-09-28 exposes restored Zoom occurrences`, 'FAIL', err.message);
+  }
+
+  // 7.3 Olha Kushnirchuk on 2026-09-29
+  try {
+    const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.olha.id}/days/2026-09-29`);
+    assert.equal(status, 200);
+    const expectedCount = zoomTargets.olha.expectedOccurrences['2026-09-29'];
+    if (json.zoom?.totalMeetings === expectedCount && json.zoom?.state === 'available') {
+      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+    } else {
+      recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
+    }
+  } catch (err) {
+    recordResult('T5-ZOOM-SEP29-OLHA', `Olha Kushnirchuk on 2026-09-29 exposes restored Zoom occurrences`, 'FAIL', err.message);
+  }
+
+  // 7.4 Irina Zhuravleva on 2026-09-29
+  try {
+    const { status, json } = await fetchJson(`/api/teachers/${zoomTargets.irina.id}/days/2026-09-29`);
+    assert.equal(status, 200);
+    const expectedCount = zoomTargets.irina.expectedOccurrences['2026-09-29'];
+    if (json.zoom?.totalMeetings === expectedCount && json.zoom?.state === 'available') {
+      recordResult('T5-ZOOM-SEP29-IRINA', `Irina Zhuravleva on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'PASS', `Meetings: ${json.zoom?.totalMeetings}`);
+    } else {
+      recordResult('T5-ZOOM-SEP29-IRINA', `Irina Zhuravleva on 2026-09-29 exposes ${expectedCount} restored Zoom occurrences`, 'FAIL', `Expected ${expectedCount} meetings (state: available), got ${json.zoom?.totalMeetings} (state: ${json.zoom?.state})`);
+    }
+  } catch (err) {
+    recordResult('T5-ZOOM-SEP29-IRINA', `Irina Zhuravleva on 2026-09-29 exposes restored Zoom occurrences`, 'FAIL', err.message);
+  }
+
+  // 7.5 Production HTML Page Verification for Zoom Evidence Column
+  try {
+    const { status, html } = await fetchHtml(`/teachers/${zoomTargets.olha.id}/2026-09-28`);
+    assert.equal(status, 200);
+    assert.ok(!html.includes('No tracked Zoom meetings for this date'), 'Page should not show empty Zoom state when occurrences exist');
+    recordResult('T5-ZOOM-HTML-RENDER', `Day Details HTML on production renders Zoom meeting cards in evidence column`, 'PASS', 'Rendered Zoom meeting card in HTML');
+  } catch (err) {
+    recordResult('T5-ZOOM-HTML-RENDER', `Day Details HTML on production renders Zoom meeting cards in evidence column`, 'FAIL', err.message);
   }
 
   // ------------------------------------------------------------------------

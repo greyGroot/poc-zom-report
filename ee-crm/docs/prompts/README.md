@@ -10,10 +10,11 @@ In Antigravity, workspace skills under `.agents/skills/` allow loading each role
 
 | Role | Antigravity Command | Target Prompt | Chat Mode |
 |---|---|---|---|
-| Architect | `/architect` or `/architect <task-id>` | `architect-agent.md` | Fresh chat per task |
+| Orchestrator | `/orchestrate <task-id>` | `.agents/skills/orchestrator/SKILL.md` | Full multi-agent pipeline |
+| Architect | `/architect` or `/architect <task-id>` (or `/architect review <task-id>`) | `architect-agent.md` | Fresh chat per task |
 | UX | `/ux` or `/ux <task-id>` | `ux-agent.md` | Fresh chat per task |
 | Full-Stack Developer | `/dev` or `/dev <task-id>` | `full-stack-developer-agent.md` | Fresh chat per task |
-| E2E QA | `/qa` or `/qa <task-id>` | `e2e-qa-agent.md` | Fresh chat per task |
+| E2E QA | `/qa` or `/qa <task-id>` (pre-impl test creation or post-review verification) | `e2e-qa-agent.md` | Fresh chat per task |
 | Business Analyst | `/ba` | `business-analyst-agent.md` | Long-running chat |
 | Product Owner | `/po` | `product-owner-agent.md` | Long-running chat |
 | Antigravity Advisor | `/advisor` | `advisor-agy.md` | Long-running chat |
@@ -69,16 +70,34 @@ I'm agent: Antigravity Advisor. I'm ready to help improve our Antigravity agenti
 I'm agent: Codex Advisor. I'm ready to help improve our Codex agentic workflow.
 ```
 
-## Expected artifact flow
+## Expected artifact flow and SDLC workflow
 
 ```text
-BA story (CRM-xxx)
-  -> UX specification
-  -> architecture plan
-  -> full-stack implementation (feature branch -> merge main -> push remote)
-  -> local and deployed E2E QA
-     ├── Pass -> Product Owner status and prioritization
-     └── Defect -> Bug task (BUG-xxx in ee-crm/docs/bugs/) -> Dev fix -> QA retest
+1. Story Creation (BA, Architect, or UX Designer)
+   ├── Defines clear, descriptive, numbered Verifiable To-Dos (1, 2, 3, 4...)
+   └── Purely technical stories require NO UX
+2. UX Specification (UX Designer) [Skipped if technical-only]
+3. Architecture Plan (Architect)
+   ├── Implementation-ready technical design
+   └── Implementation Verification Checks directly mapped to Story To-Dos
+4. QA Pre-Implementation Test Creation (E2E QA — Red Phase)
+   ├── Automated E2E verification tests created in ee-crm/verification/tests/
+   ├── Tests mapped 1:1 to Story To-Dos and Architect Verification Checks
+   ├── Must be End-to-End (Playwright / browser automation) whenever possible
+   └── Tests are executed and confirmed FAILING before Dev begins
+5. Full-Stack Developer Implementation (Developer)
+   ├── Implements according to Architect Plan
+   ├── Uses QA E2E verification tests as local feedback loop to verify work
+   └── Tests and verifies LOCALLY only (NO merge to main, NO push to production)
+6. Architect Review (Architect)
+   └── Reviews code and implementation against plan and story To-Dos
+7. QA Local Testing & Verification (E2E QA — Green Phase)
+   ├── Executes full verification suite locally (all tests pass)
+   └── Produces QA report with clear manual reproduction steps for the User
+8. User (Human) Local Verification
+   └── Human stakeholder tests and confirms behavior locally on localhost
+9. Push to Production & Deployed Verification
+   └── ONLY after User verifies and approves: merge/push to production and verify live
 ```
 
 Default artifact locations:

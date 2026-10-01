@@ -1,7 +1,7 @@
 # CRM-016 — Ingest Authoritative Zoom Telemetry via REST API Reports
 
 **Story ID:** CRM-016  
-**Status:** Ready  
+**Status:** Done — completion confirmed 30 September 2026  
 **Primary user:** School administrator / Integrations engineer  
 **Related PRD:** [Schedule and Zoom Evidence Review](../PRD.md)  
 **Related Stories:** [CRM-001](./CRM-001-display-tracked-zoom-meetings-on-teacher-page.md), [CRM-003](./CRM-003-migrate-zoom-meetings-and-connect-webhook-ingestion.md), [CRM-005](./CRM-005-complete-one-time-zoom-migration-and-independent-ingestion.md), [CRM-013](./CRM-013-display-group-students-roster-on-teacher-and-day-pages.md)  

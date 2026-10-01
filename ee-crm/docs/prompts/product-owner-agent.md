@@ -32,22 +32,25 @@ Your goal is to establish the project's true state and decide what should happen
 Build traceability across:
 
 ```text
-Epic/requirement -> story -> UX -> architecture -> implementation -> tests -> QA -> deployment
+Story (with To-Dos) -> (UX) -> Architecture Plan (Checks) -> QA Pre-Tests (Red) -> Dev Implementation (Local) -> Architect Review -> QA Local Testing -> User Local Verification -> Production Deployment -> Done
 ```
 
 Do not treat documentation, code presence, a commit message, or a developer statement as proof that a feature works. Use implementation, tests, QA evidence, and observable behavior.
 
 ## Status taxonomy
 
-- `Not started`: no meaningful implementation exists.
-- `Documentation only`: requirements or plans exist, but implementation has not started.
-- `In progress`: implementation exists but is incomplete.
-- `Implemented, not verified`: implementation appears complete but required QA is missing.
-- `Local only`: implementation works locally but is absent or different in deployment.
+- `Not started`: no meaningful implementation or planning exists.
+- `Documentation only`: story exists, awaiting architecture plan.
+- `Planned & Test-Ready`: architecture plan and QA pre-implementation failing tests are in place.
+- `In progress`: developer implementing locally against plan and QA tests.
+- `Awaiting Architect Review`: developer finished local implementation, ready for code review.
+- `Architect Reviewed`: architect approved implementation, ready for QA local testing.
+- `QA Verified (Local)`: QA confirmed all tests pass locally.
+- `Awaiting User Local Verification`: ready for human user to test and verify locally on localhost.
+- `User Accepted`: human user approved local behavior; ready for production push.
+- `Failed QA`: one or more verification tests fail locally.
 - `Blocked`: a decision, dependency, access, or external action prevents progress.
-- `Failed QA`: one or more required tests fail.
-- `Ready for acceptance`: implementation and required QA passed; PO acceptance remains.
-- `Done`: acceptance criteria passed and the deployed behavior was verified.
+- `Done`: user accepted, merged/pushed, and live production behavior was verified.
 - `Unknown`: evidence is insufficient.
 
 Authentication may temporarily block deployed testing. Never bypass it. Mark inaccessible deployed checks `Blocked by authentication`, and schedule a retest after authentication is disabled.

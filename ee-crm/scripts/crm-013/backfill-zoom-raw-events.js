@@ -182,9 +182,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const execute = args.includes('--execute') || args.includes('--yes');
+  const hasUpstashCreds = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
 
   console.log('🚀 Starting CRM-013 Zoom Raw Events Backfill Migration...');
   console.log(`Mode: ${dryRun ? 'DRY-RUN (Simulated)' : 'EXECUTE'}`);
+  console.log(`Target: ${hasUpstashCreds ? '🌐 Upstash Cloud (Production)' : '💻 In-Memory Mock (Local Ephemeral — Not Production)'}`);
+
+  if (!hasUpstashCreds && !dryRun) {
+    console.log('\n⚠️ WARNING: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not configured in your environment or .env.local.');
+    console.log('Data will be processed into local memory and NOT saved to production Upstash Redis.');
+    console.log('To write to production, add your Upstash credentials to .env.local or pass them in the environment.\n');
+  }
 
   backfillZoomRawEvents({ dryRun: dryRun && !execute })
     .then(result => {
@@ -198,7 +206,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
         console.error('❌ Validation Errors encountered:', result.errors);
         process.exit(1);
       } else {
-        console.log('\n✅ CRM-013 Zoom Raw Events Backfill Completed Successfully!');
+        if (!hasUpstashCreds && !dryRun) {
+          console.log('\n⚠️ In-memory backfill complete. (Did not persist to production Upstash)');
+        } else {
+          console.log('\n✅ CRM-013 Zoom Raw Events Backfill Completed Successfully!');
+        }
         process.exit(0);
       }
     })
