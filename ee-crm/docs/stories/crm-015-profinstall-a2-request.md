@@ -1,0 +1,642 @@
+Request URL
+Post 
+https://empireenglish.schoolmate.eu/group/getlessonattendancedata
+
+Payload:
+```
+{"groupId":158689,"lessonSearchModel":{"LessonFromDate":"2026-9-28","LessonToDate":"2026-10-2","IsShowSkippedDates":false,"IsShowDischarged":false,"LessonFilter":{"IsAddedClassesDetails":null,"IsAttendanceChecked":null,"IsOnline":null,"IsConflict":null,"IsClassesModified":null,"IsFilesAdded":null},"SchedularTypeId":0,"IsShowMyLessonOnly":false,"GroupId":0,"StrLessonFromDate":"","StrLessonToDate":"","IsAdmin":false,"IsSubstitute":false,"DateOfPayment":null,"RecordIds":null,"CalenderColorType":0,"FromDate":"2026-09-27T21:00:00.000Z","ToDate":"2026-10-01T21:00:00.000Z","StrFromDate":"","StrToDate":"","FacilityRoomId":0,"CompanyId":0,"CalendarUserId":0},"requestuserId":743140,"roleId":2}
+```
+
+response 
+```
+{
+    "IsSuccess": true,
+    "Message": null,
+    "Data": {
+        "AttendanceHead": [
+            {
+                "GroupLessonId": 9435272,
+                "LessonDate": "\/Date(1790578800000)\/",
+                "LessonTime": "19:30-20:30",
+                "AttendanceChecked": true,
+                "GroupClassName": null,
+                "HomeworkChecked": false,
+                "StrLessonDate": "28/09/2026"
+            },
+            {
+                "GroupLessonId": 9435273,
+                "LessonDate": "\/Date(1790751600000)\/",
+                "LessonTime": "19:30-20:30",
+                "AttendanceChecked": true,
+                "GroupClassName": null,
+                "HomeworkChecked": false,
+                "StrLessonDate": "30/09/2026"
+            }
+        ],
+        "AttendanceStatusList": [
+            {
+                "AttendanceStatusId": 371,
+                "SchoolId": 0,
+                "AttendanceStatusName": "Absent",
+                "AttendanceStatusColor": "#FF0000",
+                "ShortName": "AB",
+                "AttendanceFunctionId": 0,
+                "StudentFeePercentage": null,
+                "PercentageInAttendance": null,
+                "DynamicId": null,
+                "CreatedDate": "\/Date(-62135568000000)\/",
+                "CreatedBy": 0,
+                "UpdatedDate": null,
+                "UpdatedBy": 0,
+                "StrCreatedDate": "01/01/0001",
+                "StrUpdatedDate": ""
+            },
+            {
+                "AttendanceStatusId": 372,
+                "SchoolId": 0,
+                "AttendanceStatusName": "Late",
+                "AttendanceStatusColor": "#99FF33",
+                "ShortName": "LT",
+                "AttendanceFunctionId": 0,
+                "StudentFeePercentage": null,
+                "PercentageInAttendance": null,
+                "DynamicId": null,
+                "CreatedDate": "\/Date(-62135568000000)\/",
+                "CreatedBy": 0,
+                "UpdatedDate": null,
+                "UpdatedBy": 0,
+                "StrCreatedDate": "01/01/0001",
+                "StrUpdatedDate": ""
+            }
+        ],
+        "StudentAttendanceList": [
+            {
+                "StudentId": 438678,
+                "Name": "Chuiko Oleksii",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438678,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 0
+                    },
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438678,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 0
+                    }
+                ]
+            },
+            {
+                "StudentId": 438683,
+                "Name": "Korost Andrii",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438683,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 0
+                    },
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438683,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 0
+                    }
+                ]
+            },
+            {
+                "StudentId": 438681,
+                "Name": "Kryzhba Vadym",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 3150162,
+                        "StudentId": 438681,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 371
+                    },
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 3153775,
+                        "StudentId": 438681,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 371
+                    }
+                ]
+            },
+            {
+                "StudentId": 438682,
+                "Name": "Mezentseva Olena",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438682,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 0
+                    },
+                    {
+                        "AttendanceStatusIdStr": "0",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": null,
+                        "ShortName": null,
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 0,
+                        "StudentId": 438682,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 0
+                    }
+                ]
+            },
+            {
+                "StudentId": 438680,
+                "Name": "Patsiuk Igor",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 3150163,
+                        "StudentId": 438680,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 371
+                    },
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 3153776,
+                        "StudentId": 438680,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 371
+                    }
+                ]
+            },
+            {
+                "StudentId": 438677,
+                "Name": "Tselyev Yaroslav",
+                "AttendanceList": [
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790578800000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "28/09/2026",
+                        "AttendanceId": 3150164,
+                        "StudentId": 438677,
+                        "GroupLessonId": 9435272,
+                        "AttendanceStatusId": 371
+                    },
+                    {
+                        "AttendanceStatusIdStr": "371",
+                        "LessonDate": "\/Date(1790751600000)\/",
+                        "LessonFromTime": {
+                            "Ticks": 702000000000,
+                            "Days": 0,
+                            "Hours": 19,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.8125,
+                            "TotalHours": 19.5,
+                            "TotalMilliseconds": 70200000,
+                            "TotalMinutes": 1170,
+                            "TotalSeconds": 70200
+                        },
+                        "LessonToTime": {
+                            "Ticks": 738000000000,
+                            "Days": 0,
+                            "Hours": 20,
+                            "Milliseconds": 0,
+                            "Minutes": 30,
+                            "Seconds": 0,
+                            "TotalDays": 0.85416666666666663,
+                            "TotalHours": 20.5,
+                            "TotalMilliseconds": 73800000,
+                            "TotalMinutes": 1230,
+                            "TotalSeconds": 73800
+                        },
+                        "AttendanceStatusColor": "#FF0000",
+                        "ShortName": "AB",
+                        "AttendanceChecked": true,
+                        "Name": null,
+                        "AttendanceFunctionId": 0,
+                        "HomeworkChecked": false,
+                        "NoHomework": false,
+                        "IsStudentAttend": true,
+                        "IsDischarge": false,
+                        "StrLessonDate": "30/09/2026",
+                        "AttendanceId": 3153777,
+                        "StudentId": 438677,
+                        "GroupLessonId": 9435273,
+                        "AttendanceStatusId": 371
+                    }
+                ]
+            }
+        ],
+        "AttendanceList": null,
+        "SchoolDateFormat": "dd/MM/yyyy"
+    }
+}
+```
