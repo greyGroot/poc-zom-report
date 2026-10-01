@@ -5,11 +5,22 @@ import { useLanguage } from '@/lib/shared/i18n/LanguageContext';
 import { formatKyivTime, formatDuration } from '@/lib/utils/timezone';
 import ZoomParticipants from './ZoomParticipants';
 
-export default function ZoomMeetingCard({ occurrence }) {
+export default function ZoomMeetingCard({ occurrence, isExpanded, onToggle }) {
   const { t, locale } = useLanguage();
-  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [localParticipantsOpen, setLocalParticipantsOpen] = useState(false);
   const [techOpen, setTechOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState(null); // null | 'copied' | 'error'
+
+  const isControlled = isExpanded !== undefined;
+  const participantsOpen = isControlled ? Boolean(isExpanded) : localParticipantsOpen;
+
+  const handleToggle = useCallback(() => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalParticipantsOpen(prev => !prev);
+    }
+  }, [onToggle]);
 
   const safeId = occurrence.id;
   const topic = occurrence.topic || t('schedule.untitledMeeting');
@@ -78,8 +89,17 @@ export default function ZoomMeetingCard({ occurrence }) {
       {/* Symmetrical 2-Row Primary Bar */}
       <div
         className="zoom-card-primary-vertical"
-        onClick={() => pCount > 0 && setParticipantsOpen(prev => !prev)}
-        style={{ padding: '12px 14px', cursor: pCount > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', gap: 8 }}
+        onClick={handleToggle}
+        role="button"
+        tabIndex={0}
+        aria-expanded={participantsOpen}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+        style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
       >
         {/* Row 1: Topic Title & Action Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -103,11 +123,9 @@ export default function ZoomMeetingCard({ occurrence }) {
               <span>⚙️</span>
             </button>
 
-            {pCount > 0 && (
-              <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} aria-hidden="true">
-                ▼
-              </span>
-            )}
+            <span className={`lesson-chevron ${participantsOpen ? 'open' : ''}`} aria-hidden="true">
+              ▼
+            </span>
           </div>
         </div>
 
@@ -178,7 +196,7 @@ export default function ZoomMeetingCard({ occurrence }) {
       )}
 
       {/* Participants Disclosure */}
-      {participantsOpen && pCount > 0 && (
+      {participantsOpen && (
         <ZoomParticipants
           safeId={safeId}
           topic={topic}

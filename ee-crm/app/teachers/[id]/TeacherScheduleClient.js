@@ -68,8 +68,9 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
   const [loadingReport, setLoadingReport] = useState(false);
   const [reportError, setReportError] = useState(null);
 
-  // Accordion State: Set of open lesson IDs
+  // Accordion State: Set of open lesson IDs and Zoom meeting IDs
   const [expandedLessons, setExpandedLessons] = useState(new Set());
+  const [expandedZoomMeetings, setExpandedZoomMeetings] = useState(new Set());
 
   // Filter State: 'all' | 'completed' | 'cancelled_advance' | 'last_minute' | 'attendance_checked'
   const [statusFilter, setStatusFilter] = useState(paramFilter || 'all');
@@ -188,8 +189,9 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
       }
 
         setReport(data);
-        // Start with all lesson cards collapsed by default
+        // Start with all lesson cards and zoom cards collapsed by default
         setExpandedLessons(new Set());
+        setExpandedZoomMeetings(new Set());
       } catch (err) {
       setReportError(err.message);
     } finally {
@@ -259,18 +261,18 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
     });
   };
 
-  // Toggle expand all / collapse all
-  const toggleAllLessons = () => {
-    if (!report?.days) return;
-    const totalLessons = report.days.reduce((acc, d) => acc + (d.lessons?.length || 0), 0);
-    if (expandedLessons.size === totalLessons) {
-      setExpandedLessons(new Set());
-    } else {
-      const all = new Set();
-      report.days.forEach(d => d.lessons?.forEach(l => all.add(l.id)));
-      setExpandedLessons(all);
-    }
-  };
+  // Toggle single Zoom meeting accordion
+  const toggleZoomMeeting = useCallback((id) => {
+    setExpandedZoomMeetings(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   // Group Zoom meetings by Kyiv date
   const zoomMeetingsByDate = useMemo(() => {
@@ -357,6 +359,43 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
       };
     });
   }, [report, zoomMeetingsByDate, fromDate, toDate, statusFilter, locale]);
+
+  // Aggregated expansion state tracking across Schoolmate lessons and Zoom meetings
+  const allVisibleLessonIds = useMemo(() => {
+    const ids = [];
+    combinedDaysList.forEach(day => {
+      day.filteredLessons.forEach((l, idx) => {
+        ids.push(l.id !== undefined && l.id !== null ? l.id : `lesson_${day.date}_${idx}`);
+      });
+    });
+    return ids;
+  }, [combinedDaysList]);
+
+  const allVisibleZoomMeetingIds = useMemo(() => {
+    const ids = [];
+    combinedDaysList.forEach(day => {
+      day.zoomMeetings.forEach((m, idx) => {
+        ids.push(m.id || `zoom_${day.date}_${idx}`);
+      });
+    });
+    return ids;
+  }, [combinedDaysList]);
+
+  const totalItems = allVisibleLessonIds.length + allVisibleZoomMeetingIds.length;
+
+  const isAllExpanded = totalItems > 0 &&
+    allVisibleLessonIds.every(id => expandedLessons.has(id)) &&
+    allVisibleZoomMeetingIds.every(id => expandedZoomMeetings.has(id));
+
+  const toggleAll = useCallback(() => {
+    if (isAllExpanded) {
+      setExpandedLessons(new Set());
+      setExpandedZoomMeetings(new Set());
+    } else {
+      setExpandedLessons(new Set(allVisibleLessonIds));
+      setExpandedZoomMeetings(new Set(allVisibleZoomMeetingIds));
+    }
+  }, [isAllExpanded, allVisibleLessonIds, allVisibleZoomMeetingIds]);
 
   if (teacherError) {
     return (
@@ -568,15 +607,15 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
               </button>
             </div>
 
-            {report && (
-              <button
-                type="button"
-                onClick={toggleAllLessons}
-                className="btn btn-sm btn-secondary"
-              >
-                {expandedLessons.size > 0 ? 'Collapse All' : 'Expand All'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="btn btn-sm btn-secondary"
+              disabled={totalItems === 0}
+              aria-expanded={isAllExpanded}
+            >
+              {isAllExpanded ? 'Collapse All' : 'Expand All'}
+            </button>
           </div>
         );
       })()}
@@ -674,7 +713,8 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
                 ) : (
                   <div className="lesson-list" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {day.filteredLessons.map((lesson, idx) => {
-                      const isExpanded = expandedLessons.has(lesson.id);
+                      const lessonKey = lesson.id !== undefined && lesson.id !== null ? lesson.id : `lesson_${day.date}_${idx}`;
+                      const isExpanded = expandedLessons.has(lessonKey);
                       const isFutureLesson = isLessonInFuture(day.date || lesson.date, lesson.startTime);
                       const hasStatus = Boolean(lesson.lessonStatusName);
                       const statusColor = lesson.lessonStatusColor || (hasStatus ? '#f59e0b' : null);
@@ -692,21 +732,21 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
 
                       return (
                         <article
-                          key={lesson.id || idx}
+                          key={lessonKey}
                           className={`lesson-card ${isExpanded ? 'expanded' : ''} ${hasStatus ? 'status-border-active' : ''}`}
                           style={statusColor ? { borderLeftColor: statusColor } : {}}
                         >
                           {/* Summary Bar - 2-row layout */}
                           <div
                             className="lesson-summary-bar-vertical"
-                            onClick={() => toggleLesson(lesson.id, lesson, day.date)}
+                            onClick={() => toggleLesson(lessonKey, lesson, day.date)}
                             role="button"
                             tabIndex={0}
                             aria-expanded={isExpanded}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                toggleLesson(lesson.id, lesson, day.date);
+                                toggleLesson(lessonKey, lesson, day.date);
                               }
                             }}
                             style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -865,9 +905,17 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
 
                 {zoomStatus !== 'loading' && day.zoomMeetings.length > 0 && (
                   <div className="zoom-meeting-cards-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {day.zoomMeetings.map(occ => (
-                      <ZoomMeetingCard key={occ.id} occurrence={occ} />
-                    ))}
+                    {day.zoomMeetings.map((occ, idx) => {
+                      const occKey = occ.id || `zoom_${day.date}_${idx}`;
+                      return (
+                        <ZoomMeetingCard
+                          key={occKey}
+                          occurrence={occ}
+                          isExpanded={expandedZoomMeetings.has(occKey)}
+                          onToggle={() => toggleZoomMeeting(occKey)}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
