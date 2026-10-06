@@ -6,7 +6,13 @@ import path from 'node:path';
 import { parseTeacherSchedulePdf } from './lib/utils/pdf-parser.js';
 
 async function run() {
-  const samplePdfPath = 'C:/Users/sergi/Downloads/Teacher_schedule_detail_202609201730464017.pdf';
+  const samplePdfPath = process.env.SAMPLE_PDF_PATH || 'C:/Users/sergi/Downloads/Teacher_schedule_detail_202609201730464017.pdf';
+  try {
+    await fs.access(samplePdfPath);
+  } catch {
+    console.log(`[Test] Sample PDF not found at ${samplePdfPath}. Skipping local PDF parser verification.`);
+    return;
+  }
   console.log(`[Test] Reading sample PDF from ${samplePdfPath}...`);
 
   const buffer = await fs.readFile(samplePdfPath);

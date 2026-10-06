@@ -16,6 +16,11 @@ async function run() {
   console.log(`Base URL: ${process.env.SCHOOLMATE_BASE_URL || 'https://empireenglish.schoolmate.eu'}`);
   console.log(`Username: ${process.env.SCHOOLMATE_USERNAME}`);
 
+  if (!process.env.SCHOOLMATE_USERNAME || !process.env.SCHOOLMATE_PASSWORD) {
+    console.log('⚠️ Skipping live Schoolmate API test: SCHOOLMATE_USERNAME and SCHOOLMATE_PASSWORD are not set.');
+    return;
+  }
+
   const client = new SchoolmateClient({
     baseUrl: process.env.SCHOOLMATE_BASE_URL,
     schoolPrefix: process.env.SCHOOLMATE_PREFIX,

@@ -4,10 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test-api.js",
-    "test:telemetry": "node test-telemetry.js"
-  },
-  "dependencies": {
-    "@upstash/redis": "^1.38.4"
+    "test": "npm --prefix ee-crm test"
   }
 }

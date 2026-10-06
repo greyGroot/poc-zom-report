@@ -235,7 +235,10 @@ async function runVerification() {
 
   // Test 2.1: ADR-001 Documentation (AC-1)
   try {
-    const adrPath = path.resolve(process.cwd(), 'docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+    let adrPath = path.resolve(process.cwd(), 'docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+    if (!fs.existsSync(adrPath)) {
+      adrPath = path.resolve(process.cwd(), '../docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+    }
     assert.ok(fs.existsSync(adrPath), 'ADR-001 document must exist');
     const content = fs.readFileSync(adrPath, 'utf-8');
     assert.ok(content.includes('## Target Module Layout'), 'ADR-001 must define Target Module Layout');

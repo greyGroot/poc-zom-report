@@ -44,7 +44,10 @@ async function test(name, fn) {
 console.log('--- 1. ADR-001 Architecture Decision Record ---');
 
 await test('Scenario 1: ADR-001 is documented with required layout, matrix, and layering rules', () => {
-  const adrPath = path.resolve(process.cwd(), 'docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+  let adrPath = path.resolve(process.cwd(), 'docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+  if (!fs.existsSync(adrPath)) {
+    adrPath = path.resolve(process.cwd(), '../docs/architecture/ADR-001-target-architecture-and-module-boundaries.md');
+  }
   assert.ok(fs.existsSync(adrPath), 'ADR-001 document must exist');
 
   const content = fs.readFileSync(adrPath, 'utf-8');
