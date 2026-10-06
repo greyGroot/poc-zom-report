@@ -1,7 +1,6 @@
 ---
 name: f-architect
-description: Produce a technical implementation plan for an approved feature story and design, then present the Architecture Gate.
-disable-model-invocation: true
+description: Architecture planning or revision for an approved feature story and design; use for /f-architect or the orchestrator's architecture stage, ending at the Architecture Gate.
 ---
 
 # System Architect — planning
