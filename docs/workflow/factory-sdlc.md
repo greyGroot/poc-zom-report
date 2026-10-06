@@ -12,6 +12,8 @@ Automated feature development with coding agents introduces distinct failure mod
 2. **Immutable Test Sealing**: Verification tests are authored independently by QA (`/f-verificator`) and sealed into an external control bundle before the coding worker ever starts. The worker agent has zero write access to the test suite.
 3. **Tri-Directory Physical Isolation Inside the Workspace**: Project Factory Next enforces the invariant `assertSeparate(candidate, control, store)` where all three directories must be separate and non-nested. To keep all operations cleanly contained within the project repository near the target application `ee-crm/`, all three factory directories reside under `.sdlc/` (git-ignored):
 
+The following topology is authoritative for storage locations. Control versions remain separate from the candidate and shared store.
+
 ```
 poc-zom-report/                         ← Main Repository (Trunk & Target Project)
 ├── ee-crm/                             ← Active application codebase being modified
@@ -23,7 +25,10 @@ poc-zom-report/                         ← Main Repository (Trunk & Target Proj
     ├── store/                          ← 3. Factory Runs Store (execution logs, attempts, evidence)
     └── <story-id>/
         ├── candidate/                  ← 1. Candidate Worktree (isolated git worktree: feat/<story-id>)
-        ├── control/                    ← 2. Sealed Control Bundle (task.json, evaluators, .seal.json)
+        ├── control/
+        │   ├── v1/                     ← 2. Initial Control Bundle (task.json, profile.json, evaluators/, seal.json)
+        │   └── v2/                     ← Next approved control version; v1 remains unchanged
+        ├── diagnostics/                ← Versioned failure intake reports
         ├── mockups/                    ← Interactive HTML mockups (from /f-ux)
         ├── tests/                      ← Staged acceptance tests (from /f-verificator)
         ├── state.json                  ← Authoritative state ledger
@@ -31,38 +36,27 @@ poc-zom-report/                         ← Main Repository (Trunk & Target Proj
         └── manual-test-guide.md        ← Step-by-step manual test guide
 ```
 
-### The Three Factory Folders
-
-Project Factory Next fundamentally requires three distinct, non-nested directories:
-1. **Candidate** (`.sdlc/<story-id>/candidate/`): The isolated checkout where the feature coding worker edits application code.
-2. **Control** (`.sdlc/<story-id>/control/`): The sealed, immutable contract containing `task.json`, dev profile, and evaluators.
-3. **Store** (`.sdlc/store/` or `.sdlc/<story-id>/store/`): The persistent evidence repository recording execution attempts, stdout/stderr streams, and telemetry.
-
-Co-locating these three directories inside `.sdlc/` near `ee-crm/` ensures that all factory inputs and outputs stay scoped to the repository without cluttering external directories, while strictly satisfying `assertSeparate(candidate, control, store)`.
-
 ---
 
 ## 2. Shared Domain Architecture & Contracts
 
 The authoritative definitions and canonical vocabulary for the SDLC domain are maintained in the root [**`GLOSSARY.md`**](../../GLOSSARY.md). The architectural contracts and structural roles for each element are formalized below:
 
-### Physical Topology & Isolation
-- **Candidate** (`.sdlc/<story-id>/candidate/`): An isolated Git worktree branched from `main` on `feat/<story-id>`. Contains the complete source code checkout. The coding worker modifies files solely within this boundary; the main checkout remains pristine.
-- **Control** (`.sdlc/<story-id>/control/`): An external, immutable directory bundle housing `task.json`, `profile.json`, and evaluator test harnesses. The coding worker has no write permissions in this tree.
-- **Store** (`.sdlc/store/`): Persistent cross-task evidence store recording telemetry, logs, and digests across all story runs for reflection and historical diagnosis.
-- **Ephemeral Story Workspace** (`.sdlc/<story-id>/`): Git-ignored workspace in the main repository for pipeline state (`state.json`), intermediate acceptance tests (`tests/`), interactive mockups (`mockups/`), and review reports.
+### Physical Isolation Rules
+
+Use the [authoritative topology](#1-architectural-principles--isolation-model) for directory locations. The candidate is a complete Git worktree branched from `main` on `feat/<story-id>`. The worker edits only this checkout; operator-controlled permissions protect each sealed control version. The shared store persists across stories and survives story cleanup.
 
 ### Contracts & Cryptographic Sealing
-- **Task Contract** (`control/task.json`): Schema-validated (Schema v1) specification detailing task requirements, preparation steps, evaluator check IDs, and execution budget (`maxAttempts`, `agentTimeoutMs`).
-- **Dev Profile** (`control/profile.json`): Task family definition (`software-change`, `website-clone`, `design-implementation`) specifying mandatory check kinds and default budgets.
+- **Task Contract** (`<control-dir>/task.json`): Schema-validated (Schema v1) specification detailing task requirements, preparation steps, evaluator check IDs, and execution budget (`maxAttempts`, `agentTimeoutMs`).
+- **Dev Profile** (`<control-dir>/profile.json`): Task family definition (`software-change`, `website-clone`, `design-implementation`) specifying mandatory check kinds and default budgets.
 - **Policy Digest** (`policyDigest`): Lowercase 64-character SHA-256 hash computed via `node bin/factory.mjs seal --control <dir>`. Verifies control bundle immutability; rejected by runner if tampered.
-- **Evaluator** (`control/evaluators/`): Sealed test scripts reporting aggregate pass/fail results via JSON (`{ status: "passed"|"failed", cases: [{ id, status, details }] }`).
+- **Evaluator** (`<control-dir>/evaluators/`): Sealed test scripts reporting aggregate pass/fail results via JSON (`{ status: "passed"|"failed", cases: [{ id, status, details }] }`).
 
 ---
 
 ## 3. End-to-End Operational Lifecycle & State Transitions
 
-The SDLC progresses across two major phases: **Planning** (Requirements Gate, Design Gate, Architecture Gate) and **Execution** (Test Contract Gate, Factory Dispatch Gate, Post-Green Review Gate, Release Gate).
+This diagram is the authoritative transition definition. Gate criteria are defined in [section 4](#4-the-seven-named-human-gates-protocol), and recovery procedures in [section 8](#8-failure-handling--recovery-paths). Planning ends at `S_PLAN_DONE`; execution starts with `/f-verificator`. An abort from any active stage follows Path 3.
 
 ```mermaid
 flowchart TD
@@ -91,7 +85,8 @@ flowchart TD
         FACTORY -- Budget Exhausted / Failure --> FAIL_DIAG["Failure Intake & Diagnostics\n(/f-operator reflect/inspect)"]
         FAIL_DIAG --> FAIL_CHOICE{"Failure Recovery Path"}
         FAIL_CHOICE -- Path 1: Retry --> R_OPER
-        FAIL_CHOICE -- Path 2: Escalate --> R_ARCH
+        FAIL_CHOICE -- Path 2: Architecture --> R_ARCH
+        FAIL_CHOICE -- Path 2: Tests --> R_VERIF
         FAIL_CHOICE -- Path 3: Abort --> S_ABORT([Clean Abort])
         REVIEW --> G6{"Post-Green Review Gate\n(Gate 6)"}
         G6 -- Approved --> R_RUNNER["/f-runner\nGenerate Manual Test Guide"]
@@ -114,7 +109,7 @@ Human supervision is enforced at every role transition through named, first-clas
 | **Gate 2** | **Design Gate** | `gate-design` | `/f-ux` | `docs/ux/<story-id>-ux.md`, `.sdlc/<story-id>/mockups/*.html` | Visual hierarchy matches brand; responsive behavior is defined; interactive HTML mockups render and behave cleanly in browser. |
 | **Gate 3** | **Architecture Gate** | `gate-architecture` | `/f-architect` | `docs/architecture/<story-id>-plan.md` | Module boundaries conform to ADR-001; vertical slice seams are sound; data contracts and schema updates are complete; non-goals are explicit. |
 | **Gate 4** | **Test Contract Gate** | `gate-test-contract` | `/f-verificator` | `.sdlc/<story-id>/tests/`, Verificator execution report | Baseline tests for critical journeys pass GREEN; acceptance tests for the new story staged in `.sdlc/<story-id>/tests/` demonstrably fail RED for expected reasons. |
-| **Gate 5** | **Factory Dispatch Gate** | `gate-factory-dispatch` | `/f-operator` | `control/task.json`, computed `policyDigest`, profile | `policyDigest` is verified; task requirements and check IDs match; worker model (`gpt-6.1-luna`) and `maxAttempts` budget are confirmed; candidate worktree is provisioned and clean. |
+| **Gate 5** | **Factory Dispatch Gate** | `gate-factory-dispatch` | `/f-operator` | `<control-dir>/task.json`, computed `policyDigest`, profile | `policyDigest` is verified; task requirements and check IDs match; worker model (`gpt-6.1-luna`) and `maxAttempts` budget are confirmed; candidate worktree is provisioned; its base revision, current diff, and any retained retry changes are inspected. |
 | **Gate 6** | **Post-Green Review Gate** | `gate-review` | `/f-architect` + `/f-ux` | `.sdlc/<story-id>/review-report.md`, candidate git diff | Code quality matches architectural invariants; UI implementation aligns with UX tokens; no tests or evaluators were bypassed. |
 | **Gate 7** | **Release Gate** | `gate-release` | `/f-runner` | `.sdlc/<story-id>/manual-test-guide.md` | Human tester successfully executed step-by-step manual test guide against live candidate; user approves merging branch to main. |
 
@@ -125,8 +120,8 @@ Human supervision is enforced at every role transition through named, first-clas
    - Clickable links to all generated artifacts.
    - Summary of decisions made and verification outcomes.
    - Specific questions or checkpoints requiring human validation.
-2. **Acceptance (`approve [gate-name]`)**: State advances to the subsequent role in `.sdlc/<story-id>/state.json`.
-3. **Revision (`revise [gate-name] --notes "<feedback>"`)**: The preceding role is re-invoked with feedback notes supplied as refinement constraints.
+2. **Acceptance (`approve [gate-name]`)**: Record sign-off in the state ledger and follow the approved edge in the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions).
+3. **Revision (`revise [gate-name] --notes "<feedback>"`)**: Re-invoke the preceding role with feedback constraints. Invalidate its approval and all downstream approvals when its artifact changes; retain prior sign-offs in history. Standalone role revisions follow the same rule. Any new control version requires renewed Factory Dispatch Gate approval of its path, digest, model, and per-run budget.
 4. **Abort (`abort`)**: Pipeline execution terminates cleanly; transient worktrees and resources are pruned.
 
 ---
@@ -152,10 +147,10 @@ Human supervision is enforced at every role transition through named, first-clas
 ### Orchestrated Workflows
 
 ```bash
-# Execute Phase 1: Planning (Roles: f-ba -> Requirements Gate -> f-ux -> Design Gate -> f-architect -> Architecture Gate)
+# Execute planning according to section 3
 /f-orchestrator plan CRM-018
 
-# Execute Phase 2: Execution (Roles: f-verificator -> Test Contract Gate -> f-operator -> Factory Dispatch Gate -> Factory -> Review -> Review Gate -> f-runner -> Release Gate)
+# Execute the approved plan according to section 3
 /f-orchestrator execute CRM-018
 
 # Inspect current pipeline status, active role, and pending gate
@@ -227,42 +222,43 @@ Any role can be executed independently to revise or iterate on a specific delive
 The Factory Operator interacts directly with the Factory Next kernel. Complete flag descriptions and schemas are documented in the [Factory Next Reference Manual](../../../project-factory-next/docs/handbook/reference.md). The canonical invocations used within this SDLC are:
 
 ```bash
-# 1. Initialize control bundle inside .sdlc/<story-id>/control
+# 1. Initialize control bundle inside a new control version
 node /home/user/2grow/project-factory-next/bin/factory.mjs init \
-  --out /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control \
+  --out /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control/v1 \
   --profile software-change
 
 # 2. Validate control contracts and schema integrity
 node /home/user/2grow/project-factory-next/bin/factory.mjs validate \
-  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control
+  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control/v1
 
 # 3. Seal the control bundle and capture policyDigest
 node /home/user/2grow/project-factory-next/bin/factory.mjs seal \
-  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control
+  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control/v1
 
 # 4. Verify control bundle against known policyDigest
 node /home/user/2grow/project-factory-next/bin/factory.mjs verify \
-  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control \
+  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control/v1 \
   --policy-digest <policy-digest>
 
 # 5. Execute factory run with candidate, control, and store co-located under .sdlc
 node /home/user/2grow/project-factory-next/bin/factory.mjs run \
-  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control \
+  --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control/v1 \
   --candidate /home/user/2grow/poc-zom-report/.sdlc/<story-id>/candidate \
   --store /home/user/2grow/poc-zom-report/.sdlc/store \
   --policy-digest <policy-digest> \
   --agent codex \
-  --model gpt-6.1-luna
+  --model gpt-6.1-luna \
+  --run-id <new-run-id>
 
 # 6. Inspect evidence of a completed run
 node /home/user/2grow/project-factory-next/bin/factory.mjs inspect \
   --store /home/user/2grow/poc-zom-report/.sdlc/store \
   --run-id <run-id>
 
-# 7. Aggregate failure intake for diagnosis
+# 7. Aggregate failure intake; choose a fresh output name on every invocation
 node /home/user/2grow/project-factory-next/bin/factory.mjs reflect \
   --store /home/user/2grow/poc-zom-report/.sdlc/store \
-  --out /home/user/2grow/poc-zom-report/.sdlc/<story-id>/failure-intake.json
+  --out /home/user/2grow/poc-zom-report/.sdlc/<story-id>/diagnostics/<run-id>-intake-001.json
 
 # 8. Remove stale controller locks following process interruption
 node /home/user/2grow/project-factory-next/bin/factory.mjs recover \
@@ -272,13 +268,12 @@ node /home/user/2grow/project-factory-next/bin/factory.mjs recover \
 
 ---
 
-## 7. State Ledger Schema (`.sdlc/<story-id>/state.json`)
+## 7. State Ledger Record (`.sdlc/<story-id>/state.json`)
 
 Pipeline execution state is tracked deterministically in a JSON ledger located at `.sdlc/<story-id>/state.json`.
 
 ```json
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "storyId": "CRM-018",
   "status": "IN_PROGRESS",
   "phase": "EXECUTION",
@@ -299,11 +294,12 @@ Pipeline execution state is tracked deterministically in a JSON ledger located a
     "architecturePlanPath": "docs/architecture/CRM-018-plan.md",
     "testsDir": ".sdlc/CRM-018/tests/",
     "candidateDir": ".sdlc/CRM-018/candidate/",
-    "controlDir": ".sdlc/CRM-018/control/",
+    "controlDir": ".sdlc/CRM-018/control/v1/",
     "storeDir": ".sdlc/store/",
-    "policyDigest": "a3f4c8b...",
+    "policyDigest": "a3f4c8b0a3f4c8b0a3f4c8b0a3f4c8b0a3f4c8b0a3f4c8b0a3f4c8b0a3f4c8b0",
     "reviewReportPath": ".sdlc/CRM-018/review-report.md",
-    "manualTestGuidePath": ".sdlc/CRM-018/manual-test-guide.md"
+    "manualTestGuidePath": ".sdlc/CRM-018/manual-test-guide.md",
+    "failureIntakePath": null
   },
   "factory": {
     "runId": "run-crm-018-001",
@@ -318,84 +314,61 @@ Pipeline execution state is tracked deterministically in a JSON ledger located a
 }
 ```
 
-### Lifecycle Status Matrix
-
-```text
-INITIALIZED ──> PLANNING_BA ──> REQUIREMENTS_GATE ──> PLANNING_UX ──> DESIGN_GATE
-                                                                           │
-┌──────────────────────────────────────────────────────────────────────────┘
-▼
-PLANNING_ARCHITECT ──> ARCHITECTURE_GATE ──> PLANNED ──> EXEC_VERIFICATOR
-                                                                │
-┌───────────────────────────────────────────────────────────────┘
-▼
-TEST_CONTRACT_GATE ──> EXEC_OPERATOR ──> FACTORY_DISPATCH_GATE ──> FACTORY_RUNNING
-                                                                          │
-┌─────────────────────────────────────────────────────────────────────────┘
-▼
-REVIEW_PENDING ──> REVIEW_GATE ──> MANUAL_RUNNER ──> RELEASE_GATE ──> COMPLETED
-                                                           │
-                              ┌────────────────────────────┴───────────┐
-                              ▼                                        ▼
-                            FAILED                                  ABORTED
-```
+The ledger is an instance record, not a JSON Schema. `status` is `IN_PROGRESS`, `COMPLETED`, or `ABORTED`; a failed factory run leaves the pipeline `IN_PROGRESS` awaiting a recovery decision. `phase`, `currentRole`, and gate states follow the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions). Append each approval, revision, control version change, run outcome, and abort to `history`; retain prior run IDs and digests when updating the active entries.
 
 ---
 
 ## 8. Failure Handling & Recovery Paths
 
-When Project Factory Next encounters failed checks or exhausts its attempt budget (`maxAttempts`), the operator enters a controlled failure intake workflow.
+On a failed or exhausted run, stop dispatch and run `inspect` and `reflect` using the [CLI reference](#underlying-project-factory-next-cli-reference). Each reflection output uses a fresh diagnostics filename containing the failed run ID and an intake sequence; increment the sequence for repeated diagnosis of the same run. Record that path in `artifacts.failureIntakePath`. Present the evidence and the three recovery choices from the transition definition to the user.
 
-```mermaid
-flowchart TD
-    FAIL[Factory Run Failed / Attempts Exhausted] --> DIAG[f-operator executes inspect & reflect]
-    DIAG --> INTAKE[Generate failure-intake.json]
-    INTAKE --> PRESENT[Orchestrator presents failure intake to Human]
-    PRESENT --> CHOICE{Select Recovery Path}
-    
-    CHOICE -- "1. Retry with Budget" --> RETRY[Increment maxAttempts in task.json\nRe-seal control bundle\nUpdate policyDigest\nResume Factory Run]
-    
-    CHOICE -- "2. Escalate" --> ESCALATE{Target of Escalation}
-    ESCALATE -- Flawed Spec/Seam --> FIX_ARCH[Escalate to /f-architect\nRevise architecture plan\nRepackage candidate & control]
-    ESCALATE -- Flawed Test Suite --> FIX_VERIF[Escalate to /f-verificator\nFix assertion or mock logic\nRepackage & Reseal]
-    
-    CHOICE -- "3. Clean Abort" --> ABORT[Prune Git worktree\nRemove candidate branch\nMark state ABORTED]
+### Preparing a New Control Version
+
+Every recovery that changes a contract, budget, or evaluator uses a new control version. Version names are monotonically increasing within a story (`v1`, `v2`, and so on). Preserve the prior sealed bundle and its digest for evidence inspection. For example, to prepare `v2` from approved `v1`:
+
+```bash
+CONTROL_DIR=/home/user/2grow/poc-zom-report/.sdlc/CRM-018/control/v1
+NEXT_CONTROL_DIR=/home/user/2grow/poc-zom-report/.sdlc/CRM-018/control/v2
+# Refuse to overwrite a version that already exists.
+if [ -e "$NEXT_CONTROL_DIR" ]; then
+  echo "Choose a new control version" >&2
+else
+  cp -a "$CONTROL_DIR" "$NEXT_CONTROL_DIR" && rm "$NEXT_CONTROL_DIR/seal.json"
+fi
 ```
+
+Proceed only after a fresh copy succeeds and its copied seal has been removed. Edit only the new version, then run `validate` and `seal` against its path. Factory creates `seal.json` and refuses to seal an already sealed directory. Record the new `controlDir` and `policyDigest` in the ledger, invalidate downstream approvals under section 4, and present the new version at the Factory Dispatch Gate. After approval, use the canonical `run` invocation with the new control path and digest and a fresh run ID. A completed or failed run ID returns its old results and cannot be used for a new policy version.
 
 ### Path 1: Retry with Increased Attempt Budget
 
-Used when the worker is making demonstrable progress and only requires 1–2 additional attempts to resolve remaining check failures.
-1. The operator updates `budget.maxAttempts` in `.sdlc/<story-id>/control/task.json` (e.g., from 3 to 5).
-2. The operator reseals the control directory:
-   ```bash
-   node /home/user/2grow/project-factory-next/bin/factory.mjs seal \
-     --control /home/user/2grow/poc-zom-report/.sdlc/<story-id>/control
-   ```
-3. The new `policyDigest` is updated in `.sdlc/<story-id>/state.json`.
-4. The factory run is resumed with the new digest and a new run ID.
+Use when diagnostic evidence shows progress and the user chooses another bounded run. Follow [Preparing a New Control Version](#preparing-a-new-control-version), increasing `budget.maxAttempts` in the new version’s `task.json` (for example, from 3 to 5), within the Factory schema’s 1–10 limit. The budget applies to the new run, whose attempt counter starts from zero; it is not an extension of the failed run’s counter. Retain the candidate changes and disclose the full new-run budget at the Factory Dispatch Gate.
 
 ### Path 2: Escalation to Architect or Verificator
 
-Used when the failure stems from a defect in the specification, an architectural mismatch, or an invalid/flaky acceptance assertion.
-- **Escalate to `/f-architect`**: If the candidate failed because architectural module seams were infeasible or API contracts were incompatible. `/f-architect` updates `docs/architecture/<story-id>-plan.md`, and `/f-operator` refreshes the task context before resealing.
-- **Escalate to `/f-verificator`**: If an acceptance test contains an erroneous expectation, bad seed data, or harness timing issues. `/f-verificator` updates the test directly inside `.sdlc/<story-id>/control/evaluators/` (or staged in `.sdlc/<story-id>/tests/`) without touching the candidate worktree. `/f-operator` then re-validates and re-seals the control bundle with `factory.mjs seal`.
+Use when evidence points to infeasible architecture, incompatible contracts, or an erroneous acceptance assertion.
+
+- **Architect**: Revise the architecture plan and return through the Architecture Gate. Re-run the verificator against the revised plan and obtain Test Contract Gate approval before packaging the corrected task context.
+- **Verificator**: Correct staged tests and demonstrate baseline GREEN and acceptance RED for the expected reasons against the pre-implementation baseline. Return through the Test Contract Gate. The operator packages these tests into the new control version; prior sealed evaluators remain unchanged.
+
+Both routes then follow [Preparing a New Control Version](#preparing-a-new-control-version) and renewed dispatch approval.
 
 ### Path 3: Clean Abort
 
-Used when the feature is rejected or abandoned.
-1. Candidate Git worktree is safely pruned:
+Use when the user rejects or abandons the feature.
+
+1. Stop the controller and worker processes and confirm they have exited before removing their candidate.
+2. Mark the state ledger `ABORTED` and append the user’s decision, timestamp, run IDs, control digests, and cleanup intent to its history.
+3. Archive any candidate changes needed for recovery, then remove the story’s worktree and branch. The following commands intentionally discard remaining candidate changes after archival:
    ```bash
    git worktree remove --force /home/user/2grow/poc-zom-report/.sdlc/<story-id>/candidate/
    git branch -D feat/<story-id>
    ```
-2. Ephemeral control and story directories are archived or deleted.
-3. State in `.sdlc/<story-id>/state.json` is marked `ABORTED`.
-4. Main repository checkouts and `ee-crm/` remain completely untouched.
+4. Delete temporary mockups and staged tests as appropriate. Preserve the story directory with its terminal `state.json`, diagnostics, and sealed control versions, and retain the shared store so historical runs remain inspectable. Record cleanup completion or any error in the retained ledger.
 
 ### Operational Infrastructure Recovery: Dead-Worker Lock Removal
 
-Separate from the three feature failure paths above, if a running controller process is abruptly terminated by OS interrupt, power loss, or container termination, the run directory retains an active lock PID.
-1. Confirm the background worker process is dead.
+Separate from the three feature failure paths above, if a running controller process is abruptly terminated, the run directory may retain its controller PID lock.
+1. Confirm the controller and its worker process tree are dead.
 2. Recover the run lock:
    ```bash
    node /home/user/2grow/project-factory-next/bin/factory.mjs recover \
@@ -409,7 +382,7 @@ Separate from the three feature failure paths above, if a running controller pro
 ## 9. Governing Invariants & Guardrails
 
 1. **Feature Scope Exclusivity**: Project Factory Next is reserved strictly for **feature development**. Bug fixes and exploratory research spikes bypass the factory and use direct developer flows.
-2. **Evaluator Immutability**: Acceptance evaluators live exclusively in `.sdlc/<story-id>/control/evaluators/`. Any candidate commits modifying test assertions are strictly rejected during post-green review.
+2. **Evaluator Immutability**: Acceptance evaluators execute from the approved control version. Changes use the versioning procedure in section 8. Any candidate commits modifying test assertions are strictly rejected during post-green review.
 3. **No Automated Main Merges**: The pipeline never performs automated merges into `main`. The candidate branch `feat/<story-id>` is merged only upon explicit human sign-off at the **Release Gate**.
 4. **Clean Worktree Isolation**: All feature development occurs inside `.sdlc/<story-id>/candidate/`. Direct modifications to `ee-crm/` in the main workspace during execution are forbidden.
 5. **Agnostic Test Harnessing**: Verificator test suites inspect and invoke the application's native scripts (such as `npm test` or native Node scripts in `ee-crm`), ensuring the pipeline does not impose artificial test frameworks.

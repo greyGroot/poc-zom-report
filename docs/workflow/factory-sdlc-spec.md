@@ -36,7 +36,7 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
    An explicit User Gate exists after *every single role* before the workflow is allowed to proceed to the next step.
 
 3. **Tamper-Proof Factory Isolation**:
-   Evaluator tests live in an external sealed `control` bundle that the coding worker cannot write to. Candidate development occurs in an isolated `git worktree` (`.sdlc/<story-id>/candidate/`), keeping the main repository clean.
+   Evaluator tests live in an external sealed `control` bundle that the coding worker cannot write to. Candidate development occurs in an isolated Git worktree using the guide’s authoritative topology, keeping the main repository clean.
 
 4. **Dedicated Scope & Pragmatic Verification**:
    - Project Factory Next is strictly bound to **feature development** only (bug fixes and exploratory research spikes use alternative lightweight flows).
@@ -96,17 +96,9 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
   - `f-runner`
   - `f-advisor`
 
-### 3. Model & Reasoning Allocation Matrix
-- Workspace Cleanup / Doc Elevation: `high` reasoning
-- `/f-orchestrator`: `medium` reasoning
-- `/f-ba`: `low` reasoning
-- `/f-ux`: `medium` reasoning
-- `/f-architect`: `high` reasoning
-- `/f-verificator`: `high` reasoning
-- `/f-operator`: `medium` reasoning
-- **Factory Worker** (`project-factory-next`): `medium` reasoning (default model `gpt-6.1-luna`)
-- `/f-runner`: `medium` reasoning
-- `/f-advisor`: `high` reasoning
+### 3. Model & Reasoning Allocation
+- Workspace Cleanup / Doc Elevation uses `high` reasoning.
+- The authoritative role allocation matrix is in [the operational guide, section 5](factory-sdlc.md#5-role-specifications--reasoning-matrix).
 
 ### 4. Authoring Skills via Matt Pocock's Skill Ecosystem
 - Instead of inventing bespoke skill syntax, all `f-*` skills will be authored using:
@@ -118,44 +110,19 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
 - Bug fixing and exploratory research spikes are explicitly excluded from factory execution and will use lightweight non-factory flows.
 
 ### 6. Workspace & Directory Isolation Model
-- To satisfy Project Factory Next's strict `assertSeparate(candidate, control, store)` invariant and protect developer checkouts, all three factory directories reside within `.sdlc/` (git-ignored) near the target application `ee-crm/`:
-  - **Main Repository**: Root checkout remains untouched during execution.
-  - **Target Application**: `ee-crm/` contains the active codebase.
-  - **Candidate Worktree**: `.sdlc/<story-id>/candidate/` on branch `feat/<story-id>`.
-  - **Sealed Control Bundle**: `.sdlc/<story-id>/control/` containing `task.json`, `profile.json`, evaluators, and references.
-  - **Persistent Runs Store**: `.sdlc/store/` persistent directory shared across stories so `factory.mjs reflect` can aggregate historical data across tasks.
-  - **Project Documentation**: Permanent specs and architecture reside in `docs/stories/<story-id>.md` and `docs/architecture/`.
-  - **Ephemeral State**: Staged under `.sdlc/<story-id>/` (git-ignored, removable).
+The [operational guide’s topology](factory-sdlc.md#1-architectural-principles--isolation-model) is authoritative for storage locations; [its isolation rules](factory-sdlc.md#physical-isolation-rules) define candidate, control, and store boundaries.
 
 ### 7. Sealing & Verificator Test Handoff Protocol
-- `/f-verificator` discovers native test patterns and writes tests into `.sdlc/<story-id>/tests/`.
-- `/f-operator` copies the story's acceptance tests into `.sdlc/<story-id>/control/evaluators/`, creates the wrapper complying with Factory Next's JSON case protocol (`{ "status": "passed", "cases": [...] }`), and writes `task.json`.
-- `/f-operator` runs `node bin/factory.mjs seal --control <control-dir>` to compute the immutable `policyDigest`.
-- Candidate worker only has write access to `candidate/`; attempts to touch `control/` fail integrity verification immediately.
+The verificator stages independent baseline and acceptance tests. The operator packages them into control with the task contract and evaluator wrapper. Use [the guide’s contracts](factory-sdlc.md#contracts--cryptographic-sealing), [CLI reference](factory-sdlc.md#underlying-project-factory-next-cli-reference), and [control versioning procedure](factory-sdlc.md#preparing-a-new-control-version) for the authoritative formats and sealing operations.
 
 ### 8. Human Gate Protocol
-- The orchestrator maintains a phase state machine and halts execution at every role boundary across seven named gates:
-  ```text
-  Planning:   [f-ba] -> Gate 1 (Requirements Gate) -> [f-ux] -> Gate 2 (Design Gate) -> [f-architect] -> Gate 3 (Architecture Gate)
-  Execution:  [f-verificator] -> Gate 4 (Test Contract Gate) -> [f-operator] -> Gate 5 (Factory Dispatch Gate) -> [Factory Run] -> [Review] -> Gate 6 (Post-Green Review Gate) -> [f-runner] -> Gate 7 (Release Gate)
-  ```
-- Resumption requires affirmative user input.
+The [transition definition](factory-sdlc.md#3-end-to-end-operational-lifecycle--state-transitions) and [gate protocol](factory-sdlc.md#4-the-seven-named-human-gates-protocol) are authoritative for sequencing, approval criteria, revisions, and resumption.
 
 ### 9. Post-Green Review & Manual Test Guide
-- When Factory checks pass green, review is executed by `/f-architect` (code quality & architecture) and `/f-ux` (visual & layout fidelity), generating `review-report.md`.
-- `/f-runner` consumes the plan, story, and candidate changes to author `manual-test-guide.md` specifying:
-  - Exact startup commands and required environment flags.
-  - Test accounts and database seed requirements.
-  - Happy-path and edge-case clickthrough instructions.
-  - Expected system state and verification checkpoints.
+Use [the gate criteria](factory-sdlc.md#4-the-seven-named-human-gates-protocol) for review and manual verification deliverables and [the role matrix](factory-sdlc.md#5-role-specifications--reasoning-matrix) for role ownership.
 
 ### 10. Failure & Escalation Protocol
-- If Factory Next exhausts its attempt budget or halts unexpectedly:
-  - `/f-operator` invokes `node bin/factory.mjs inspect` and `node bin/factory.mjs reflect` against `--store`.
-  - `/f-orchestrator` presents the failure intake report to the user with three interactive choices:
-    1. **Retry with budget**: Increment maxAttempts in task contract, reseal, and resume.
-    2. **Escalate**: Route diagnostic logs to `/f-architect` or `/f-verificator` for targeted correction.
-    3. **Abort**: Prune the candidate git worktree and clean up.
+The [operational recovery procedures](factory-sdlc.md#8-failure-handling--recovery-paths) define diagnosis, retry, escalation, abort, and interruption recovery. They are authoritative for control version changes, renewed approvals, and retained evidence.
 
 ---
 
@@ -184,5 +151,5 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
 
 - All skills are created in `.agents/skills/f-<role>/SKILL.md` so they can be discovered and executed natively in Antigravity.
 - The workflow documentation resides in `docs/workflow/factory-sdlc.md` as the definitive operating manual.
-- `/f-advisor` can be engaged at any time via `/f-advisor <topic>` to review failure intake reports from `factory-runs/` and recommend prompt, contract, or profile enhancements.
+- `/f-advisor` can be engaged at any time via `/f-advisor <topic>` to review failure intake reports from the shared store and recommend prompt, contract, or profile enhancements.
 
