@@ -15,7 +15,7 @@ Welcome to the centralized documentation repository for **Empire English CRM (EE
 | [**`qa/`**](qa/) | Verification Reports & Quality Gates | [`CRM-001-e2e-report.md`](qa/CRM-001-e2e-report.md) |
 | [**`bugs/`**](bugs/) | Bug Documentation & Remediations | [`BUG-001`](bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) |
 | [**`prompts/`**](prompts/) | Agent Role Definitions & System Prompts | Orchestrator, Architect, BA, UX, Developer, QA, Advisor |
-| [**`workflow/`**](workflow/) | Engineering & SDLC Workflows | [`factory-sdlc-spec.md`](workflow/factory-sdlc-spec.md) (Orchestrated SDLC with Project Factory Next) |
+| [**`workflow/`**](workflow/) | Engineering & SDLC Workflows | [`factory-sdlc.md`](workflow/factory-sdlc.md) (Operational Manual & Domain Architecture), [`factory-sdlc-spec.md`](workflow/factory-sdlc-spec.md) (System Spec) |
 
 ---
 

@@ -4,9 +4,9 @@
 
 **Blocked by:** 01: Workspace Cleanup and Documentation Elevation
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Create `docs/workflow/factory-sdlc.md` detailing the end-to-end SDLC process, phase transitions, and operational commands
-- [ ] Define shared domain vocabulary (`candidate`, `control`, `task.json`, `policyDigest`, `factory-runs`, `evaluators`, `.sdlc/<story-id>/`)
-- [ ] Document the human gate protocol across planning (Gates 1–3) and execution (Gates 4–7)
-- [ ] Document failure handling paths: retry with increased attempt budget, escalation to architect/verificator, and clean abort
+- [x] Create `docs/workflow/factory-sdlc.md` detailing the end-to-end SDLC process, phase transitions, and operational commands
+- [x] Define shared domain vocabulary (`candidate`, `control`, `task.json`, `policyDigest`, `factory-runs`, `evaluators`, `.sdlc/<story-id>/`)
+- [x] Document the human gate protocol across planning (Gates 1–3) and execution (Gates 4–7)
+- [x] Document failure handling paths: retry with increased attempt budget, escalation to architect/verificator, and clean abort
