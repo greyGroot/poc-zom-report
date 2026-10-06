@@ -7,25 +7,25 @@ The domain language and structural concepts governing feature specification, eva
 ### Workspace & Topology
 
 **Candidate**:
-An isolated Git worktree containing the source code checkout where the feature implementation agent performs code modifications.
+An isolated Git worktree under `.sdlc/<story-id>/candidate/` containing the source checkout where the feature coding worker performs code changes.
 _Avoid_: Working copy, staging branch, agent sandbox, target directory
 
 **Control**:
-An immutable, sealed directory bundle containing the task contract (`task.json`), dev profile, evaluation scripts, and references that the implementation agent cannot modify.
+An immutable, sealed directory bundle under `.sdlc/<story-id>/control/` containing the task contract (`task.json`), dev profile, evaluation scripts, and references that the coding worker cannot modify.
 _Avoid_: Test runner folder, benchmark config, validation harness, guard bundle
 
-**Factory Runs Store**:
-The persistent cross-task repository storing execution logs, attempt metrics, and diagnostic evidence across all feature runs.
+**Store**:
+The persistent repository under `.sdlc/store/` (or `.sdlc/<story-id>/store/`) storing execution logs, attempt metrics, and diagnostic evidence across all feature runs.
 _Avoid_: Log archive, output directory, run cache, history store
 
 **Ephemeral Story Workspace**:
-A git-ignored local workspace under `.sdlc/<story-id>/` storing intermediate role artifacts, interactive UI mockups, and pipeline state for an active user story.
+A git-ignored local directory hierarchy under `.sdlc/<story-id>/` co-locating the three factory folders (`candidate`, `control`, `store`), intermediate role artifacts, interactive UI mockups, and pipeline state.
 _Avoid_: Temp dir, scratch folder, build output, agent workdir
 
 ### Contracts & Sealing
 
 **Task Contract**:
-The machine-validated JSON specification (`task.json`) defining the feature intent, requirements, preparation steps, evaluation checks, and execution budget.
+The machine-validated JSON specification (`task.json`) inside control defining the feature intent, requirements, preparation steps, evaluation checks, and execution budget.
 _Avoid_: Job spec, run configuration, ticket json, prompt file
 
 **Dev Profile**:
@@ -43,7 +43,7 @@ _Avoid_: Test case, assert script, checker, verifier agent
 ### Workflow & Governance
 
 **Human Gate**:
-An explicit, mandatory pause in the orchestration lifecycle requiring human inspection and approval before advancing to the subsequent role or execution phase.
+An explicit, mandatory pause in the orchestration lifecycle requiring human inspection and approval before advancing across the seven named gates: Requirements, Design, Architecture, Test Contract, Factory Dispatch, Post-Green Review, and Release.
 _Avoid_: Checkpoint, confirmation step, approval barrier, sync point
 
 **Factory Worker**:

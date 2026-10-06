@@ -36,7 +36,7 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
    An explicit User Gate exists after *every single role* before the workflow is allowed to proceed to the next step.
 
 3. **Tamper-Proof Factory Isolation**:
-   Evaluator tests live in an external sealed `control` bundle that the coding worker cannot write to. Candidate development occurs in an isolated `git worktree` (`factory-workspaces/<story-id>/candidate/`), keeping the main repository clean.
+   Evaluator tests live in an external sealed `control` bundle that the coding worker cannot write to. Candidate development occurs in an isolated `git worktree` (`.sdlc/<story-id>/candidate/`), keeping the main repository clean.
 
 4. **Dedicated Scope & Pragmatic Verification**:
    - Project Factory Next is strictly bound to **feature development** only (bug fixes and exploratory research spikes use alternative lightweight flows).
@@ -118,25 +118,26 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
 - Bug fixing and exploratory research spikes are explicitly excluded from factory execution and will use lightweight non-factory flows.
 
 ### 6. Workspace & Directory Isolation Model
-- To satisfy Project Factory Next's strict `assertSeparate(candidate, control, store)` invariant and protect developer checkouts:
+- To satisfy Project Factory Next's strict `assertSeparate(candidate, control, store)` invariant and protect developer checkouts, all three factory directories reside within `.sdlc/` (git-ignored) near the target application `ee-crm/`:
   - **Main Repository**: Root checkout remains untouched during execution.
-  - **Candidate Worktree**: `/home/user/2grow/factory-workspaces/<story-id>/candidate/` on branch `feat/<story-id>`.
-  - **Sealed Control Bundle**: `/home/user/2grow/factory-workspaces/<story-id>/control/` containing `task.json`, `profile.json`, evaluators, and references.
-  - **Persistent Runs Store**: `/home/user/2grow/factory-runs/` persistent directory shared across stories so `factory.mjs reflect` can aggregate historical data across tasks.
+  - **Target Application**: `ee-crm/` contains the active codebase.
+  - **Candidate Worktree**: `.sdlc/<story-id>/candidate/` on branch `feat/<story-id>`.
+  - **Sealed Control Bundle**: `.sdlc/<story-id>/control/` containing `task.json`, `profile.json`, evaluators, and references.
+  - **Persistent Runs Store**: `.sdlc/store/` persistent directory shared across stories so `factory.mjs reflect` can aggregate historical data across tasks.
   - **Project Documentation**: Permanent specs and architecture reside in `docs/stories/<story-id>.md` and `docs/architecture/`.
   - **Ephemeral State**: Staged under `.sdlc/<story-id>/` (git-ignored, removable).
 
 ### 7. Sealing & Verificator Test Handoff Protocol
-- `/f-verificator` discovers native test patterns and writes tests into the candidate repo.
-- `/f-operator` copies the story's acceptance tests into `control/evaluators/`, creates the wrapper complying with Factory Next's JSON case protocol (`{ "status": "passed", "cases": [...] }`), and writes `task.json`.
+- `/f-verificator` discovers native test patterns and writes tests into `.sdlc/<story-id>/tests/`.
+- `/f-operator` copies the story's acceptance tests into `.sdlc/<story-id>/control/evaluators/`, creates the wrapper complying with Factory Next's JSON case protocol (`{ "status": "passed", "cases": [...] }`), and writes `task.json`.
 - `/f-operator` runs `node bin/factory.mjs seal --control <control-dir>` to compute the immutable `policyDigest`.
 - Candidate worker only has write access to `candidate/`; attempts to touch `control/` fail integrity verification immediately.
 
 ### 8. Human Gate Protocol
-- The orchestrator maintains a phase state machine and halts execution at every role boundary:
+- The orchestrator maintains a phase state machine and halts execution at every role boundary across seven named gates:
   ```text
-  Planning:   [f-ba] -> Gate 1 -> [f-ux] -> Gate 2 -> [f-architect] -> Gate 3
-  Execution:  [f-verificator] -> Gate 4 -> [f-operator] -> Gate 5 -> [Factory Run] -> [Review] -> Gate 6 -> [f-runner] -> Gate 7
+  Planning:   [f-ba] -> Gate 1 (Requirements Gate) -> [f-ux] -> Gate 2 (Design Gate) -> [f-architect] -> Gate 3 (Architecture Gate)
+  Execution:  [f-verificator] -> Gate 4 (Test Contract Gate) -> [f-operator] -> Gate 5 (Factory Dispatch Gate) -> [Factory Run] -> [Review] -> Gate 6 (Post-Green Review Gate) -> [f-runner] -> Gate 7 (Release Gate)
   ```
 - Resumption requires affirmative user input.
 
