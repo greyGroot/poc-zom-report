@@ -81,7 +81,7 @@ flowchart TD
         R_OPER --> G5{"Factory Dispatch Gate\n(Gate 5)"}
         G5 -- Approved --> FACTORY["Project Factory Next\nBounded Worker Loop\n(gpt-6.1-luna)"]
         G5 -- Changes Requested --> R_OPER
-        FACTORY -- All Checks GREEN --> REVIEW["Post-Green Review\n(/f-architect + /f-ux)"]
+        FACTORY -- All Checks GREEN --> REVIEW["Post-Green Review\n(/f-review + UX review)"]
         FACTORY -- Budget Exhausted / Failure --> FAIL_DIAG["Failure Intake & Diagnostics\n(/f-operator reflect/inspect)"]
         FAIL_DIAG --> FAIL_CHOICE{"Failure Recovery Path"}
         FAIL_CHOICE -- Path 1: Retry --> R_OPER
@@ -106,11 +106,11 @@ Human supervision is enforced at every role transition through named, first-clas
 | Gate | Name | Gate ID | Preceding Role | Primary Artifacts | Approval Criteria |
 |---|---|---|---|---|---|
 | **Gate 1** | **Requirements Gate** | `gate-requirements` | `/f-ba` | `docs/stories/<story-id>.md` | Scope is clear; acceptance criteria are unambiguous and testable; business invariants are stated; edge cases are identified. |
-| **Gate 2** | **Design Gate** | `gate-design` | `/f-ux` | `docs/ux/<story-id>-ux.md`, `.sdlc/<story-id>/mockups/*.html` | Visual hierarchy matches brand; responsive behavior is defined; interactive HTML mockups render and behave cleanly in browser. |
-| **Gate 3** | **Architecture Gate** | `gate-architecture` | `/f-architect` | `docs/architecture/<story-id>-plan.md` | Module boundaries conform to ADR-001; vertical slice seams are sound; data contracts and schema updates are complete; non-goals are explicit. |
+| **Gate 2** | **Design Gate** | `gate-design` | `/f-ux` | `docs/ux/<story-id>-ux.md`, `.sdlc/<story-id>/mockups/*.html` | Two minimal interactive storyboard alternatives render cleanly; the human selects one; hierarchy, responsive behavior, accessibility, and WCAG 2.2 AA contrast are verified. Technical stories document justified N/A UX. |
+| **Gate 3** | **Architecture Gate** | `gate-architecture` | `/f-architect` | `docs/architecture/<story-id>-plan.md` | A visual decision card explains the change with before/after C4 views and relevant request flows; module boundaries conform to ADR-001; vertical slice seams are sound; data contracts and schema updates are complete; non-goals are explicit. |
 | **Gate 4** | **Test Contract Gate** | `gate-test-contract` | `/f-verificator` | `.sdlc/<story-id>/tests/`, Verificator execution report | Baseline tests for critical journeys pass GREEN; acceptance tests for the new story staged in `.sdlc/<story-id>/tests/` demonstrably fail RED for expected reasons. |
 | **Gate 5** | **Factory Dispatch Gate** | `gate-factory-dispatch` | `/f-operator` | `<control-dir>/task.json`, computed `policyDigest`, profile | `policyDigest` is verified; task requirements and check IDs match; worker model (`gpt-6.1-luna`) and `maxAttempts` budget are confirmed; candidate worktree is provisioned; its base revision, current diff, and any retained retry changes are inspected. |
-| **Gate 6** | **Post-Green Review Gate** | `gate-review` | `/f-architect` + `/f-ux` | `.sdlc/<story-id>/review-report.md`, candidate git diff | Code quality matches architectural invariants; UI implementation aligns with UX tokens; no tests or evaluators were bypassed. |
+| **Gate 6** | **Post-Green Review Gate** | `gate-review` | `/f-review` + UX review | `.sdlc/<story-id>/review-report.md`, candidate git diff | Code quality matches architectural invariants; UI implementation aligns with UX tokens; no tests or evaluators were bypassed. |
 | **Gate 7** | **Release Gate** | `gate-release` | `/f-runner` | `.sdlc/<story-id>/manual-test-guide.md` | Human tester successfully executed step-by-step manual test guide against live candidate; user approves merging branch to main. |
 
 ### Gate Interaction Protocol
@@ -121,7 +121,7 @@ Human supervision is enforced at every role transition through named, first-clas
    - Summary of decisions made and verification outcomes.
    - Specific questions or checkpoints requiring human validation.
 2. **Acceptance (`approve [gate-name]`)**: Record sign-off in the state ledger and follow the approved edge in the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions).
-3. **Revision (`revise [gate-name] --notes "<feedback>"`)**: Re-invoke the preceding role with feedback constraints. Invalidate its approval and all downstream approvals when its artifact changes; retain prior sign-offs in history. Standalone role revisions follow the same rule. Any new control version requires renewed Factory Dispatch Gate approval of its path, digest, model, and per-run budget.
+3. **Revision (`revise [gate-name] --notes "<feedback>"`)**: Re-invoke the preceding role with feedback constraints. Invalidate its approval and all downstream approvals when its artifact changes; retain prior sign-offs in history. Role revisions dispatched by the orchestrator follow the same rule. Any new control version requires renewed Factory Dispatch Gate approval of its path, digest, model, and per-run budget.
 4. **Abort (`abort`)**: Pipeline execution terminates cleanly; transient worktrees and resources are pruned.
 
 ---
@@ -132,8 +132,9 @@ Human supervision is enforced at every role transition through named, first-clas
 |---|---|---|---|---|
 | **Orchestrator** | `/f-orchestrator` | `medium` | Pipeline coordinator, phase state transitions, human gate enforcement, resumption management. | `.sdlc/<story-id>/state.json` |
 | **Business Analyst** | `/f-ba` | `low` | Formalizing user stories, user personas, acceptance criteria, business invariants. | `docs/stories/<story-id>.md` |
-| **UX Designer** | `/f-ux` | `medium` | Information hierarchy, layout rules, design tokens, responsive states, interactive HTML mockups. | `docs/ux/<story-id>-ux.md`, `.sdlc/<story-id>/mockups/` |
-| **System Architect** | `/f-architect` | `high` | Technical plan, module boundaries (ADR-001), data contracts, migration plans, post-green peer review. | `docs/architecture/<story-id>-plan.md` |
+| **UX Designer** | `/f-ux` | `medium` | Minimal task-focused design, two interactive storyboard alternatives, design tokens, responsive states. | `docs/ux/<story-id>-ux.md`, `.sdlc/<story-id>/mockups/` |
+| **System Architect** | `/f-architect` | `high` | Technical plan, module seams, contracts, migrations, and a visual decision card. | `docs/architecture/<story-id>-plan.md`, `<story-id>-decision.html`, and linked SVG |
+| **Implementation Reviewer** | `/f-review` | `high` | Independent implementation assessment for joint Gate 6 review. | Implementation assessment in `.sdlc/<story-id>/review-report.md` |
 | **QA Verificator** | `/f-verificator` | `high` | Harness discovery, baseline regression testing (GREEN), acceptance test authoring staged in `.sdlc/<story-id>/tests/` (RED). | Staged test suites, test verification logs |
 | **Factory Operator** | `/f-operator` | `medium` | Candidate worktree setup, control bundle creation, contract sealing, factory execution, failure intake. | `.sdlc/<story-id>/`, `policyDigest` |
 | **Factory Worker** | (Internal to Factory) | `medium` (`gpt-6.1-luna`) | Autonomous, bounded code implementation inside candidate worktree, guided by compiler/evaluator feedback. | Candidate git commits |
@@ -186,20 +187,15 @@ When the orchestrator pauses at any of the named gates, decisions can be submitt
 
 > **Interactive Terminal/Chat Protocol**: When running in an interactive session, `/f-orchestrator` prompts directly after each role with artifact links and a multiple-choice prompt (`[1] Approve and proceed`, `[2] Request revisions`, `[3] Abort`). The commands above provide scriptable and explicit command-line counterparts.
 
-### Standalone Stage Execution
+### Internal Role Dispatch
 
-Any role can be executed independently to revise or iterate on a specific deliverable:
+`f-ba`, `f-ux`, `f-architect` (planning), and `f-review` (post-green) are orchestration-only skills. The human uses `f-orchestrator plan`, `execute`, or `revise`; the orchestrator dispatches the role with story ID, artifact/approval evidence, and human feedback for revisions. Role outputs return to the orchestrator for gate presentation and ledger updates. Each role owns its procedure in its skill. The orchestrator alone reads [the orchestration protocol](orchestration-protocol.md). Each role reads the resolved ASD-STE100 skill. Each role uses Strict mode for procedures and handoffs. Each role uses STE-flavored mode for human explanations. Caller restriction is a workflow instruction, not an access-control feature of skill metadata. Architect research and contra-review are outside this workflow.
+
+The orchestrator skill remains scheduled in ticket 07; these are its dispatch contracts, not a claim that the complete pipeline is executable today. Ticket 06 still owns joint UX review, runner, and Gates 6–7 integration.
+
+### Other Stage Commands
 
 ```bash
-# Business analysis only
-/f-ba CRM-018
-
-# UX design and mockups only
-/f-ux CRM-018
-
-# Architecture planning only
-/f-architect CRM-018
-
 # Test discovery and verification only
 /f-verificator CRM-018
 

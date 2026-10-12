@@ -24,11 +24,12 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
    - `/f-orchestrator`: Workflow engine coordinating role execution, phase transitions, and gate pauses.
    - `/f-ba`: Business Analyst authoring user stories, acceptance criteria, and business invariants.
    - `/f-ux`: UX Designer crafting visual specifications, design tokens, responsive rules, and interactive HTML mockups.
-   - `/f-architect`: System Architect producing technical implementation plans, data contracts, and participating in post-green review.
+   - `/f-architect`: Internal architecture planning stage producing technical plans, contracts, and before/after C4 visuals.
+   - `/f-review`: Internal post-green implementation assessment for the joint review.
    - `/f-verificator` (High Reasoning): QA Engineer discovering the project's test harness, authoring regression tests for existing critical app flows (GREEN), and authoring acceptance tests for new feature functionality (RED).
    - `/f-operator`: Factory Operator provisioning an isolated Git worktree (`candidate`), packaging verificator tests into an external sealed `control` bundle with `task.json`, selecting the dev profile, sealing the contract (`policyDigest`), and launching Project Factory Next.
    - **Factory Worker** (`gpt-6.1-luna`): Bounded implementation agent operating strictly inside the candidate worktree, evaluated by immutable sealed checks.
-   - **Review Phase** (`/f-architect` + `/f-ux`): Post-green review assessing architectural integrity and UI design fidelity.
+   - **Review Phase** (`/f-review` + UX review): Post-green review assessing architectural integrity and UI design fidelity.
    - `/f-runner`: Quality Engineer producing reproducible, step-by-step manual test guides with startup commands, seed data, and verification paths.
    - `/f-advisor` (High Reasoning): Agentic engineering advisor analyzing run history, diagnosing bottlenecks, and designing custom flows.
 
@@ -49,10 +50,10 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
 1. As a tech lead, I want Ticket 1 to execute a comprehensive repository cleanup using a high-reasoning model, so that legacy `poc-zom-report` clutter is purged, `ee-crm` docs are promoted to the root `docs/` hierarchy, and `ee-crm` remains the clean, active MVP application.
 2. As an engineering lead, I want an overarching command `/f-orchestrator plan <story-id>`, so that I can execute all preliminary planning phases (`/f-ba`, `/f-ux`, `/f-architect`) with human gates before any code or tests are created.
 3. As an engineering lead, I want an overarching command `/f-orchestrator execute <story-id>`, so that I can drive test creation, factory execution, peer review, and manual test guide generation with human gates after the plan has been signed off.
-4. As a developer, I want to invoke any role individually (e.g., `/f-ux <story-id>` or `/f-verificator <story-id>`), so that I can re-run or adjust a single stage without re-running the entire pipeline.
+4. As a developer, I want the orchestrator to dispatch BA, UX, architecture planning, and architecture review internally, so that I can request plans and revisions through one entry point while preserving approval prerequisites.
 5. As a product owner, I want `/f-ba` to update stories and formalize acceptance criteria with low model reasoning, so that business requirements are clearly articulated without overcomplicating technical details.
 6. As a developer, I want an explicit User Gate after `/f-ba`, so that I can review and adjust requirements before UX design begins.
-7. As a UI designer, I want `/f-ux` to produce visual specifications, layout rules, and local HTML mockups, so that frontend components have clear design references.
+7. As a UI designer, I want `/f-ux` to produce minimal visual specifications and two interactive HTML storyboard alternatives for a human design decision, so that frontend components have clear design references.
 8. As a developer, I want an explicit User Gate after `/f-ux`, so that I can approve the visual design before technical architecture is established.
 9. As a system architect, I want `/f-architect` to operate with high reasoning and produce an implementation plan detailing module seams, data contracts, and dependency changes, so that the implementation agent follows robust engineering patterns.
 10. As a developer, I want an explicit User Gate after `/f-architect`, so that I can validate architectural choices before test suites are written.
@@ -64,7 +65,7 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
 16. As a developer, I want an explicit User Gate after `/f-operator`, so that I can inspect the sealed factory contract, dev profile, model, and attempt budget before triggering the factory run.
 17. As a developer, I want Project Factory Next to execute bounded attempts with model `gpt-6.1-luna` and provide diagnostic feedback on failure, so that the coding agent repairs code autonomously within budget.
 18. As a developer, I want `/f-operator` to handle factory exhaustion or failure by running `inspect` and `reflect` and presenting options to retry with budget, escalate to `/f-architect` or `/f-verificator`, or abort cleanly, so that failed runs are actionable and non-destructive.
-19. As a tech lead, I want `/f-architect` and `/f-ux` to jointly conduct a post-green review, so that passing tests are confirmed to match architectural guidelines and design fidelity.
+19. As a tech lead, I want `/f-review` and the UX review stage to jointly conduct a post-green review, so that passing tests are confirmed to match architectural guidelines and design fidelity.
 20. As a developer, I want an explicit User Gate after the joint review, so that I can verify the peer review findings before manual testing.
 21. As a manual tester, I want `/f-runner` to generate a step-by-step manual testing guide with startup commands, seed data, and validation clickthroughs, so that I can personally test the new feature.
 22. As a developer, I want a final User Gate after `/f-runner`, so that I can execute the manual checks and approve merging the candidate branch into main.
@@ -90,11 +91,14 @@ A modular, project-agnostic SDLC workflow driven by specialized role skills star
   - `f-orchestrator`
   - `f-ba`
   - `f-ux`
-  - `f-architect`
+  - `f-architect` (planning)
+  - `f-review` (post-green)
   - `f-verificator`
   - `f-operator`
   - `f-runner`
   - `f-advisor`
+
+BA, UX, architecture planning, and architecture review are internal orchestration skills. Human requests go through the orchestrator. Revision feedback is required for revisions; initial authoring uses the request or approved artifacts. Architect research and contra-review remain outside the workflow.
 
 ### 3. Model & Reasoning Allocation
 - Workspace Cleanup / Doc Elevation uses `high` reasoning.

@@ -6,7 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] Implement post-green review guidelines for `/f-architect` and `/f-ux` evaluating candidate diffs for architectural integrity and UX fidelity, outputting `review-report.md`
+- [ ] Implement post-green review guidelines for `/f-review` and the UX review stage evaluating candidate diffs for architectural integrity and UX fidelity, outputting `review-report.md`
 - [ ] Enforce User Gate 6 to confirm post-green review findings
 - [ ] Create `.agents/skills/f-runner/SKILL.md` (medium reasoning) authoring `manual-test-guide.md` with startup commands, seed data, and clickthrough checklists
 - [ ] Enforce User Gate 7 presenting final approval for branch merge
+
+## Follow-up contract (2026-10-08)
+
+`f-review` now defines the internal architectural assessment. This ticket remains open for the joint UX review, runner, and Gate 6–7 integration; the architecture skill alone does not complete this ticket.
