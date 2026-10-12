@@ -189,9 +189,13 @@ When the orchestrator pauses at any of the named gates, decisions can be submitt
 
 ### Internal Role Dispatch
 
-`f-ba`, `f-ux`, `f-architect` (planning), and `f-review` (post-green) are orchestration-only skills. The human uses `f-orchestrator plan`, `execute`, or `revise`; the orchestrator dispatches the role with story ID, artifact/approval evidence, and human feedback for revisions. Role outputs return to the orchestrator for gate presentation and ledger updates. Each role owns its procedure in its skill. The orchestrator alone reads [the orchestration protocol](orchestration-protocol.md). Each role reads the resolved ASD-STE100 skill. Each role uses Strict mode for procedures and handoffs. Each role uses STE-flavored mode for human explanations. Caller restriction is a workflow instruction, not an access-control feature of skill metadata. Architect research and contra-review are outside this workflow.
+`f-ba`, `f-architect`, `f-ux` (design and post-green review), and `f-review` are orchestration-only skills. The human uses `f-orchestrator plan`, `execute`, or `revise`; the orchestrator dispatches the role with story ID, artifact/approval evidence, and human feedback for revisions. Role outputs return to the orchestrator for gate presentation and ledger updates. Each role owns its procedure in its skill. The orchestrator alone reads [the orchestration protocol](orchestration-protocol.md). Each role reads the resolved ASD-STE100 skill. Each role uses Strict mode for procedures and handoffs. Each role uses STE-flavored mode for human explanations. Caller restriction is a workflow instruction, not an access-control feature of skill metadata. Architect research and contra-review are outside this workflow.
 
-The orchestrator skill remains scheduled in ticket 07; these are its dispatch contracts, not a claim that the complete pipeline is executable today. Ticket 06 still owns joint UX review, runner, and Gates 6–7 integration.
+The orchestrator skill remains scheduled in ticket 07; these are its dispatch contracts, not a claim that the complete pipeline is executable today. The [post-green contract](post-green-review.md) defines joint UX review, runner, and Gates 6–7 handoffs.
+
+### Post-Green Review and Release
+
+Follow the [post-green contract](post-green-review.md) after passing factory checks. It defines fixed-input checks, joint report fields, Gate 6 approval, manual guide fields, and Gate 7 human results. Dispatch UX assessment with `f-ux <story-id> --stage review`. Dispatch the runner only after current Gate 6 approval. Roles pause at the human gates. The orchestrator records approvals and controls progression.
 
 ### Other Stage Commands
 

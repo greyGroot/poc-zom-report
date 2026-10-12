@@ -1,0 +1,9 @@
+# Candidate UX review
+
+1. **Pin.** Follow the [post-green input checks](../../../docs/workflow/post-green-review.md#input-checks). Read the approved UX specification and selected storyboard or approved N/A decision. Return missing or stale evidence to orchestration.
+2. **Compare.** Inspect the fixed candidate diff against every approved interaction and acceptance criterion. Check copy, tokens, hierarchy, consequential states, and preserved journeys. Check changed or removed behavior against the approved test impact contract. Keep application code, approved design artifacts, and sealed control read-only.
+3. **Exercise.** Use the candidate in a browser when UI behavior is in scope. Check primary and error journeys, keyboard access, focus, narrow/wide layouts, supported themes, and reduced motion where applicable. Apply the design skill's contrast thresholds. Record measurements, screenshots, viewport sizes, and actual results. Mark unavailable checks as unverified. For technical stories, check the approved N/A rationale against the actual diff. Unexpected UI impact requires renewed design review.
+4. **Report.** Write the UX assessment in `.sdlc/<story-id>/review-report.md` under the [joint report contract](../../../docs/workflow/post-green-review.md#joint-report). Preserve implementation findings. Cite the criterion, design rule, candidate path, and observable evidence for each finding. Distinguish implementation defects from proposed design changes. Return design changes to orchestration for the affected earlier gates.
+5. **Return.** Return artifacts, recommendation, unresolved checks, and blockers for Gate 6. Pause. The orchestrator presents the joint findings and records the human decision.
+
+**Done.** Every applicable criterion and UX check has evidence or an explicit unresolved status. N/A has an approved rationale and candidate evidence.
