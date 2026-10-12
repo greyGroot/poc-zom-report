@@ -9,6 +9,7 @@
 - [ ] Create `.agents/skills/f-operator/SKILL.md` operating with medium reasoning
 - [ ] Implement isolated worktree provisioning at `factory-workspaces/<story-id>/candidate/` on branch `feat/<story-id>`
 - [ ] Package verificator tests into sealed `control/` directory with `task.json`, `profile.json`, and Factory Next JSON case schemas
+- [ ] Apply the approved [test impact contract](../../../docs/workflow/test-impact-contract.md): package the impact plan and exact case-level replacements/removals, apply QA-owned test and runner changes before worker execution, preserve the original application baseline, and seal authoritative active evaluators. Verify candidate test changes match approved QA changes before release.
 - [ ] Compute immutable `policyDigest` via `factory.mjs seal`
 - [ ] Implement User Gate 5 to inspect sealed contract, model (`gpt-6.1-luna`), and attempt budget before triggering execution
 - [ ] Support diagnostic failure intake via `factory.mjs inspect` and `factory.mjs reflect`, providing retry, escalate, or abort paths

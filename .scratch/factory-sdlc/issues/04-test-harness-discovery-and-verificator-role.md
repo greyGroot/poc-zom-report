@@ -38,3 +38,12 @@ Implemented `.agents/skills/f-verificator/SKILL.md` and its `evidence.md` checkl
 | Gate 4 awaits human action | Pause before provisioning and leave approval to orchestration | Step 7 prohibits an automatic operator handoff. |
 
 Automated prose tests remain omitted under the specification's verification strategy. Live story execution, control sealing, and orchestration integration remain work for their respective tickets.
+
+
+## Test impact refinement (2026-10-12)
+
+The approved behavior-change proposal adds Preserve, Add, Replace, and Retire dispositions under `docs/workflow/test-impact-contract.md`. BA specifies before/after requirements. UX identifies journey changes. Architect proposes capability and test impact. Verificator owns the case-level plan, assertions, and exact QA changes. Gate 4 approves the complete contract before operator provisioning.
+
+An isolated sample under `.sdlc/SAMPLE-IMPACT/` exercised all four dispositions with synthetic planning and approval inputs. Three original cases passed on the baseline. A preserved source-loading assertion remained GREEN. Added teacher-label, replacement attendance threshold, and removal-absence assertions each failed for the expected reason. A QA-owned patch updated individual cases in a mixed suite without excluding its preserved core case. After synthetic candidate implementation, four external independent cases and four native suite cases passed. The original baseline remained clean, staged fingerprints remained unchanged, and candidate tests matched the approved QA patch.
+
+The sample report, commands, manifest, QA patch, and logs remain in `.sdlc/SAMPLE-IMPACT/verification-report.md` (git-ignored). This exercise does not establish real human approvals, Factory worker isolation, or control sealing. Ticket 05 now explicitly requires applying and sealing approved QA changes. Capability indexing is a role requirement; no production test migration or runner integration occurred in this refinement.

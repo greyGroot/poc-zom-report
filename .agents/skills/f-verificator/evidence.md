@@ -12,24 +12,26 @@ Use this checklist for the execution report. Distinguish actual execution, propo
 
 ## Coverage and execution
 
-Use one row per criterion and selected critical journey:
+Link the completed [test impact plan](../../../docs/workflow/test-impact-contract.md#test-impact-plan). Record actual evidence for each planned case:
 
-| Criterion or journey | Public seam | Test path and case ID | Independent expected result | Exact command and working directory | Actual result | Evidence log |
-|---|---|---|---|---|---|---|
+| Behavior / criterion ID | Disposition | Public seam | Test path and case ID | Independent baseline/candidate expectations | Exact command and working directory | Actual result | Evidence log |
+|---|---|---|---|---|---|---|---|
 
 - Record execution order, environment requirements, baseline identity, exit status, and individual case outcomes for each command.
 - Separate existing regressions, added baseline coverage, and acceptance results.
-- For each RED case, compare expected failure reasons with actual diagnostics. Explain how the failure proves absent behavior. Aggregate failure alone is insufficient.
+- For each Add/Replace RED case, compare expected failure reasons with actual diagnostics. Explain how the failure proves absent behavior. Aggregate failure alone is insufficient.
 - For GREEN, identify passing assertions and skips separately. Explain journey selection and the relevance of unexecuted suites.
 - Identify unrelated failures, skips, and undiscovered tests that block required coverage.
+- Link authorizing criteria and exact assertion changes for Replace/Retire. Record baseline results for superseded cases.
+- Record capability-index checks, uncovered dependencies, and any staged index updates.
 
 ## Operator handoff
 
-- List changed paths and all staged tests, fixtures, helpers, and runner configurations with relative paths and SHA-256 fingerprints.
-- Include all required assertions, fixtures, and expected values in this manifest for sealing.
+- List changed paths and all staged tests, fixtures, helpers, runner configurations, and QA-owned patches with relative paths and SHA-256 fingerprints.
+- Include all required assertions, fixtures, expected values, and approved replacements/removals in this manifest for sealing.
 - Provide separate native baseline and acceptance commands against a supplied checkout path, with tests outside that checkout.
 - Explain external dependency resolution, discovery overrides, temporary configuration, and cleanup.
 - List unresolved prerequisites, uncovered criteria, and portability blockers.
 - Recommend ready or blocked for **Gate 4: Test Contract Gate** with evidence links.
 
-This report supports human approval before provisioning. Task contracts, Dev Profiles, control sealing, worker launch, and approval remain outside this role.
+Gate 4 approval covers the impact plan, test changes, manifest, and execution evidence before provisioning. Task contracts, Dev Profiles, control sealing, worker launch, and approval remain outside this role.
