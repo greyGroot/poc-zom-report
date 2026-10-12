@@ -47,8 +47,8 @@ These local artifacts are git-ignored. The committed report preserves the result
 Factory version: `0.1.0`, commit `f13b896d26d57421f807e152a854f4392dd923df`.
 Adapter: `codex`, from `src/adapters.mjs` at that commit.
 CLI: `/usr/lib/chatgpt/resources/codex`, version `codex-cli 0.160.0`.
-Requested model: `gpt-6.1-luna`. Reported successful model: unavailable.
-Requested reasoning: `medium`. Effective provider reasoning: unverified because the model rejected the request.
+Requested model: `gpt-6.1-luna`. The original request received no successful reported model.
+Requested reasoning: `medium`. The original rejected request did not establish provider reasoning.
 
 The actual `factory.mjs run` used run ID `operator-05-smoke-001`, one attempt, and a 45,000 ms worker deadline.
 The adapter enforced its default combined output limit of 1 MiB.
@@ -67,14 +67,52 @@ The [builder result](../../.sdlc/store/operator-05-smoke-001/attempt-1/builder.j
 The [inspection](../../.sdlc/OPERATOR-05/diagnostics/inspect-001.json) and [failure intake](../../.sdlc/OPERATOR-05/diagnostics/intake-001.json) preserve diagnostics.
 No credentials were printed. No alternative model was dispatched without approval.
 
-## Unresolved execution boundary
+## Approved substitution and successful execution
 
-Path separation and integrity rejection passed. Write prevention through the actual worker remains unverified.
-A separate `codex sandbox` probe could not start with the legacy `sandbox_mode` configuration.
-This installed CLI required `--permission-profile` and a `[permissions]` table.
-The probe therefore established no filesystem write restriction.
+The user replied `proceed` to the request for a `gpt-6-luna` smoke substitution.
+The original required name remains recorded above. This approval applies to construction verification.
+The operator skill still requires approval before substitutions in future feature runs.
+
+Run `operator-05-smoke-002` used `gpt-6-luna`, the same medium wrapper, one attempt, and the original 45,000 ms deadline.
+The actual adapter returned exit 0 after 18,521 ms, with 30,925 bytes of untruncated output.
+The worker created the exact requested file. The sealed `SMOKE` case passed.
+The provider emitted no separate resolved-model or reasoning-level field in its JSON events.
+The requested model succeeded without a fallback warning. Independent provider model identity remains unavailable.
+Medium reasoning resolves through the explicit CLI override and documented configuration precedence, rather than self-reported agent text.
+The wrapper excludes user config and supplies the highest-priority reasoning override.
+The configuration resolution satisfies the ticket's documented-resolution option. It is not direct provider metadata.
+
+Evidence: [approved invocation](../../.sdlc/OPERATOR-05/diagnostics/invocation-002.json),
+[builder result](../../.sdlc/store/operator-05-smoke-002/attempt-1/builder.json),
+and [sealed evaluator result](../../.sdlc/store/operator-05-smoke-002/attempt-1/evidence.json).
+
+## Actual worker boundary
+
+The initial standalone `codex sandbox` probe could not start with the legacy `sandbox_mode` configuration.
+This installed CLI required `--permission-profile` and a `[permissions]` table for that separate command.
+That failed probe established no filesystem write restriction.
 Its [stderr](../../.sdlc/OPERATOR-05/diagnostics/boundary-probe.stderr) preserves the configuration error.
 
-Production dispatch must use a tested worker boundary that denies writes to control, store, and QA authority.
-A digest and same-owner read-only files do not establish that boundary.
-A successful approved worker smoke and write-denial probe remain necessary before claiming operational readiness.
+A subsequent actual Factory run, `operator-05-boundary-001`, exercised the worker's normal command sandbox.
+A prewritten probe attempted harmless new files in control, shared store, the primary checkout, and independent QA authority.
+Every external write failed with `EROFS`. The worker successfully wrote the result file inside the candidate.
+The sealed `BOUNDARY` evaluator independently checked these results and the absence of all four external sentinels.
+It passed. The run used the approved `gpt-6-luna` substitution and the same medium wrapper.
+
+Evidence: [probe source](../../.sdlc/OPERATOR-05/candidate-evidence/operator-boundary-probe.mjs),
+[dispatch arguments](../../.sdlc/OPERATOR-05/diagnostics/boundary-invocation.json),
+and [boundary evaluator evidence](../../.sdlc/store/operator-05-boundary-001/attempt-1/evidence.json).
+This observation covers the tested CLI, host, configuration, and normal command tool.
+It does not establish universal protection against a hostile runtime or an external connector.
+Future dispatch must check the actual worker boundary again when the runtime or configuration changes.
+
+## Skill review
+
+Direct checks passed for frontmatter, local reference links, JSON examples, and `git diff --check`.
+The STE linter reported zero violations across the five skill files.
+Independent Standards and Spec reviews found no actionable findings against the construction base.
+The reviews assessed procedure coverage. The successful smoke and boundary evidence above provide the runtime results.
+Gate 5 remains an explicit human pause in the skill. Synthetic inputs in these construction checks did not approve a product story.
+
+The disposable candidate files were archived under `.sdlc/OPERATOR-05/candidate-evidence/` before worktree cleanup.
+The shared store and sealed controls remain available for inspection.

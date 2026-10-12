@@ -165,5 +165,5 @@ Source: [smoke setup](/home/user/2grow/poc-zom-report/.sdlc/OPERATOR-05/prepare-
 The run pinned policy digest `ca6afaee5626f51dddc4fafc86262c86039b25354b94e5ad3adec61ef70e64ed`.
 It recorded evaluator digest `ce7ce2a20b5ee8bd1817f7042598eaf9226d2579c6cf382eddfc08570d7f13dd`.
 The parent requested approval before substituting `gpt-6-luna`.
-Successful model execution and a tested control write boundary remain unresolved at this research snapshot.
+Successful execution and write isolation were unresolved at this research snapshot. The later [verification report](factory-operator-verification.md#approved-substitution-and-successful-execution) records the approved substitution, passing smoke, and actual boundary probe.
 Source: [run record](/home/user/2grow/poc-zom-report/.sdlc/store/operator-05-smoke-001/run.json) and the parent operator's reported approval request.
