@@ -49,17 +49,18 @@ The runner writes `.sdlc/<story-id>/manual-test-guide.md`. The guide contains:
 - A result table with check ID, tester, date, candidate identity, actual result, PASS/FAIL/BLOCKED/PENDING status, and evidence or defect reference.
 - Separate agent verification results and human results. Initialize human results as PENDING. Record commands that failed or could not run.
 - Known limitations, unresolved review items, and the final merge decision requested at Gate 7.
+- A wizard path, session record, ready app URL, restart instructions, and agent-owned shutdown and commit steps.
 
-Keep setup isolated from production. Document human-only authentication steps when needed. If safe fixtures or startup instructions are missing, record a blocker and request the responsible role's correction. Guide authoring does not authorize application changes.
+Keep setup isolated from production. Document human-only authentication steps when needed. If safe fixtures or startup instructions are missing, record a blocker and request the responsible role's correction. Guide authoring does not authorize application changes. The runner uses the [session procedure](../../.agents/skills/f-runner/session.md) to start the app before human testing and keep it available. That procedure owns wizard integration, interruption recovery, `restart`, shutdown, and candidate commit recording.
 
 ## Gate 7: Release Gate
 
 1. Check current Gates 1–6 approval evidence against the candidate, control, run, review report, and guide.
 2. Set `gateState.release.status` to `PENDING`. Set `currentRole` to `f-runner`. Keep workflow `status` as `IN_PROGRESS`.
-3. Present the named gate, guide, joint report, exact branch/base/candidate, human result table, actual agent checks, and blockers. State that approval authorizes merging the identified candidate branch into `main`.
+3. Present the named gate, ready app URL, wizard, guide, joint report, exact branch/base/candidate, human results, actual agent checks, and blockers. State that final approval authorizes app shutdown, committing tested changes, and the identified candidate's merge into `main`.
 4. Pause for the human to execute the guide. Collect human results for every required check. FAIL, BLOCKED, or PENDING results prevent release readiness. Agent test results cannot replace human execution.
 5. Obtain explicit approval to merge the tested candidate. Record the human decision, timestamp, guide and result fingerprints, and approved input identity in the State Ledger and `history`.
-6. Return the approved merge handoff to orchestration. Recheck identity immediately before any authorized merge. Record the merge outcome separately. A failed or unperformed merge keeps workflow completion pending. Gate 7 does not authorize deployment.
+6. Stop the session app and commit the tested changes under the runner's session procedure. Record the tested source manifest, resulting commit, and shutdown evidence. Return the approved merge handoff to orchestration. Recheck source identity and the recorded commit immediately before any authorized merge. Record the merge outcome separately. A failed or unperformed merge keeps workflow completion pending. Gate 7 does not authorize deployment.
 
 Guide corrections return to the runner and require renewed Gate 7 presentation. Material check changes require the human to repeat affected checks. Candidate changes invalidate Gate 6 and Gate 7, require current passing evidence and joint review, and require manual retesting. Preserve earlier results with their original identities. Abort follows the operational guide's recovery procedure.
 
