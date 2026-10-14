@@ -35,3 +35,18 @@ The independent Standards review found no actionable findings. The helper presen
 The independent Spec review found one issue: the entry instructions could reject revision of an earlier gate. The corrected instructions restrict that rejection to approval commands. Revision commands permit earlier named stages. The reviewer confirmed coverage of all five required resume scenarios.
 
 Review totals: Standards, zero findings. Spec, one finding corrected. The review compared this task's staged files with starting commit `e562c7305ae0017bb347bedf98c00b203969eeb0`. Existing workspace changes were outside that diff.
+
+## Follow-up review: 14 October 2026
+
+The requested subagent review identified two recommendations:
+
+| Priority | Recommendation | Disposition |
+|---|---|---|
+| P1: High risk | Require `candidateDir` to identify the complete Git worktree root. A subtree snapshot can omit changed code. | Implemented. The helper rejects candidate subdirectories. |
+| P2 | Capture executable permissions for reviewed control files. A permission change can affect evaluator execution. | Implemented. Reviewed artifact snapshots now include executable permission evidence. |
+
+Both regression tests failed before the fixes. All 14 command-interface tests passed after the fixes. The reviewer checked both fixes and found no additional actionable issues. `npm test` passed again. The native suite still skipped the absent PDF sample and live Schoolmate checks without credentials. Node syntax and Git whitespace checks passed.
+
+Older approval snapshots lack `artifactFileModes`. They require renewed approval rather than reconstructed historical evidence.
+
+The follow-up also adds `/f-orchestrator help` with a complete command reference. The state procedures now separate approval capture, transition checks, invalidation, maintenance, and expected identity transitions. Function comments explain the ledger helpers. The language handoff retains the personal AGENTS.md requirement. Each delegate reads the resolved language skill once in its own context.

@@ -7,11 +7,13 @@ description: "Coordinate feature planning, execution, human gates, revisions, an
 
 **Role.** You coordinate feature development through seven human gates. You own the State Ledger and human decisions. Each role owns its procedure.
 
-**Call.** Accept `f-orchestrator plan|execute|status|resume|abort <story-id>`. Accept `approve|revise <story-id> [gate-name]`. Revisions accept `--notes "<feedback>"`. Gate aliases are `requirements`, `design`, `architecture`, `test-contract`, `factory-dispatch`, `review`, and `release`. An omitted gate means the current pending gate. For `approve`, reject a different gate. For `revise`, permit an earlier named stage. Reject an ambiguous story. A phase command authorizes coordination, not future human approvals.
+**Call.** Accept the commands in the [command reference](commands.md). An omitted gate means the current pending gate. For `approve`, reject a different gate. For `revise`, permit an earlier named stage. Reject an ambiguous story. A phase command authorizes coordination, not future human approvals.
+
+**Help.** For `f-orchestrator help`, return every command and its short description from the command reference. Include gate aliases. Stop before story lookup, ledger access, or role dispatch. Help requires no story ID.
 
 **Reasoning.** Select medium reasoning when the host supports selection. Record an unavailable selection as a limitation. Skill metadata does not configure runtime reasoning.
 
-**Language.** Resolve the project ASD-STE100 skill, or `/home/user/.agents/skills/asd-ste100/SKILL.md` when absent. Read that skill. Pass its absolute path to every delegate. Require each delegate to read it. Require Strict mode for procedures and handoffs. Require STE-flavored mode for human explanations. Require delegates to preserve these instructions during further delegation.
+**Language.** Resolve the project ASD-STE100 skill, or `/home/user/.agents/skills/asd-ste100/SKILL.md` when absent. Read that skill. Pass its absolute path to every delegate. Require each delegate to read it once in its own context. Require Strict mode for procedures and handoffs. Require STE-flavored mode for human explanations. Require delegates to preserve these instructions during further delegation.
 
 1. **Resolve.** Check the story ID against `[A-Za-z0-9][A-Za-z0-9_-]*`. Read repository instructions, `GLOSSARY.md`, and the [orchestration protocol](../../../docs/workflow/orchestration-protocol.md). Read the [operational guide](../../../docs/workflow/factory-sdlc.md) for transitions, ledger fields, approval evidence, and recovery. Resolve story filenames through `f-ba`'s matching rules. Use the resolved ID consistently.
 2. **Load.** Follow [state and approval checks](state.md). Initialize a missing ledger only for `plan`. An execution request requires an existing approved plan. Preserve unknown fields, history, prior run IDs, and digests. Serialize ledger writes and role handoffs. A malformed ledger blocks dispatch. `status` reports state without changing approvals.

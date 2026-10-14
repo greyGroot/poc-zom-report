@@ -4,8 +4,11 @@ import { lstatSync, readFileSync, readdirSync, renameSync, writeFileSync } from 
 import { resolve, relative, sep } from 'node:path';
 
 const gates = ['requirements', 'design', 'architecture', 'testContract', 'factoryDispatch', 'review', 'release'];
+// Return the lowercase SHA-256 fingerprint of the supplied bytes or text.
 const digest = value => createHash('sha256').update(value).digest('hex');
+// Read a UTF-8 JSON file and return its parsed value.
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
+// Serialize JSON with sorted object keys so key order does not affect comparisons.
 const canonical = value => JSON.stringify(value, (_, item) => {
   if (item && typeof item === 'object' && !Array.isArray(item)) {
     return Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]]));
@@ -13,6 +16,7 @@ const canonical = value => JSON.stringify(value, (_, item) => {
   return item;
 });
 
+// Check repository containment and reject symbolic links, then return a relative path.
 function local(path) {
   if (typeof path !== 'string' || !path) throw new Error('A nonempty artifact path is required.');
   const absolute = resolve(path);
@@ -27,27 +31,31 @@ function local(path) {
   return name.split(sep).join('/');
 }
 
-function collect(path, files, directories) {
+// Add file fingerprints, executable permissions, and complete directory membership to the supplied manifests.
+function collect(path, files, directories, fileModes) {
   const name = local(path);
   const stat = lstatSync(name);
   if (stat.isDirectory()) {
     directories.push(name);
-    for (const child of readdirSync(name).sort()) collect(`${name}/${child}`, files, directories);
+    for (const child of readdirSync(name).sort()) collect(`${name}/${child}`, files, directories, fileModes);
   } else if (stat.isFile()) {
     files[name] = digest(readFileSync(name));
+    fileModes[name] = stat.mode & 0o111;
   } else {
     throw new Error(`Artifact is not a regular file or directory: ${name}`);
   }
 }
 
+// Capture reviewed artifacts, workflow identities, and candidate content for approval comparison.
 function snapshot(input) {
   if (!Array.isArray(input.paths) || input.paths.length === 0) throw new Error('Reviewed artifact paths are required.');
   const artifacts = {};
+  const artifactFileModes = {};
   const directories = [];
   const roots = [...new Set(input.paths.map(local))].sort();
-  for (const path of roots) collect(path, artifacts, directories);
+  for (const path of roots) collect(path, artifacts, directories, artifactFileModes);
   const result = {
-    roots, artifacts, directories: [...new Set(directories)].sort(),
+    roots, artifacts, artifactFileModes, directories: [...new Set(directories)].sort(),
     selection: input.selection ?? null,
     candidateRevision: null,
     candidateBaseRevision: input.candidateBaseRevision ?? null,
@@ -57,9 +65,13 @@ function snapshot(input) {
     runId: input.runId ?? null,
   };
   if (result.policyDigest && !/^[a-f0-9]{64}$/.test(result.policyDigest)) throw new Error('Invalid policy digest.');
-  if (result.controlDir) collect(result.controlDir, artifacts, directories);
+  if (result.controlDir) collect(result.controlDir, artifacts, directories, artifactFileModes);
   if (result.candidateDir) {
+    // Run a Git query in the candidate and return its trimmed output.
     const git = args => execFileSync('git', ['-C', result.candidateDir, ...args], { encoding: 'utf8' }).trim();
+    if (resolve(git(['rev-parse', '--show-toplevel'])) !== resolve(result.candidateDir)) {
+      throw new Error('Candidate directory must identify the candidate worktree root.');
+    }
     result.candidateRevision = git(['rev-parse', '--verify', 'HEAD']);
     if (!result.candidateBaseRevision) throw new Error('Candidate base revision is required.');
     const base = git(['rev-parse', '--verify', `${result.candidateBaseRevision}^{commit}`]);
@@ -71,8 +83,7 @@ function snapshot(input) {
     for (const name of [...new Set(names.split('\0').filter(Boolean))].sort()) {
       const path = `${result.candidateDir}/${name}`;
       try {
-        collect(path, candidateFiles, []);
-        candidateFileModes[path] = lstatSync(path).mode & 0o111;
+        collect(path, candidateFiles, [], candidateFileModes);
       } catch (error) {
         if (error.code !== 'ENOENT') throw error;
         candidateFiles[path] = null;
@@ -86,6 +97,7 @@ function snapshot(input) {
   return JSON.parse(canonical(result));
 }
 
+// Check requested approvals and preserve prior records before invalidating stale gates.
 function check(statePath, inputsPath, requested) {
   if (!requested.length || requested.some(gate => !gates.includes(gate))) throw new Error('Specify valid prerequisite gate keys.');
   const state = read(statePath);

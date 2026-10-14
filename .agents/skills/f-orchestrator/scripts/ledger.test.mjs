@@ -111,3 +111,34 @@ test('candidate executable permission changes invalidate approval', t => {
   chmodSync(join(f.cwd, 'candidate/source.txt'), 0o755);
   assert.equal(f.run('check', 'state.json', 'current.json', 'architecture').status, 1);
 });
+
+test('candidate capture rejects a subtree that omits other worktree files', t => {
+  const f = fixture(t, true);
+  mkdirSync(join(f.cwd, 'candidate/partial'));
+  f.write('candidate/partial/inside.txt', 'inside');
+  f.write('candidate/outside.txt', 'outside');
+  f.git('add', '.');
+  f.git('commit', '-qm', 'complete worktree');
+  f.input.candidateDir = 'candidate/partial';
+  f.write('input.json', f.input);
+  const result = f.run('snapshot', 'input.json');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /candidate worktree root/i);
+});
+
+test('control executable permission changes invalidate approval', t => {
+  const f = fixture(t);
+  mkdirSync(join(f.cwd, 'control'));
+  f.write('control/evaluate.sh', '#!/bin/sh\nexit 0\n');
+  chmodSync(join(f.cwd, 'control/evaluate.sh'), 0o644);
+  f.input.controlDir = 'control';
+  f.input.policyDigest = 'a'.repeat(64);
+  f.write('input.json', f.input);
+  const captured = f.run('snapshot', 'input.json');
+  assert.equal(captured.status, 0, captured.stderr);
+  f.state.gateState.architecture.approvedInputs = JSON.parse(captured.stdout);
+  f.save();
+  chmodSync(join(f.cwd, 'control/evaluate.sh'), 0o755);
+  assert.equal(f.run('check', 'state.json', 'current.json', 'architecture').status, 1);
+  assert.equal(f.ledger().gateState.architecture.status, 'PENDING');
+});
