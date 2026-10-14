@@ -120,7 +120,7 @@ Human supervision is enforced at every role transition through named, first-clas
    - Clickable links to all generated artifacts.
    - Summary of decisions made and verification outcomes.
    - Specific questions or checkpoints requiring human validation.
-2. **Acceptance (`approve [gate-name]`)**: Record sign-off in the state ledger and follow the approved edge in the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions).
+2. **Acceptance (`approve [gate-name]`)**: Record sign-off and the reviewed input snapshot under the [approval evidence contract](#approval-evidence-contract). Follow the approved edge in the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions).
 3. **Revision (`revise [gate-name] --notes "<feedback>"`)**: Re-invoke the preceding role with feedback constraints. Invalidate its approval and all downstream approvals when its artifact changes; retain prior sign-offs in history. Role revisions dispatched by the orchestrator follow the same rule. Any new control version requires renewed Factory Dispatch Gate approval of its path, digest, model, and per-run budget.
 4. **Abort (`abort`)**: Pipeline execution terminates cleanly; transient worktrees and resources are pruned.
 
@@ -315,6 +315,23 @@ Pipeline execution state is tracked deterministically in a JSON ledger located a
 ```
 
 The ledger is an instance record, not a JSON Schema. `status` is `IN_PROGRESS`, `COMPLETED`, or `ABORTED`; a failed factory run leaves the pipeline `IN_PROGRESS` awaiting a recovery decision. `phase`, `currentRole`, and gate states follow the [transition definition](#3-end-to-end-operational-lifecycle--state-transitions). Append each approval, revision, control version change, run outcome, and abort to `history`; retain prior run IDs and digests when updating the active entries.
+
+### Approval Evidence Contract
+
+The example above abbreviates approval records. Each persisted `APPROVED` gate must also contain an `approvedInputs` snapshot. Ticket 07 implements snapshot creation and checks.
+
+- `artifacts` maps each reviewed file path to its lowercase SHA-256 content fingerprint. Include approved prerequisite artifacts and the stage's outputs. For directories, include the complete file manifest so additions and deletions change the comparison. Include selected mockups and linked architecture views when applicable.
+- `selection` records an applicable human choice, such as the selected UX alternative or an approved N/A decision.
+- `candidateRevision` records the candidate commit when the gate evaluates candidate code. Record `candidateBaseRevision` when the base affects the decision. Fingerprint any reviewed uncommitted changes. A commit alone does not identify a dirty working tree.
+- `controlDir`, `policyDigest`, and `runId` identify the exact control version and run when applicable. Factory dispatch approval precedes execution, so it need not contain a run ID. Post-green approval must identify the passing run.
+
+Record the snapshot at approval time. Preserve it with the human decision in `history`. Current artifact pointers remain separate from the approved snapshot.
+
+Before resume or dependent dispatch, compare applicable snapshots with current inputs. Identical verified inputs retain their approvals. A substantive mismatch sets the affected gate to `PENDING` and downstream gates to `NOT_STARTED`. Preserve prior approvals in history. Apply the existing revision protocol to demonstrably non-substantive maintenance and record its comparison evidence.
+
+Missing files, missing snapshots, or unverifiable inputs prevent progression under the old approval. Existing approval flags without snapshots require renewed approval of identified inputs. Never reconstruct historical approval evidence from current files and treat it as a prior human decision.
+
+Example: the human approves architecture plan A. The plan changes to B while the workflow is interrupted. On resume, its fingerprint differs. The orchestrator presents the change at Gate 3 before permitting test authoring.
 
 ---
 

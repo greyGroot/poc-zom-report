@@ -7,6 +7,6 @@
 **Status:** ready-for-agent
 
 - [ ] Create `.agents/skills/f-advisor/SKILL.md` operating with high reasoning
-- [ ] Implement history ingestion from `/home/user/2grow/factory-runs/` to analyze token usage, repair attempt counts, and common failure modes
+- [ ] Implement history ingestion from the shared `.sdlc/store/` directory to analyze token usage, repair attempt counts, and common failure modes
 - [ ] Provide actionable recommendations for prompt, contract, or dev profile tuning
 - [ ] Provide lightweight workflow design guidance for non-factory tasks (bugs, spikes)

@@ -11,6 +11,7 @@
 - [x] Implement baseline regression test verification ensuring existing critical flows pass GREEN
 - [x] Author story-specific acceptance tests based on the story and architectural plan that demonstrably fail RED
 - [x] Enforce User Gate 4 confirmation before handing tests over to factory provisioning
+- [x] Use Matt Pocock's `tdd` skill as a reference for public-interface tests and independent assertions. The verificator owns staged acceptance tests and records the baseline revision, commands, and expected RED reasons. The operator seals the approved tests under ticket 05. The Factory Worker implements candidate code and cannot change sealed evaluators. The generic single-agent TDD loop does not replace this ownership contract.
 
 
 ## Completion evidence
