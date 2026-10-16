@@ -1,7 +1,7 @@
 # CRM-014 — Add Breadcrumb Navigation Across EE-CRM Pages
 
 **Story ID:** CRM-014  
-**Status:** Requirements prepared — Gate 1 approval pending
+**Status:** Completed. The user accepted the final story and authorized commit, merge, and push on 16 October 2026. Product commit: `66fc815`.
 **Primary user:** School administrator / Academic manager  
 **Related PRD:** [Schedule and Zoom Evidence Review](../prd/PRD.md)
 
@@ -9,13 +9,13 @@
 
 ## Summary
 
-Implement a standardized, accessible breadcrumb navigation bar across EE-CRM pages. The breadcrumbs establish clear hierarchical context (e.g., `Teachers / [Teacher Name] / [Day Name & Date]`), allow administrators to easily navigate back up the application tree with a single click, and preserve active date range filters and query parameters (`from`, `to`, `preset`, `filter`) when traversing back to parent views.
+Implement a standardized, accessible breadcrumb navigation bar across EE-CRM pages. The breadcrumbs establish clear hierarchical context (e.g., `Teachers / [Teacher Name] / [Day Name & Date]`), allow administrators to easily navigate back up the application tree with a single click, and link to parent views without copied query parameters. Destination pages apply their existing defaults.
 
 ---
 
 ## Business objective
 
-Improve administrative workflow efficiency and spatial orientation within EE-CRM. Administrators regularly drill down from the teachers directory into a teacher's schedule, and further into a specific day's comparison details. Breadcrumbs provide immediate hierarchical clarity and seamless one-click upward navigation without losing their working date range or filter context.
+Improve administrative workflow efficiency and spatial orientation within EE-CRM. Administrators regularly drill down from the teachers directory into a teacher's schedule, and further into a specific day's comparison details. Breadcrumbs provide immediate hierarchical clarity and seamless one-click upward navigation with destination pages applying their existing defaults.
 
 ---
 
@@ -23,15 +23,15 @@ Improve administrative workflow efficiency and spatial orientation within EE-CRM
 
 As a school administrator,  
 I want a breadcrumb trail displayed at the top of teacher and day pages,  
-so that I always know where I am in the application hierarchy and can quickly jump back to parent views (e.g. Teacher Schedule or Teachers Directory) while keeping my selected date range intact.
+so that I always know where I am in the application hierarchy and can quickly jump back to parent views (e.g. Teacher Schedule or Teachers Directory) through locale-aware links without copied query parameters.
 
 ---
 
-## Current-state findings
+## Pre-implementation findings
 
 1. **No Unified Breadcrumb Component:** Pages currently rely on back controls or top navbar links.
 2. **Loss of Navigation Context:** When drilling down from Teacher Schedule (`/teachers/[id]`) into a specific Day Details view (`/teachers/[id]/[date]`), clicking the top navigation `Teachers` link resets the user back to the root directory rather than returning to the active teacher's weekly view.
-3. **Query Parameter Persistence:** The existing day return link retains supplied range parameters and non-default filters. It omits `filter=all`. Breadcrumbs must meet the explicit retention criteria below.
+3. **Query Parameter Persistence:** The existing day return link retains supplied range parameters and non-default filters. It omits `filter=all`. Error-recovery return controls retain this behavior. The human authorized removal of the normal day schedule-return link. New breadcrumbs use paths without query parameters.
 
 ---
 
@@ -39,7 +39,7 @@ so that I always know where I am in the application hierarchy and can quickly ju
 
 1. **Breadcrumb Hierarchy by Page:**
    - **Teachers Directory (`/` or `/[locale]`):**
-     - No breadcrumb needed (or root item `Teachers` in active state).
+     - No breadcrumb. Teachers is a top-level page.
    - **Teacher Schedule View (`/teachers/[id]`):**
      - Trail: `Teachers` > `[Teacher Name]`
      - `Teachers` is clickable and links to `/` (preserving locale prefix).
@@ -47,16 +47,17 @@ so that I always know where I am in the application hierarchy and can quickly ju
    - **Teacher Day Details View (`/teachers/[id]/[date]`):**
      - Trail: `Teachers` > `[Teacher Name]` > `[Day Name (DD/MM/YYYY)]` (e.g., `Teachers` > `Savchuk Alona` > `Понеділок (28/09/2026)`).
      - `Teachers` is clickable and links to `/`.
-     - `[Teacher Name]` is clickable and links back to `/teachers/[id]` preserving active search params (`?from=...&to=...&preset=...&filter=...`).
+     - `[Teacher Name]` is clickable and links back to `/teachers/[id]` without query parameters.
      - `[Day Name (DD/MM/YYYY)]` is the current/active item.
    - **System Logs View (`/logs`):**
-     - Trail: `Teachers` > `System Logs`.
+     - No breadcrumb. System Logs is a top-level peer of Teachers.
 
-2. **State & Parameter Preservation:**
-   - When navigating from Day Details back to Teacher Schedule via breadcrumb, all active URL query parameters (`from`, `to`, `preset`, `filter`) must be retained in the link URL.
+2. **Ancestor Destinations:**
+   - New breadcrumb ancestors use locale paths without copied query parameters, including `from`, `to`, `preset`, and `filter`.
+   - Destination pages apply their existing defaults. Filter behavior and error-recovery return controls remain unchanged.
 
 3. **Internationalization & Localization:**
-   - Breadcrumb labels (such as `Teachers`, `System Logs`, day names) must respect active locale (`en`, `uk`, `pl`).
+   - Breadcrumb labels (such as `Teachers`, teacher names, and day names) must respect active locale (`en`, `uk`, `pl`).
    - URLs must use the locale router prefix via `LanguageContext` (`formatUrl`).
 
 4. **Accessibility & Semantic Markup:**
@@ -65,7 +66,19 @@ so that I always know where I am in the application hierarchy and can quickly ju
    - Include clear separators (`/` or chevron `›`) hidden from screen readers (`aria-hidden="true"`).
 
 5. **Responsive Behavior:**
-   - On narrow mobile viewports, breadcrumbs wrap cleanly or truncate middle items with ellipsis without overflowing horizontally.
+   - Breadcrumb labels and separators share a text baseline and remain on one line when the full trail fits.
+   - Narrow viewports retain the previously approved full wrapping without horizontal overflow as the current assumption.
+   - This revision does not authorize truncation or new horizontal-scroll behavior.
+
+6. **Future Hierarchy Support:**
+   - The breadcrumb renderer accepts page-supplied ordered items with labels and ancestor destinations. The final item represents the current page.
+   - Future pages can supply different hierarchy depths without editing the renderer.
+   - This story adds no routes, sample pages, global route discovery, or hierarchy registry.
+
+7. **Duplicate Normal Day Return Control:**
+   - Remove the normal day `Back to teacher schedule` link. Its upward-navigation role moves to the query-free teacher breadcrumb.
+   - Preserve previous/next day controls, schedule directory-return controls, and error-recovery links.
+   - Preserve data, schedule filters, lessons, Zoom evidence, and authentication.
 
 ---
 
@@ -78,31 +91,31 @@ Then the breadcrumb displays: `Teachers` › `Savchuk Alona`
 And `Teachers` links to `/` (or `/[locale]`)  
 And `Savchuk Alona` is marked as the current page.
 
-### Scenario 2: Teacher Day Details Page Breadcrumbs & Parameter Retention
+### Scenario 2: Teacher Day Details Page Breadcrumbs & Default Destinations
 Given an administrator navigates to the Day Details page for `28/09/2026` with query parameters `?from=2026-09-28&to=2026-10-04&preset=thisWeek`  
 When the page renders  
 Then the breadcrumb displays: `Teachers` › `Savchuk Alona` › `Понеділок (28/09/2026)`  
-And clicking `Savchuk Alona` navigates back to `/teachers/t_0fa2ff7f?from=2026-09-28&to=2026-10-04&preset=thisWeek` without losing query parameters  
+And clicking `Savchuk Alona` navigates back to `/teachers/t_0fa2ff7f` without query parameters.
 And clicking `Teachers` navigates to `/`.
 
-### Scenario 3: System Logs Breadcrumbs
-Given an administrator opens `/logs`  
+### Scenario 3: Top-level pages
+Given an administrator opens the Teachers directory or System Logs in any supported locale
 When the page loads  
-Then the breadcrumb displays: `Teachers` › `System Logs`  
-And `Teachers` links to `/`.
+Then no breadcrumb navigation appears.
+And existing header navigation remains available.
 
 ### Scenario 4: Localization & Locale Switch
 Given the user switches language from English to Ukrainian (`/uk/teachers/...`)  
 When viewing the breadcrumbs  
 Then the breadcrumb links preserve the `/uk` prefix  
-And localized labels (`Вчителі` / `Журнал подій`) render correctly.
+And the teacher breadcrumb label `Вчителі` and localized day names render correctly.
 
 ---
 
 ## Business rules
 
 1. **Hierarchy Integrity:** Breadcrumbs must strictly represent the application hierarchy, not browser history.
-2. **Context Preservation:** Clicking an ancestor breadcrumb must retain the administrator's working date range filters whenever returning to a filter-aware page.
+2. **Default Destinations:** Each breadcrumb ancestor uses its locale path without copied query parameters. Destination pages apply their existing defaults.
 3. **Current Page Indicator:** The last item in the trail is always the active page and is not clickable.
 
 ---
@@ -118,15 +131,15 @@ And localized labels (`Вчителі` / `Журнал подій`) render corre
 
 - `teacherId` and `teacher.fullName` (fetched from teacher context or props).
 - `date` and formatted `dayName` (e.g. from `getKyivDateString` / localized day name formatter).
-- URL search parameters (`from`, `to`, `preset`, `filter`).
+- Page-supplied ordered items with labels and locale-aware ancestor paths. Breadcrumbs require no schedule query parameters.
 
 ---
 
 ## Edge cases and error handling
 
 - **Teacher name loading state:** Display a brief skeleton or fallback `Teacher` until the teacher record resolves.
-- **Direct deep link navigation:** If a user lands directly on a day details URL with no prior history, breadcrumbs must still render correctly and link back to the parent teacher schedule with default or present query parameters.
-- **Missing query parameters:** If `from`/`to` are absent in day view, leave them absent in the ancestor link. The existing schedule uses its current-week defaults.
+- **Direct deep link navigation:** If a user lands directly on a day details URL with no prior history, breadcrumbs must still render correctly and link back to the parent teacher schedule without query parameters. The destination applies its existing defaults.
+- **Missing query parameters:** Whether query parameters exist or not, ancestor links omit them. The existing schedule uses its current-week defaults.
 
 ---
 
@@ -156,20 +169,20 @@ Each role stops at its gate. BA preparation does not authorize implementation, r
 
 These clarifications resolve alternatives in the original text. The human must approve them with the requirements at Gate 1.
 
-- The scope includes teacher schedule, teacher day details, and system logs pages. Other pages require no new breadcrumb.
+- The scope adds breadcrumbs only to teacher schedules and day details. Teachers and System Logs are top-level pages with no breadcrumb.
 - The root label is the localized `Teachers` label. `Home` is not an alternative for this story.
-- The directory breadcrumb is optional. If present, it contains only a non-clickable current `Teachers` item.
+- The directory and System Logs must not render a breadcrumb.
 - Ancestor links to the directory use the locale root. They do not restore directory pagination, sorting, or search state.
-- Schedule ancestors preserve each present, non-empty value of `from`, `to`, `preset`, and `filter`, including `filter=all`.
-- Parameter order and URL encoding can differ. Decoded parameter values must match. Unknown parameters and repeated keys are outside this contract.
-- Missing parameters remain absent in the ancestor URL. The existing schedule defaults determine the resulting range.
+- All new breadcrumb ancestor links omit query parameters. This includes `from`, `to`, `preset`, and `filter`.
+- The human explicitly authorized removal of the previous breadcrumb filter-retention requirement.
+- Remove only the duplicate normal day schedule-return link. Preserve error-recovery links, schedule directory-return controls, filters, and adjacent-day navigation.
 - With no range parameters, the schedule uses its existing current Monday–Sunday week. The breadcrumb does not substitute the viewed day.
 - Breadcrumbs derive hierarchy from the route and teacher record. They do not require browser history.
 - Day labels use the route date and the active locale's weekday. The numeric date uses `DD/MM/YYYY`.
-- The existing language selector behavior remains unchanged. After a locale change, breadcrumbs use the resulting route's locale and parameters.
+- The existing language selector behavior remains unchanged. After a locale change, breadcrumbs use the resulting route's locale. Ancestor links still omit query parameters.
 - A loading teacher label uses a localized `Teacher` fallback or a skeleton. The resolved label uses `teacher.fullName`.
 - Error pages must retain their existing recovery controls. They must not display a fabricated teacher name.
-- Responsive acceptance permits wrapping or middle-item truncation. UX must select the presentation at Gate 2.
+- Labels and separators must share a text baseline when the trail fits. Narrow screens retain the previously approved full wrapping as the current assumption.
 
 ## Stable observable criteria and impact expectations
 
@@ -180,27 +193,31 @@ Already-satisfied assertions use Preserve. The table does not replace independen
 |---|---|---|---|
 | CRM-014-AC01 | Add | The schedule has no standard breadcrumb trail. | The schedule shows localized `Teachers` and the teacher's full name. The root links to the locale directory. The name is non-clickable and current. |
 | CRM-014-AC02 | Add | The day page has a schedule return link but no standard breadcrumb trail. | The day page shows localized `Teachers`, the teacher name, and the route weekday with `DD/MM/YYYY`. Only the two ancestors are links. |
-| CRM-014-AC03 | Add | No teacher breadcrumb carries schedule parameters. The existing return link omits `filter=all`. | The teacher ancestor retains all four present, non-empty parameters, including `filter=all`, with the same decoded values. |
-| CRM-014-AC04 | Add | Logs has no standard breadcrumb trail. | Logs shows localized `Teachers` and `System Logs`. The root links to the locale directory. `System Logs` is non-clickable and current. |
+| CRM-014-AC03 | Add | New breadcrumb ancestors are absent. Existing return controls carry their existing schedule parameters. | Every breadcrumb ancestor uses its locale path without query parameters, even when the source URL contains `from`, `to`, `preset`, or `filter`. Destinations apply existing defaults. |
+| CRM-014-AC04 | Preserve | Teachers and Logs are top-level pages without breadcrumbs. | Neither top-level page renders breadcrumb navigation in any supported locale. |
 | CRM-014-AC05 | Add | Standard breadcrumb semantics are absent. | Each trail has `nav` with `aria-label="Breadcrumb"`, an ordered list with class `breadcrumb`, and one leaf with `aria-current="page"`. Separators have `aria-hidden="true"`. |
 | CRM-014-AC06 | Add | Standard breadcrumb keyboard behavior is absent. | Keyboard users can focus and activate each ancestor link. Focus remains visible. The current item is not a link. |
 | CRM-014-AC07 | Add | Standard localized breadcrumbs are absent. | For `en`, `uk`, and `pl`, each breadcrumb uses translated labels and weekday names. English root is `/`. Ukrainian and Polish roots are `/uk` and `/pl`. |
-| CRM-014-AC08 | Add | Standard responsive breadcrumbs are absent. | At a 320 CSS-pixel viewport, a long teacher name causes no breadcrumb horizontal overflow. Ancestors remain operable and the current item remains identifiable. |
+| CRM-014-AC08 | Add | Standard responsive breadcrumbs are absent. | At a 320 CSS-pixel viewport, a long teacher name wraps fully without horizontal overflow. Ancestors remain operable and the current item remains identifiable. |
 | CRM-014-AC09 | Add | No breadcrumb loading state exists. | During teacher loading, the trail shows a localized fallback or skeleton. After resolution, it shows the actual full name. |
-| CRM-014-AC10 | Add | Direct day links have an existing return control. | A direct day URL renders the same route-derived breadcrumb without prior history. Missing parameters remain absent from the teacher ancestor link. |
-| CRM-014-P01 | Preserve | The schedule accepts range and status parameters and defaults to the current week when absent. | The same inputs and defaults produce the same schedule results after breadcrumb navigation. |
+| CRM-014-AC10 | Add | Direct day links have an existing return control. | A direct day URL renders the same route-derived breadcrumb without prior history. The teacher ancestor omits query parameters whether the source URL contains them or not. |
+| CRM-014-AC11 | Add | No standard renderer accepts page-supplied hierarchy items. | The renderer displays supplied items in order. A different item count changes hierarchy depth without renderer edits. Ancestors remain links and only the final item is current. |
+| CRM-014-AC12 | Add | The normal day schedule-return link appears separately from upward breadcrumb navigation. | The normal day page contains no duplicate `Back to teacher schedule` link. The query-free teacher breadcrumb provides upward navigation. Error-recovery links remain available. |
+| CRM-014-AC13 | Add | Standard breadcrumb baseline alignment is absent. | When the full trail fits, all labels and separators appear on one line with a shared text baseline. Each chevron has 8 CSS pixels of space before its following label. |
+| CRM-014-R01 | Retire | The normal day `day-details-back-link` renders and supports schedule return with its existing parameters. | Only assertions requiring this normal day control or its parameter-carrying return behavior leave the active suite. AC12 verifies its observable absence. |
+| CRM-014-P01 | Preserve | The schedule accepts range and status parameters and defaults to the current week when absent. | Explicit schedule inputs retain their existing results. Breadcrumb navigation without query parameters uses the existing current-week and status defaults. |
 | CRM-014-P02 | Preserve | Users can open a teacher from the directory and open a day from the schedule. | Both journeys remain available with the same data and range context. |
-| CRM-014-P03 | Preserve | Day controls support adjacent days, schedule return, lesson details, Zoom evidence, and recovery from errors. | These actions remain available. Their existing business behavior remains unchanged. |
+| CRM-014-P03 | Preserve | Day controls support adjacent days, lesson details, Zoom evidence, and error recovery. Schedule directory-return controls also exist. | These controls and their business behavior remain unchanged. Only the normal day schedule-return link is excluded under R01. |
 | CRM-014-P04 | Preserve | Header navigation, locale routing, authentication, and auth-bypass access operate independently of breadcrumbs. | These behaviors remain available. Breadcrumbs do not expose additional protected data. |
 | CRM-014-P05 | Preserve | Logs supports level filtering, search, and existing log actions. | These actions and results remain unchanged. |
 
-**Replace:** No existing business assertion requires replacement. The new breadcrumb's `filter=all` requirement does not authorize changes to unrelated return controls.
+**Replace:** No existing application assertion requires replacement. Human feedback changes the draft AC03 requirement from query retention to query omission. The normal day return control retires under R01. Other return controls remain unchanged.
 
-**Retire:** No existing behavior or assertion is authorized for removal. A proposed removal requires a revised requirement and renewed human approval.
+**Retire:** The human explicitly authorized removal of the duplicate normal day `Back to teacher schedule` link: "remove it, we have breadcrumbs". R01 limits retirement to that control and its existing return behavior. QA must identify exact affected assertions before Gate 4. Assertions for error recovery, previous/next day, schedule directory return, filters, data, lessons, evidence, and auth remain active.
 
 The preserved core journey is directory → teacher schedule → day details → teacher schedule.
-The returned schedule must retain the selected range and status filter when the day URL contains them.
-The logs review journey and existing navigation controls must remain available.
+The teacher breadcrumb provides the normal day upward journey with destination defaults. Error-recovery return links retain their existing behavior.
+The logs review journey and navigation controls outside R01 must remain available.
 
 ## Evidence, assumptions, and blocking decisions
 
@@ -209,9 +226,14 @@ The logs review journey and existing navigation controls must remain available.
 - `ee-crm/app/teachers/[id]/TeacherScheduleClient.js` defaults missing range values to the current Monday–Sunday week.
 - `ee-crm/lib/shared/i18n/LanguageContext.js` defines unprefixed English URLs and `/uk` and `/pl` prefixes.
 - `ee-crm/app/page.js` uses directory-specific parameters. This story does not promise restoration of those values.
-- The original claim that upward navigation always loses context was too broad. Existing schedule-return behavior is a preserved baseline.
-- No blocking product decision remains after these clarifications. Gate 1 approval remains required.
-- Baseline and candidate test results remain unverified. QA must check the expected dispositions against actual behavior before Gate 4.
+- The original claim that upward navigation always loses context was too broad. Error-recovery schedule-return behavior remains a preserved baseline. Normal day return behavior retires under R01.
+- Human feedback authorized query omission and page-supplied hierarchy items. Gates 1–6 were approved before final manual feedback.
+- Future hierarchy support stays within the existing component. New routes, global route discovery, hierarchy registries, and sample pages are non-goals.
+- The optional narrow-screen question received no answer after more than 60 seconds.
+- The current assumption retains previously approved full wrapping. Baseline alignment applies when labels fit.
+- No new horizontal-scroll behavior is authorized. No blocking product decision remains.
+- Final manual feedback authorized 8px chevron spacing and no breadcrumbs on top-level pages. The user authorized direct small changes and then accepted delivery.
+- Factory run 003 passed the earlier 95-case contract. Final corrections passed 10 focused browser checks, 73 regression cases, and development checks. No new full Factory evaluation or joint review followed those corrections.
 - No application implementation or State Ledger change forms part of BA preparation.
 
 ## Definition of Ready checklist
@@ -221,7 +243,7 @@ The logs review journey and existing navigation controls must remain available.
 - [x] Before and after expectations distinguish Preserve, Add, Replace, and Retire.
 - [x] Core journeys and edge cases are explicit.
 - [x] Remaining uncertainty and verification limits are explicit.
-- [ ] The human approved Gate 1 through the orchestrator.
+- [x] The human approved the planning requirements through the orchestrator. Final direct corrections and release authorization are recorded separately.
 
 ---
 
@@ -232,3 +254,11 @@ The logs review journey and existing navigation controls must remain available.
 | 29 September 2026 | Created CRM-014 to standardize breadcrumb navigation across Teacher Schedule, Day Details, and System Logs pages with search parameter retention. |
 
 | 14 October 2026 | Prepared Gate 1 criteria and impact expectations. Corrected the PRD link and workflow gates. Approval remains pending. |
+
+| 14 October 2026 | Revised requirements from human feedback. Breadcrumb ancestors omit query parameters. Page-supplied ordered items support future hierarchy depths. Renewed Gate 1 approval remains pending. |
+
+| 14 October 2026 | Human browser feedback requires baseline alignment when the trail fits. Human feedback authorizes retirement of only the normal day schedule-return link. Narrow-screen wrapping versus scrolling remains unresolved. |
+
+| 14 October 2026 | Retained previously approved full wrapping as the current assumption after the optional question received no answer. Removed the narrow-screen blocker. No new horizontal-scroll behavior is authorized. |
+
+| 16 October 2026 | Final manual review limited breadcrumbs to inner teacher pages and added 8px chevron spacing. The user accepted delivery and authorized commit, merge, and push. Product commit `66fc815` is on `origin/main`. Earlier pending entries are historical. |
