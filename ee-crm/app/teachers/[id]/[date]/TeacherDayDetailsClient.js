@@ -7,6 +7,7 @@ import { formatKyivDateHeader, isLessonInFuture } from '@/lib/utils/timezone';
 import ZoomMeetingCard from '../ZoomMeetingCard';
 import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
 import GroupStudentRoster from '@/app/components/GroupStudentRoster';
+import Breadcrumbs from '@/app/components/Breadcrumbs';
 
 export default function TeacherDayDetailsClient({
   initialData,
@@ -214,6 +215,14 @@ export default function TeacherDayDetailsClient({
 
   const { teacher, schoolmate, zoom, comparison, diagnostics, previousDate, nextDate, timezone } = data;
   const formattedDate = formatKyivDateHeader(date, locale);
+  const routeDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(`${date}T12:00:00Z`) : null;
+  const weekday = routeDate
+    ? new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Kyiv', weekday: 'long' }).format(routeDate)
+    : formattedDate;
+  const breadcrumbDate = routeDate
+    ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric' }).format(routeDate)
+    : date;
+  const breadcrumbWeekday = locale === 'uk' ? `${weekday.charAt(0).toLocaleUpperCase(locale)}${weekday.slice(1)}` : weekday;
 
   const visibleLessons = useMemo(() => {
     return Array.isArray(schoolmate?.lessons) ? schoolmate.lessons : [];
@@ -262,24 +271,13 @@ export default function TeacherDayDetailsClient({
 
   return (
     <main className="main-content day-details-workspace" style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+      <Breadcrumbs items={[
+        { label: t('breadcrumb.teachers'), href: formatUrl('/') },
+        { label: teacher.fullName, href: formatUrl(`/teachers/${teacherId}`) },
+        { label: `${breadcrumbWeekday} (${breadcrumbDate})` }
+      ]} />
       {/* Top Navigation Row */}
-      <div className="day-details-top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <Link
-          href={backUrl}
-          className="day-details-back-link"
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: 'var(--primary)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            textDecoration: 'none'
-          }}
-        >
-          {t('dayDetails.backToTeacher', { name: teacher.fullName }) || `← Back to ${teacher.fullName}`}
-        </Link>
-
+      <div className="day-details-top-bar" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         {/* Day Stepper */}
         <nav aria-label="Day navigation" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {previousDate ? (

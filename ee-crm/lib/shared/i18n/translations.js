@@ -3,6 +3,7 @@ export const defaultLocale = 'en';
 
 export const translations = {
   en: {
+    breadcrumb: { teachers: 'Teachers', systemLogs: 'System Logs', teacher: 'Teacher' },
     common: {
       brand: 'Empire English CRM',
       teachers: 'Teachers',
@@ -326,6 +327,7 @@ export const translations = {
 
 
   uk: {
+    breadcrumb: { teachers: 'Вчителі', systemLogs: 'Журнал подій', teacher: 'Вчитель' },
     common: {
       brand: 'Empire English CRM',
       teachers: 'Викладачі',
@@ -648,6 +650,7 @@ export const translations = {
   },
 
   pl: {
+    breadcrumb: { teachers: 'Nauczyciele', systemLogs: 'Logi systemowe', teacher: 'Nauczyciel' },
     common: {
       brand: 'Empire English CRM',
       teachers: 'Nauczyciele',

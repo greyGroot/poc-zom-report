@@ -10,6 +10,7 @@ import { useZoomMeetings } from './useZoomMeetings';
 import ZoomMeetingCard from './ZoomMeetingCard';
 import ZoomMembershipContext from '@/app/components/ZoomMembershipContext';
 import GroupStudentRoster from '@/app/components/GroupStudentRoster';
+import Breadcrumbs from '@/app/components/Breadcrumbs';
 
 export default function TeacherScheduleClient({ initialTeacher = null, initialZoomMeetings = [] }) {
   const params = useParams();
@@ -414,6 +415,10 @@ export default function TeacherScheduleClient({ initialTeacher = null, initialZo
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 40 }}>
+      <Breadcrumbs items={[
+        { label: t('breadcrumb.teachers'), href: formatUrl('/') },
+        { label: teacher ? teacher.fullName : t('breadcrumb.teacher') }
+      ]} />
       {/* Back link */}
       <div style={{ marginBottom: 16 }}>
         <Link href={formatUrl('/')} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex' }}>

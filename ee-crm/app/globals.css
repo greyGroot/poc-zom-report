@@ -2560,11 +2560,6 @@ td .zoom-membership-context {
   text-decoration: none;
 }
 
-.day-details-back-link:hover {
-  color: var(--primary-hover) !important;
-  text-decoration: underline;
-}
-
 @media (max-width: 992px) {
   .day-details-grid {
     grid-template-columns: 1fr !important;
@@ -2625,6 +2620,81 @@ td .zoom-membership-context {
 
 .diagnostics-header:hover {
   background-color: var(--bg-hover) !important;
+}
+
+/* CRM-014 accessible, wrapping breadcrumb trails */
+.breadcrumb-nav {
+  margin: 0 0 20px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  gap: 0 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0 20px 0 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.breadcrumb-item > a,
+.breadcrumb-item > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.breadcrumb-item > span[aria-current="page"] {
+  padding: 12px 0;
+  font-weight: 600;
+}
+
+.breadcrumb-item > a {
+  display: inline-flex;
+  align-items: baseline;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.breadcrumb-item > a:hover {
+  color: var(--primary-hover);
+}
+
+.breadcrumb-item > a:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.breadcrumb-item > .breadcrumb-separator {
+  flex: 0 0 auto;
+  margin-right: 8px;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 /* ==========================================================================
