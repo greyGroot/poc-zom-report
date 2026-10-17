@@ -142,3 +142,50 @@ test('control executable permission changes invalidate approval', t => {
   assert.equal(f.run('check', 'state.json', 'current.json', 'architecture').status, 1);
   assert.equal(f.ledger().gateState.architecture.status, 'PENDING');
 });
+
+test('compact planning snapshots retain per-gate boundaries when a mockup changes', t => {
+  const f = fixture(t);
+  f.write('story.md', 'Agreed requirements');
+  f.write('mockup.html', '<nav>Agreed design</nav>');
+  f.write('approach.md', 'Agreed approach');
+  const specs = {
+    requirements: { paths: ['story.md'] },
+    design: { paths: ['story.md', 'mockup.html'] },
+    architecture: { paths: ['story.md', 'mockup.html', 'approach.md'] },
+  };
+  for (const [gate, input] of Object.entries(specs)) {
+    f.write('package-input.json', input);
+    f.state.gateState[gate] = {
+      status: 'APPROVED', signedBy: 'user', timestamp: '2026-10-17T12:00:00Z',
+      decisionReference: 'explicit-plan-package-approval',
+      approvedInputs: JSON.parse(f.run('snapshot', 'package-input.json').stdout),
+    };
+  }
+  f.save();
+  f.write('package-current.json', specs);
+  assert.equal(f.run('check', 'state.json', 'package-current.json', ...Object.keys(specs)).status, 0);
+  f.write('mockup.html', '<nav>Changed design</nav>');
+  assert.equal(f.run('check', 'state.json', 'package-current.json', ...Object.keys(specs)).status, 1);
+  const current = f.ledger();
+  assert.equal(current.gateState.requirements.status, 'APPROVED');
+  assert.equal(current.gateState.design.status, 'PENDING');
+  assert.equal(current.gateState.architecture.status, 'NOT_STARTED');
+  assert.equal(current.history.at(-1).priorGateState.design.decisionReference, 'explicit-plan-package-approval');
+});
+
+test('changed team decision invalidates its planning approval and dependent dispatch', t => {
+  const f = fixture(t);
+  f.write('team-decision.json', { points: 3, executionFlow: 'compact', humanResponse: 'Team agreed' });
+  f.input.paths.push('team-decision.json');
+  f.write('input.json', f.input);
+  f.state.gateState.architecture.approvedInputs = JSON.parse(f.run('snapshot', 'input.json').stdout);
+  f.state.workflow = { planningFlow: 'compact', executionFlow: 'compact', teamDecisionPath: 'team-decision.json' };
+  f.save();
+  f.write('team-decision.json', { points: 8, executionFlow: 'full', humanResponse: 'Revised team decision' });
+  assert.equal(f.run('check', 'state.json', 'current.json', 'architecture').status, 1);
+  const current = f.ledger();
+  assert.equal(current.gateState.architecture.status, 'PENDING');
+  assert.equal(current.gateState.factoryDispatch.status, 'NOT_STARTED');
+  assert.equal(current.history.at(-1).priorGateState.architecture.status, 'APPROVED');
+  assert.equal(current.workflow.planningFlow, 'compact');
+});

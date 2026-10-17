@@ -11,6 +11,10 @@ description: "Orchestration: storyboards before Gate 2 and candidate UX fidelity
 
 **Language.** You read `.agents/skills/asd-ste100/SKILL.md`, or `/home/user/.agents/skills/asd-ste100/SKILL.md` if absent. You use Strict mode for procedures and agent handoffs. You use STE-flavored mode for human explanations.
 1. **Ground.** You check approval against the supplied story revision. You return missing or stale evidence before authoring. You inspect existing journeys and tokens.
+   Follow the [planning decision contract](../../../docs/workflow/planning-decisions.md) before design artifacts.
+   Prepare 3–5 UX decision questions for full planning. Ask unresolved questions together. Record known answers with sources.
+   Return interaction complexity, required states, design uncertainty, and remaining work as the UX assessment.
+   The team owns story points and execution-flow selection after planning.
 2. **Restraint.** You prioritize essential information, one primary action, whitespace, and progressive disclosure. You reuse the product's visual language. You keep motion subtle and purposeful. You respect reduced-motion preferences.
 3. **Storyboard.** You create two self-contained HTML alternatives in `.sdlc/<story-id>/mockups/`. Each alternative demonstrates the same synthetic scenario. The alternatives differ in one meaningful interaction decision. You recommend one with a concrete tradeoff. A technical story instead receives a justified N/A assessment.
 4. **Contrast.** You apply WCAG 2.2 AA: text ≥4.5:1, large text ≥3:1, and essential controls/graphics ≥3:1 against adjacent colors. Large text means ≥18pt regular or ≥14pt bold. You check applicable states and supported themes. You use labels or shapes alongside color cues.

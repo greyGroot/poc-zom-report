@@ -1,13 +1,19 @@
-# Orchestration protocol
+# Shared orchestration protocol
 
-The orchestrator reads this document. Each role's skill owns its procedure and prerequisite checks. The [operational guide](factory-sdlc.md) owns lifecycle transitions and ledger fields.
+The coordinator owns decisions and ledger writes. Specialists own their procedures.
+The [planning decision contract](planning-decisions.md) owns interviews, assessments, and team estimation.
+The selected [compact](../../.agents/skills/f-orchestrator/flows/compact.md) or [full](../../.agents/skills/f-orchestrator/flows/full.md) procedure owns routing.
+Read only that procedure and the current stage handoff. A link is not an instruction to preload every target.
 
-1. **Dispatch.** The orchestrator checks story IDs against `[A-Za-z0-9][A-Za-z0-9_-]*`. The orchestrator supplies the story ID, current artifact pointers, approval evidence, and human feedback for revisions. The orchestrator selects the role's reasoning level when the host supports it.
-2. **Language.** The orchestrator resolves the project or personal `asd-ste100` skill path. The orchestrator passes the absolute path and mode instructions to each agent. Each agent reads that skill. Agents use Strict mode for procedures and handoffs. Agents use STE-flavored mode for human explanations. Further delegation preserves these instructions.
-3. **Ledger.** The orchestrator initializes new state from the guide's fields. The orchestrator preserves existing history, unrelated fields, run IDs, and digests. The orchestrator checks approval snapshots before resume and dependent dispatch. The guide's approval evidence contract defines snapshot fields and comparison rules.
-4. **Revision.** The orchestrator records changed paths and revision evidence. A substantive change invalidates its stage and downstream approvals. The orchestrator sets the current gate to `PENDING`. The orchestrator resets downstream gates to `NOT_STARTED`. Identical reruns retain approvals. Link maintenance preserves unchanged requirements. Sealed-control changes follow the guide's versioned recovery procedure.
-5. **Gate.** The orchestrator presents the named gate, artifact links, decisions, blockers, and actual verification results. The orchestrator waits for explicit approve, revise, or abort instructions. Mockup controls simulate behavior. The orchestrator records human decisions separately.
-6. **Post-green.** The orchestrator follows the [joint review and release contract](post-green-review.md). It collects separate implementation and UX assessments for Gate 6. It dispatches the runner after current human approval. It requires human manual results and explicit merge approval at Gate 7.
-7. **Complete.** After Gate 3 approval, the orchestrator records planning completion in history. The workflow remains `IN_PROGRESS` until the user requests execution and completes later gates.
+1. Supply the story ID, active flow, current input identities, prerequisite evidence, and applicable feedback.
+2. Supply the resolved ASD-STE100 path and modes. Require every specialist to read its own skill and preserve delegation instructions.
+3. Record dispatch and actual returned evidence. Serialize shared writes. Role completion does not constitute human approval.
+4. Use the [gate card](gate-card.md). Preserve complete evidence and compare reviewed snapshots before recording any human decision.
+5. Check snapshots before dependent work. Preserve earlier approvals in history when current inputs invalidate them.
+6. Require current team estimation after planning and after material planning changes. Agents cannot choose the team's points or execution flow.
+7. Require independent QA, immutable controls, actual passing evidence, current reviews, required human results, and explicit release authority.
 
-Caller restrictions are workflow instructions. Skill metadata does not enforce caller identity.
+The [state procedure](../../.agents/skills/f-orchestrator/state.md) owns snapshot operations.
+The operational guide retains physical isolation, Factory commands, and full-flow reference details.
+Compact preparation exceptions apply only under the selected compact procedure and its stage handoff.
+They grant no worker-launch or release authority.

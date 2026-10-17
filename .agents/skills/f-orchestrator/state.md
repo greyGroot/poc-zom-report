@@ -2,13 +2,19 @@
 
 ## Ledger ownership
 
-Use `.sdlc/<story-id>/state.json` as the authoritative ledger. Initialize its fields from section 7 of the operational guide. Initialize every gate as `NOT_STARTED`, with null timestamp and signer. Set the first dispatched role and phase explicitly. Include all seven named gates and the guide's artifact and factory fields. Resolve actual artifact paths from role returns rather than inventing missing outputs.
+Use `.sdlc/<story-id>/state.json` as the authoritative ledger. Initialize a missing ledger only for an explicit planning request.
+Record `storyId`, `status: IN_PROGRESS`, `phase: PLANNING`, `currentRole`, `artifacts`, `factory`, `history`, and `gateState`.
+Initialize the seven gate keys below as `NOT_STARTED`, with null timestamp and signer.
+Record `workflow.planningFlow` from the team's actual choice. Set `workflow.executionFlow` only from its post-planning decision.
+Record `workflow.teamDecisionPath` when that decision exists. Preserve legacy records without inventing historical choices.
+Resolve actual artifact paths and factory identities from role returns. The operational guide's section 7 is a reference for unusual fields.
 
 Write through a temporary sibling file and rename it after successful JSON validation. Permit one ledger writer per story. Read the latest ledger before each update. Preserve unrelated fields. Append dispatches, completions, human decisions, revisions, invalidations, control changes, run outcomes, and cleanup results to history. Include timestamps and applicable input identities. Preserve previous approved snapshots in history before replacing gate records.
 
 ## Snapshot preparation
 
-The operational guide's approval evidence contract owns snapshot requirements. The helper at `scripts/ledger.mjs` fingerprints files and complete directory manifests. It rejects missing paths and symbolic links. Candidate capture requires the complete Git worktree root. It includes HEAD and all tracked and untracked non-ignored files. The helper also records executable permissions for reviewed files. A changed dirty tree changes its fingerprint.
+This procedure defines the shared snapshot operations. The operational guide retains the historical approval evidence contract.
+The helper at `scripts/ledger.mjs` fingerprints files and complete directory manifests. It rejects missing paths and symbolic links. Candidate capture requires the complete Git worktree root. It includes HEAD and all tracked and untracked non-ignored files. The helper also records executable permissions for reviewed files. A changed dirty tree changes its fingerprint.
 
 Prepare an input specification for each applicable gate. Include prerequisite artifacts and the stage outputs. Include all linked local review inputs. Capture complete directories for mockups, tests, and control. Store specifications outside the directories they fingerprint. Never include the mutable ledger in a reviewed artifact directory.
 
@@ -16,7 +22,7 @@ Prepare an input specification for each applicable gate. Include prerequisite ar
 |---|---|
 | requirements | Resolved story file |
 | design | UX specification, complete mockup directory, human selection or justified N/A |
-| architecture | Plan, decision card, linked SVG views, applicable ADRs |
+| architecture | Plan, applicable ADRs, planning assessments, and current team decision. Full flow also requires its decision card and linked SVG views. |
 | testContract | Test impact plan, full staged manifest and tests, exact QA patch/removals, execution report and GREEN/RED logs |
 | factoryDispatch | Complete control, Gate 5 card, QA evidence, candidate/base identity, runtime/configuration evidence, model and budgets |
 | review | Joint report, passing run evidence and exact case results, QA comparison, candidate/base identity, control/digest/run ID |
@@ -41,6 +47,17 @@ Use repository-relative paths from the repository root. Candidate gates require 
 Run `node .agents/skills/f-orchestrator/scripts/ledger.mjs snapshot <inputs.json>` from the repository root. The command returns a snapshot. It does not record a human approval.
 
 ## Approval and comparison
+
+### Compact package approvals
+
+The selected compact procedure maps packages to existing gate keys. Keep the snapshot helper and seven-key ledger unchanged.
+Capture each constituent gate separately. Include complete package artifacts and current team-choice evidence in dependent snapshots.
+Compare every constituent capture after the explicit package decision before recording any of its approvals.
+If any comparison fails, keep the package pending. Partial human decisions cover only their actual named scope.
+Each approved gate retains its own snapshot, timestamp, signer, and reference to the same actual package decision.
+Preserve these records in history. A package name alone is not approval evidence.
+A stale logical gate returns to its containing package. The helper still invalidates that gate and later gates.
+The compact operator and runner handoffs define bounded preparation exceptions. They do not change snapshot or launch checks.
 
 ### Record a human approval
 
@@ -78,8 +95,8 @@ On stale or unverifiable evidence, the command:
 
 | Transition | Required check |
 |---|---|
-| Every resume | Compare all approved planning inputs. |
-| Before provisioning, packaging, execution, or post-green work | Check Gate 4 inputs. |
+| Every resume | Compare all approved planning inputs. Before new execution work, check the current team decision against those inputs. |
+| Before provisioning, packaging, execution, or post-green work | Check Gate 4 inputs. For compact preparation only, verify the operator handoff's planning approval, team choice, and pinned provisional QA manifest instead. |
 | Immediately before worker launch | Check the complete Gate 5 snapshot. |
 | After worker launch | Check immutable Gate 5 artifacts and runtime/control identities against the preserved launch snapshot. |
 | Before review or runner work | Check the current candidate against inspected passing-run evidence. |
@@ -116,6 +133,13 @@ For demonstrably non-substantive maintenance:
 Treat uncertainty as a substantive change. Byte-identical reruns retain approval after verification.
 
 ## Expected identity transitions
+
+### Team decisions
+
+The planning decision contract owns estimation records. Verify the recorded response and its planning fingerprints before execution.
+Include the decision file and planning assessment in the final planning and dependent input specifications.
+Changed planning requires a current team decision. Agents cannot populate points or flow choices from their own assessments.
+If a team switches flows, inventory the destination's prerequisites before dispatch. Existing approvals remain scoped to their original inputs.
 
 ### Factory launch and resume
 

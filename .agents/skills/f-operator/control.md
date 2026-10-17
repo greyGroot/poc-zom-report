@@ -1,5 +1,10 @@
 # Control packaging
 
+Compact preparation uses the [operator handoff exception](../f-orchestrator/handoffs/operator.md#compact-preparation-only).
+Its pinned independent QA manifest is provisional until combined Gates 4–5 approval.
+References to approved Gate 4 packaging inputs below use that provisional identity only during compact preparation.
+Assertion changes return to QA. Worker launch always requires current human approval of both logical gates.
+
 The installed Factory schemas and implementation are authoritative:
 
 - `/home/user/2grow/project-factory-next/schemas/task.schema.json`

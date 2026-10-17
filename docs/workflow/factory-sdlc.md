@@ -2,6 +2,22 @@
 
 This document is the authoritative operational manual and domain architecture guide for developing software features within **Empire English CRM (EE-CRM)** using **Project Factory Next**. It defines the roles, contracts, directory topologies, state transitions, named human gates, operational commands, and failure recovery paths.
 
+## Flow selection and scoped reading
+
+The team selects the planning flow. After planning, BA, UX, and Architect supply complexity assessments.
+The team owns the story-point estimate and execution-flow decision under [planning decisions](planning-decisions.md).
+Agents cannot assign the team's points or switch flows automatically. Reassessment applies to both compact and full planning.
+
+The lifecycle diagram and separate pauses below describe the full flow.
+The [compact procedure](../../.agents/skills/f-orchestrator/flows/compact.md) groups Gates 1–3, 4–5, and 6–7 into three human review packages.
+It defines bounded candidate/control preparation before Gate 4 approval and session preparation before Gate 6 approval.
+These exceptions require its recorded team choice and exact prerequisite evidence. They grant no worker-launch or release authority.
+Each logical gate retains its own reviewed snapshot. No historical approval changes merely because this policy changed.
+
+The coordinator reads the shared protocol, selected flow, and current handoff only.
+This manual is an operational reference. Load a specific section only when current work requires it.
+Use the shared [gate card](gate-card.md) for every gate or package. Retain full evidence behind links.
+
 ---
 
 ## 1. Architectural Principles & Isolation Model
@@ -56,7 +72,7 @@ Use the [authoritative topology](#1-architectural-principles--isolation-model) f
 
 ## 3. End-to-End Operational Lifecycle & State Transitions
 
-This diagram is the authoritative transition definition. Gate criteria are defined in [section 4](#4-the-seven-named-human-gates-protocol), and recovery procedures in [section 8](#8-failure-handling--recovery-paths). Planning ends at `S_PLAN_DONE`; execution starts with `/f-verificator`. An abort from any active stage follows Path 3.
+This diagram is the full-flow transition definition. The compact procedure owns its grouped transitions. Gate criteria are defined in [section 4](#4-the-seven-named-human-gates-protocol), and recovery procedures in [section 8](#8-failure-handling--recovery-paths). Planning ends at `S_PLAN_DONE`; execution starts with `/f-verificator`. An abort from any active stage follows Path 3.
 
 ```mermaid
 flowchart TD
@@ -101,7 +117,7 @@ flowchart TD
 
 ## 4. The Seven Named Human Gates Protocol
 
-Human supervision is enforced at every role transition through named, first-class gates. Execution halts automatically and waits for explicit user sign-off.
+Full-flow supervision uses a separate pause at each named human gate. Compact supervision uses its three complete review packages. Both retain explicit human decisions and per-gate snapshots.
 
 | Gate | Name | Gate ID | Preceding Role | Primary Artifacts | Approval Criteria |
 |---|---|---|---|---|---|
@@ -115,7 +131,7 @@ Human supervision is enforced at every role transition through named, first-clas
 
 ### Gate Interaction Protocol
 
-1. **Gate Presentation**: When reaching a gate, the orchestrator halts execution and displays:
+1. **Gate Presentation**: Use the [shared gate card](gate-card.md), including tradeoffs and an isolated diff. At a full gate or compact package, pause and identify:
    - Current Story ID, Gate Number, and **Gate Name** (e.g., `Gate 4: Test Contract Gate`).
    - Clickable links to all generated artifacts.
    - Summary of decisions made and verification outcomes.
@@ -191,11 +207,11 @@ When the orchestrator pauses at any of the named gates, decisions can be submitt
 
 `f-ba`, `f-architect`, `f-ux` (design and post-green review), and `f-review` are orchestration-only skills. The human uses `f-orchestrator plan`, `execute`, or `revise`; the orchestrator dispatches the role with story ID, artifact/approval evidence, and human feedback for revisions. Role outputs return to the orchestrator for gate presentation and ledger updates. Each role owns its procedure in its skill. The orchestrator alone reads [the orchestration protocol](orchestration-protocol.md). Each role reads the resolved ASD-STE100 skill. Each role uses Strict mode for procedures and handoffs. Each role uses STE-flavored mode for human explanations. Caller restriction is a workflow instruction, not an access-control feature of skill metadata. Architect research and contra-review are outside this workflow.
 
-The orchestrator skill remains scheduled in ticket 07; these are its dispatch contracts, not a claim that the complete pipeline is executable today. The [post-green contract](post-green-review.md) defines joint UX review, runner, and Gates 6–7 handoffs.
+The coordinator uses the selected flow and current handoff contract. Specialists read their own skills. The coordinator does not preload all role instructions. The [post-green contract](post-green-review.md) defines joint UX review, runner, and Gates 6–7 handoffs.
 
 ### Post-Green Review and Release
 
-Follow the [post-green contract](post-green-review.md) after passing factory checks. It defines fixed-input checks, joint report fields, Gate 6 approval, manual guide fields, and Gate 7 human results. Dispatch UX assessment with `f-ux <story-id> --stage review`. Dispatch the runner only after current Gate 6 approval. Roles pause at the human gates. The orchestrator records approvals and controls progression.
+Follow the [post-green contract](post-green-review.md) after passing factory checks. It defines fixed-input checks, joint report fields, Gate 6 approval, manual guide fields, and Gate 7 human results. Dispatch UX assessment with `f-ux <story-id> --stage review`. Dispatch the full-flow runner only after current Gate 6 approval. Compact session preparation follows its bounded runner handoff exception. Roles pause at the human gates. The orchestrator records approvals and controls progression.
 
 ### Other Stage Commands
 

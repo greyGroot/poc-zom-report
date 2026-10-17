@@ -2,6 +2,13 @@
 
 Read the guide's [physical isolation rules](../../../docs/workflow/factory-sdlc.md#physical-isolation-rules) before creating directories. Resolve all paths against the primary repository root, not the operator's current checkout.
 
+## Compact preparation prerequisites
+
+For a recorded compact execution flow, use the [operator handoff](../f-orchestrator/handoffs/operator.md#compact-preparation-only).
+In preparation steps below, the pinned independent QA manifest replaces prior Gate 4 approval as the provisional input.
+Retain exact baseline and QA comparisons. Apply changes only to the isolated candidate and new control.
+Human approval of Gates 4–5 remains required before worker execution. Full-flow prerequisites remain unchanged.
+
 ## Identity and isolation
 
 1. Record the approved pre-implementation commit and relevant uncommitted content from Gate 4 evidence.

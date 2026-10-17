@@ -24,7 +24,9 @@ Model support depends on account and runtime. An unsupported-model failure block
 
 ## Gate 5 card
 
-Present **Gate 5: Factory Dispatch Gate** with story ID and clickable artifact links. Include every field below:
+Use the shared [gate card](../../../docs/workflow/gate-card.md) for the human summary, including tradeoffs.
+Link a complete dispatch-evidence document containing every field below. Include both documents in reviewed inputs.
+Present **Gate 5: Factory Dispatch Gate**, or the complete compact dispatch package, with story ID and exact review links:
 
 - Current Gates 1–4 approval evidence and current input fingerprints.
 - Original application baseline commit and relevant approved dirty changes.

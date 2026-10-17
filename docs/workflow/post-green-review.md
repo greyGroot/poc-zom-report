@@ -2,6 +2,14 @@
 
 This contract defines joint review and release handoffs for ticket 06. The [operational guide](factory-sdlc.md) owns lifecycle transitions and State Ledger fields. The orchestrator owns approvals, revision dispatch, and ledger updates. These procedures also apply when a role operates without an orchestrator.
 
+## Flow and presentation
+
+Use the [gate-card contract](gate-card.md) for human summaries. Keep full findings and identities in linked evidence.
+The full flow uses the separate Gate 6 and Gate 7 pauses below.
+A team-selected [compact flow](../../.agents/skills/f-orchestrator/flows/compact.md) groups these decisions in its release package.
+Its [runner handoff](../../.agents/skills/f-orchestrator/handoffs/runner.md#compact-preparation-only) permits preparation after complete joint review but before Gate 6 approval.
+Only this preparation timing differs. Required human results and explicit approval of both Gate 6 and Gate 7 remain mandatory before closure.
+
 ## Input checks
 
 1. Check the story ID against `[A-Za-z0-9][A-Za-z0-9_-]*`.

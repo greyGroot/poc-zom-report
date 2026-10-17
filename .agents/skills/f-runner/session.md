@@ -1,5 +1,10 @@
 # Guided testing session
 
+For a team-selected compact execution flow, follow the [runner handoff](../f-orchestrator/handoffs/runner.md#compact-preparation-only).
+It permits session preparation before Gate 6 approval, with current Gates 1–5 and a complete joint report.
+It changes no human-results or final approval requirement. Session restart needs the same current preparation evidence.
+Full-flow Gate 6 prerequisites remain unchanged.
+
 ## Prepare and guide
 
 1. Read the wizard skill and its `template.sh`. Present the ordered human stages and captured values for scope confirmation. Use check IDs from the manual guide. Capture PASS, FAIL, or BLOCKED, actual observations, and evidence references. Treat secrets as hidden input when human authentication requires them.
@@ -17,7 +22,7 @@ The session record also identifies the candidate revision and source manifest, p
 ## Interruption and restart
 
 1. When testing stops or the chat resumes, read the session record and current approval evidence. Preserve incomplete checks as PENDING. An interruption does not imply approval or failure.
-2. Treat the user's `restart` request as authorization to restart this story's testing app. Check the candidate, control, guide, and wizard identities before restarting. A source change requires current passing evidence and renewed Gate 6 approval.
+2. Treat the user's `restart` request as authorization to restart this story's testing app. Check the candidate, control, guide, and wizard identities before restarting. A source change requires current passing evidence and renewed Gate 6 approval. For compact preparation, require current independent reviews before preparing a new session and renewed release-package approval before closure.
 3. Identify the recorded process before stopping it. Check its host, command, directory, and process start identity. Stop only processes owned by this session. A reused PID or unrelated port occupant requires a safe new port or a reported blocker.
 4. Start the app again using the recorded command and current safe configuration. Check readiness again. Record the new process identity and URL. Update guide and wizard URLs before resuming. Record their refreshed fingerprints and comparison evidence. Report readiness or the actual startup failure.
 5. Resume at the first incomplete check when candidate identity and test state remain valid. Explain how to resume the wizard. If seeding or restart resets state, repeat every affected setup stage and check. Preserve prior results with their original session identity. A changed guide requires affected manual checks again under Gate 7 rules.
