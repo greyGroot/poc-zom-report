@@ -14,7 +14,7 @@
 ## Execution evidence
 
 The sample story is `CRM-014`. The workflow preserves all seven human gates.
-See [the verification report](../../../docs/workflow/end-to-end-sdlc-verification.md) for actual evidence and remaining checks.
+See the verification report (historical link retired; referenced Factory material removed by MAINT-001) for actual evidence and remaining checks.
 The State Ledger is `.sdlc/CRM-014/state.json`. No human approval is implied by this ticket request.
 
 Planning for `CRM-014` completed with explicit human approvals at Gates 1–3. Gates 4–5 were renewed for the approved runtime and A08 QA corrections.

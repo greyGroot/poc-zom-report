@@ -1,6 +1,6 @@
 # Test capabilities
 
-Status: CRM-014 staged discovery inventory. The operator must apply this QA-owned file only after Gate 4 approval.
+This inventory documents the application test commands available when it was written.
 
 Native command sources are `package.json`, `ee-crm/package.json`, `ee-crm/test-all.js`, and `ee-crm/verification/README.md`.
 

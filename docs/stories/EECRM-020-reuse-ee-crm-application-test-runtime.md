@@ -20,7 +20,7 @@ It does not mean a permanent server or transferable feature-test results.
 - The [CRM-014 recovery report](../architecture/CRM-014-setup-recovery-001.md) records a Factory scan failure under nested `ee-crm/node_modules`.
 - That report records generated `.next` files changing the source digest when they remain on the host.
 - The recovery verified process-local dependency access and fresh build output. It preserved source identity and the existing Factory guards.
-- [The manual-session procedure](../../.sdlc/CRM-014/runner-001/setup-and-lifecycle.md) records an initial startup failure under system Node 18.
+- The manual-session procedure (historical local evidence unavailable at cleanup) records an initial startup failure under system Node 18.
 - The corrected session selected the bundled Node runtime. It reused the sealed browser setup and added a manual-browser entry point.
 - That session used synthetic data, a local external-service fixture, and a synthetic signed login. It did not use production services.
 - [The application manifest](../../ee-crm/package.json) provides application scripts. It does not declare a common session procedure for these three consumers.
@@ -127,7 +127,6 @@ These answers can revise draft scope. Agents must not treat recommendations as a
 
 ## Non-goals
 
-- Change compact-flow routing, story-point policy, human gates, gate cards, or State Ledger storage.
 - Add production authentication bypasses or change production authorization.
 - Qualify every operating system, deployment platform, browser, or external service.
 - Replace independent acceptance tests with startup checks.

@@ -18,13 +18,7 @@ Thumbs.db
 .vscode/
 .idea/
 .worktrees/
-.sdlc/
 
-# Agent scratch logs
-.agents/*
-!.agents/skills/
-!.agents/rules/
-!.agents/orchestrator.json
 .env*
 .codex-remote-attachments/
 ee-crm/scripts/crm-005/backups/

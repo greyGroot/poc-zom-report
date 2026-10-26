@@ -13,7 +13,6 @@ EE-CRM integrates with Schoolmate CRM and Zoom to provide verified attendance mo
   - [User Stories](docs/stories/)
   - [UX Specifications](docs/ux/)
   - [Quality Assurance & E2E Reports](docs/qa/)
-  - [SDLC Workflow Specification](docs/workflow/factory-sdlc-spec.md)
 
 ## Getting Started
 

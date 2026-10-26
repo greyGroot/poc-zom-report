@@ -1,6 +1,6 @@
 # CRM-014 setup recovery 001
 
-Date: 16 October 2026. Status: setup fix verified in an isolated fixture. Operator packaging remains required.
+Historical record dated 16 October 2026. The setup fix was verified in an isolated fixture; the Factory packaging work described here is retired.
 Scope: recover setup for `CRM-014-20261016-001` without Factory kernel or product changes.
 
 ## Cause and selected correction
@@ -42,28 +42,9 @@ No new abstraction, route, package dependency, product configuration, or asserti
 
 ## Actual verification
 
-[Recovery artifacts](../../.sdlc/CRM-014/setup-recovery-001/) contain the runnable helper and probes.
-[Integrity results](../../.sdlc/CRM-014/setup-recovery-001/integrity-probes.json), [startup results](../../.sdlc/CRM-014/setup-recovery-001/mounted-evidence/mounted-smoke.json), and [preservation results](../../.sdlc/CRM-014/setup-recovery-001/preserved-state.json) record the checks.
-
-| Check | Observed result |
-|---|---|
-| Actual `treeManifest` reproduction | Retained candidate fails with the exact npm-link error in about 0.2 seconds. A one-link fixture fails in under 1 ms. |
-| Full source fidelity | The fixture contains all 395 original source files. All 394 operator-manifest entries match, including dirty/untracked product changes. |
-| Native worker sandbox | The existing Codex sandbox command runs inside the proposed mounts without an inference turn. Source writes remain available. Dependencies and primary remain read-only. |
-| Source identity | Worker and evaluator observe the same source inode and device as the host fixture. The namespace does not substitute source content. |
-| Native evaluator startup | The unchanged v2 `setupBrowser` starts Next 16.3.5 from its hardcoded native path. An authenticated `/uk/logs` request returns 200 and renders the retained breadcrumb source. |
-| Fresh build state | The evaluator sees an initially empty `.next`, then newly generated `dev` output. Worker output is not reused. |
-| Evaluator source writes | A source-write probe fails with `EROFS`. |
-| Factory product guard | A harmless fixture product mutation changes the actual Factory digest. The native worker's fixture source write also changes it. |
-| Factory symlink guard | A symlink in fixture application source still fails the actual scan. |
-| Generated-output risk | A fixture `.next` file changes the Factory digest when it exists on the host. Process-local build writes leave the host empty and its digest unchanged. |
-| Cleanup | Both host mount points remain empty after worker and evaluator namespace exit. No owned application server remains. |
-| Preservation | Original source, controls v1/v2, State Ledger, selected run/store, and original execution evidence match their before snapshots. |
-| Runtime identity | Factory digest remains `ce7ce2a20b5ee8bd1817f7042598eaf9226d2579c6cf382eddfc08570d7f13dd`. Original model, reasoning, budgets, config, and credentials were not changed. |
-
-Dependencies came from a fresh offline `npm ci --ignore-scripts --no-audit --no-fund` using unchanged app manifests and lockfile.
+The recovery artifacts and run evidence were part of the retired Factory workflow and are no longer active project instructions. This document is retained as a historical record of the investigation and selected correction.`r`n`r`nDependencies came from a fresh offline `npm ci --ignore-scripts --no-audit --no-fund` using unchanged app manifests and lockfile.
 They came from the npm cache, not the worker's dependency directory.
-[Dependency inventory](../../.sdlc/CRM-014/setup-recovery-001/dependency-inventory.json) fingerprints 12,348 files and seven npm links.
+Dependency inventory (historical local evidence unavailable at cleanup) fingerprints 12,348 files and seven npm links.
 Dependencies remain read-only in the process. The mounted `.next` directory starts fresh for each invocation.
 The selected setup changes no Next app config, directory names, package scripts, or lockfiles.
 

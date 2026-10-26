@@ -13,7 +13,7 @@
 
 ## Completion evidence
 
-Implemented on `codex/planning-phase-roles`. The orchestrator owns approval and revision rules in [the orchestration protocol](../../../docs/workflow/orchestration-protocol.md), with the operational guide retaining ownership of lifecycle contracts.
+Implemented on `codex/planning-phase-roles`. The orchestrator owns approval and revision rules in the orchestration protocol (historical link retired; referenced Factory material removed by MAINT-001), with the operational guide retaining ownership of lifecycle contracts.
 
 - Direct inspection covered frontmatter, parameters, deliverables, reasoning guidance, gate pauses, and model invocation for orchestrator dispatch.
 - Workflow read-throughs covered existing slugged stories, new BA stories, missing approvals, UI and justified no-UI design branches, revisions invalidating downstream approvals, and Gate 3 completion awaiting separate execution. These were mental dry runs, not live end-to-end executions.
@@ -23,7 +23,7 @@ Implemented on `codex/planning-phase-roles`. The orchestrator owns approval and 
 
 ## Proposed refinement (2026-10-08)
 
-Pending human diff review: concise leading-word procedures, orchestration-only caller contracts, two minimal UX storyboard alternatives, and before/after C4 visuals. The orchestrator owns the ledger. Each role keeps its procedure in its own skill. Research and rationale: [Concise Factory skills](../../../docs/workflow/skill-authoring-research.md). These edits are intentionally uncommitted.
+Pending human diff review: concise leading-word procedures, orchestration-only caller contracts, two minimal UX storyboard alternatives, and before/after C4 visuals. The orchestrator owns the ledger. Each role keeps its procedure in its own skill. Research and rationale: Concise Factory skills (historical link retired; referenced Factory material removed by MAINT-001). These edits are intentionally uncommitted.
 
 ## Proposed clarification (2026-10-12)
 

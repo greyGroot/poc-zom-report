@@ -52,7 +52,7 @@ Allow full names and unbroken words to wrap at 320px. Do not truncate names or a
 
 ## Criterion trace
 
-The [test impact contract](../workflow/test-impact-contract.md) assigns final cases and baseline evidence to the Verificator.
+Final verification cases and baseline evidence are recorded with the verification results.
 Slices refer to the file table. Browser DOM, activated routes, displayed results, and the public item contract are verification seams.
 
 | Criterion | Impact | Implementation slice | Observable verification condition |
@@ -108,5 +108,4 @@ Checked current approved inputs, all 19 IDs and dispositions, exact Retire scope
 Chrome loaded the revised card at 1634 CSS pixels. The opening section passed screenshot inspection without document overflow.
 Full diagram pixel inspection and narrow-screen rendering remain unverified. Architecture evidence does not prove application behavior.
 Application tests, baseline GREEN/RED, production behavior, authentication, and live probes remain unverified in this task.
-Only these four architecture artifacts changed. Approved inputs, application code, and the State Ledger remain unchanged.
-The orchestrator owns renewed Gate 3 approval and ledger updates. The architect stops for human approval.
+Only these four architecture artifacts changed. Approved inputs and application code remained unchanged.

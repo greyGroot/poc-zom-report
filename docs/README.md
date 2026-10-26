@@ -1,6 +1,6 @@
 # Empire English CRM (EE-CRM) Documentation
 
-Welcome to the centralized documentation repository for **Empire English CRM (EE-CRM)**. This directory establishes the single source of truth for product requirements, architecture, user stories, quality assurance, UX design, and development workflows.
+Welcome to the centralized documentation repository for **Empire English CRM (EE-CRM)**. This directory establishes the single source of truth for product requirements, architecture, user stories, quality assurance, UX design, and original product requirements.
 
 ---
 
@@ -14,8 +14,7 @@ Welcome to the centralized documentation repository for **Empire English CRM (EE
 | [**`ux/`**](ux/) | User Experience Specifications | Feature UX specs (`CRM-001`, `CRM-004`, `CRM-012`, `CRM-013`, schedule evidence review) |
 | [**`qa/`**](qa/) | Verification Reports & Quality Gates | [`CRM-001-e2e-report.md`](qa/CRM-001-e2e-report.md) |
 | [**`bugs/`**](bugs/) | Bug Documentation & Remediations | [`BUG-001`](bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) |
-| [**`prompts/`**](prompts/) | Agent Role Definitions & System Prompts | Orchestrator, Architect, BA, UX, Developer, QA, Advisor |
-| [**`workflow/`**](workflow/) | Engineering & SDLC Workflows | [`factory-sdlc.md`](workflow/factory-sdlc.md) (Operational Manual & Domain Architecture), [`factory-sdlc-spec.md`](workflow/factory-sdlc-spec.md) (System Spec) |
+| [`product/`](product/) | Original product requirements | [`original-request.md`](product/original-request.md) |
 
 ---
 
