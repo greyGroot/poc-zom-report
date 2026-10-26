@@ -100,3 +100,10 @@ Following the independent review of commit `edd7cbf`, six review findings were r
 - **AC7 (Global backups and sanitized change record):** PASS. Provenance error corrected; original records preserved; hashes reconciled.
 - **AC8 (No push, merge, deploy, or alteration of external repos):** PASS. Operations restricted to local feature branch.
 - **AC9 (Check outcomes reported honestly):** PASS. Incomplete preservation of untracked `.agents` execution folders and deferred live tests are explicitly documented.
+
+## 5. Final review disposition and PR preparation
+
+- On 26 October 2026, the user accepted the documented preservation gap for deleted untracked execution folders. This accepts the limitation; it does not establish that their contents were preserved.
+- The final review requested removal of the remaining orchestrator approval instruction in `docs/ux/CRM-014-ux.md`. That sentence was removed while retaining the product design requirements.
+- Custom orchestrator handoff templates were removed with `.agents/skills/f-orchestrator/handoffs/`. No standalone handoff documents were found in the current repository. Matt's `handoff` and `claude-handoff` package skills remain preserved.
+- PR preparation does not merge or deploy the branch. Production validation remains separate from the local build and parser checks.

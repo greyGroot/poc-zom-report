@@ -142,4 +142,3 @@ Reduced-motion CSS remains present. Browser preference emulation remains unverif
 
 The recommendation remains Design A full wrapping with aligned text and removal of the duplicate normal day return link.
 No product blocker remains. The browser screenshot limit is explicit.
-The orchestrator must obtain renewed human design approval. This document neither records that approval nor authorizes implementation.
