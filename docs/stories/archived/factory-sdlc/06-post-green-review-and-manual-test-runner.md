@@ -21,8 +21,8 @@
 - The existing `f-review` implementation assessment remains intact. It uses the shared fixed-input and joint-report contract.
 - `f-ux <story-id> --stage review` independently checks candidate UX fidelity or the approved technical N/A rationale.
 - The new medium-reasoning `f-runner` skill authors reproducible manual guides with setup, synthetic seed data, clickthroughs, expected results, and separate human results.
-- The [post-green contract](../../../docs/workflow/post-green-review.md) defines Gate 6 approval before runner dispatch and Gate 7 human testing before explicit merge approval.
-- The [verification report](../../../docs/workflow/post-green-verification.md) records actual checks and isolated role dry runs. Separate reviewers assessed the same sample. Actual sealed Factory evaluation passed four cases. The runner exercised its guide command and paused with human results pending.
+- The post-green contract (historical link retired; referenced Factory material removed by MAINT-001) defines Gate 6 approval before runner dispatch and Gate 7 human testing before explicit merge approval.
+- The verification report (historical link retired; referenced Factory material removed by MAINT-001) records actual checks and isolated role dry runs. Separate reviewers assessed the same sample. Actual sealed Factory evaluation passed four cases. The runner exercised its guide command and paused with human results pending.
 - The configured full test suite passed. The live Schoolmate check skipped because credentials were absent. Markdown references, frontmatter, whitespace, and STE checks passed. No typecheck script exists.
 - Independent Standards review: zero actionable findings. Independent Spec review: one dry-run evidence finding, resolved after the isolated exercise. Final Spec review: zero actionable findings.
 
@@ -30,4 +30,4 @@ These are construction checks with explicitly simulated approvals. Effective rea
 
 ## Runner session follow-up (2026-10-13)
 
-The runner incorporates the wizard skill for human-only checks. The agent starts the app before testing and handles `restart` after interruption. Final approval triggers app shutdown and a commit of the tested candidate changes before the merge handoff. The [session verification](../../../docs/workflow/runner-session-verification.md) records actual isolated startup, restart, shutdown, and commit checks. Human test results and release approval remain separate from wizard stage confirmation.
+The runner incorporates the wizard skill for human-only checks. The agent starts the app before testing and handles `restart` after interruption. Final approval triggers app shutdown and a commit of the tested candidate changes before the merge handoff. The session verification (historical link retired; referenced Factory material removed by MAINT-001) records actual isolated startup, restart, shutdown, and commit checks. Human test results and release approval remain separate from wizard stage confirmation.

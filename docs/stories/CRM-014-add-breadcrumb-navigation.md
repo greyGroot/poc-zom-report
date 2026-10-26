@@ -151,23 +151,9 @@ And the teacher breadcrumb label `Вчителі` and localized day names render
 
 ---
 
-## Gate ownership and sequence
+## Requirement clarifications
 
-The orchestrator owns human approvals and State Ledger updates. This requirements draft grants no gate approval.
-
-1. Gate 1: Requirements Gate.
-2. Gate 2: Design Gate.
-3. Gate 3: Architecture Gate.
-4. Gate 4: Test Contract Gate.
-5. Gate 5: Factory Dispatch Gate.
-6. Gate 6: Post-Green Review Gate.
-7. Gate 7: Release Gate.
-
-Each role stops at its gate. BA preparation does not authorize implementation, release, or a Done status.
-
-## Requirement clarifications for Gate 1
-
-These clarifications resolve alternatives in the original text. The human must approve them with the requirements at Gate 1.
+These clarifications resolve alternatives in the product requirements:
 
 - The scope adds breadcrumbs only to teacher schedules and day details. Teachers and System Logs are top-level pages with no breadcrumb.
 - The root label is the localized `Teachers` label. `Home` is not an alternative for this story.
@@ -186,8 +172,7 @@ These clarifications resolve alternatives in the original text. The human must a
 
 ## Stable observable criteria and impact expectations
 
-The IDs below remain stable during revisions. The Verificator must determine actual case-level impacts before Gate 4.
-Already-satisfied assertions use Preserve. The table does not replace independent baseline execution.
+The IDs below record the verified criteria and impact expectations. Already-satisfied assertions use Preserve:
 
 | ID | Disposition | Before expectation | Candidate expectation |
 |---|---|---|---|
@@ -213,7 +198,7 @@ Already-satisfied assertions use Preserve. The table does not replace independen
 
 **Replace:** No existing application assertion requires replacement. Human feedback changes the draft AC03 requirement from query retention to query omission. The normal day return control retires under R01. Other return controls remain unchanged.
 
-**Retire:** The human explicitly authorized removal of the duplicate normal day `Back to teacher schedule` link: "remove it, we have breadcrumbs". R01 limits retirement to that control and its existing return behavior. QA must identify exact affected assertions before Gate 4. Assertions for error recovery, previous/next day, schedule directory return, filters, data, lessons, evidence, and auth remain active.
+**Retire:** The human explicitly authorized removal of the duplicate normal day `Back to teacher schedule` link: "remove it, we have breadcrumbs". R01 limits retirement to that control and its existing return behavior. Assertions for error recovery, previous/next day, schedule directory return, filters, data, lessons, evidence, and auth remain active.
 
 The preserved core journey is directory → teacher schedule → day details → teacher schedule.
 The teacher breadcrumb provides the normal day upward journey with destination defaults. Error-recovery return links retain their existing behavior.
@@ -227,14 +212,15 @@ The logs review journey and navigation controls outside R01 must remain availabl
 - `ee-crm/lib/shared/i18n/LanguageContext.js` defines unprefixed English URLs and `/uk` and `/pl` prefixes.
 - `ee-crm/app/page.js` uses directory-specific parameters. This story does not promise restoration of those values.
 - The original claim that upward navigation always loses context was too broad. Error-recovery schedule-return behavior remains a preserved baseline. Normal day return behavior retires under R01.
-- Human feedback authorized query omission and page-supplied hierarchy items. Gates 1–6 were approved before final manual feedback.
+- Human feedback authorized query omission and page-supplied hierarchy items. Historical review approvals occurred before final manual feedback.
 - Future hierarchy support stays within the existing component. New routes, global route discovery, hierarchy registries, and sample pages are non-goals.
 - The optional narrow-screen question received no answer after more than 60 seconds.
 - The current assumption retains previously approved full wrapping. Baseline alignment applies when labels fit.
 - No new horizontal-scroll behavior is authorized. No blocking product decision remains.
 - Final manual feedback authorized 8px chevron spacing and no breadcrumbs on top-level pages. The user authorized direct small changes and then accepted delivery.
-- Factory run 003 passed the earlier 95-case contract. Final corrections passed 10 focused browser checks, 73 regression cases, and development checks. No new full Factory evaluation or joint review followed those corrections.
-- No application implementation or State Ledger change forms part of BA preparation.
+- Run 003 passed the earlier 95-case contract. Final corrections passed 10 focused browser checks, 73 regression cases, and development checks.
+
+---
 
 ## Definition of Ready checklist
 

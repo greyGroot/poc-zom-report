@@ -1,6 +1,6 @@
 # CRM-014 setup recovery 001
 
-Date: 16 October 2026. Status: setup fix verified in an isolated fixture. Operator packaging remains required.
+Historical record dated 16 October 2026. The setup fix was verified in an isolated fixture; the Factory packaging work described here is retired.
 Scope: recover setup for `CRM-014-20261016-001` without Factory kernel or product changes.
 
 ## Cause and selected correction
@@ -42,8 +42,7 @@ No new abstraction, route, package dependency, product configuration, or asserti
 
 ## Actual verification
 
-[Recovery artifacts](../../.sdlc/CRM-014/setup-recovery-001/) contain the runnable helper and probes.
-[Integrity results](../../.sdlc/CRM-014/setup-recovery-001/integrity-probes.json), [startup results](../../.sdlc/CRM-014/setup-recovery-001/mounted-evidence/mounted-smoke.json), and [preservation results](../../.sdlc/CRM-014/setup-recovery-001/preserved-state.json) record the checks.
+The recovery artifacts and run evidence were part of the retired Factory workflow (historical local evidence under `.sdlc/CRM-014/setup-recovery-001/` unavailable at cleanup). This document is retained as a historical record of the investigation and selected correction. The historical verification results are preserved below:
 
 | Check | Observed result |
 |---|---|
@@ -63,11 +62,11 @@ No new abstraction, route, package dependency, product configuration, or asserti
 
 Dependencies came from a fresh offline `npm ci --ignore-scripts --no-audit --no-fund` using unchanged app manifests and lockfile.
 They came from the npm cache, not the worker's dependency directory.
-[Dependency inventory](../../.sdlc/CRM-014/setup-recovery-001/dependency-inventory.json) fingerprints 12,348 files and seven npm links.
+Dependency inventory (historical local evidence unavailable at cleanup) fingerprints 12,348 files and seven npm links.
 Dependencies remain read-only in the process. The mounted `.next` directory starts fresh for each invocation.
 The selected setup changes no Next app config, directory names, package scripts, or lockfiles.
 
-## Worker boundary and role handoff
+## Worker boundary and role handoff (historical)
 
 Factory scans immediately after worker completion, before task preparation. Preparation alone cannot correct this failure.
 The Operator must add dependency and fresh `.next` mounts to the worker adapter's existing outer boundary before worker startup.

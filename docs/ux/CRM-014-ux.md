@@ -11,14 +11,14 @@ The linked mockups preserve the planning version. Final delivery corrections bel
 
 | Artifact | Current role |
 |---|---|
-| [A: Full wrapping](../../.sdlc/CRM-014/mockups/a-wrap.html) | Primary design. Labels share a text baseline when the trail fits. Full names wrap when necessary. |
-| [B: Retained comparison file](../../.sdlc/CRM-014/mockups/b-truncate.html) | Updated reference. Despite its legacy filename, it now follows the same full-wrapping requirement. |
+| A: Full wrapping (historical local evidence unavailable at cleanup) | Primary design. Labels share a text baseline when the trail fits. Full names wrap when necessary. |
+| B: Retained comparison file (historical local evidence unavailable at cleanup) | Updated reference. Despite its legacy filename, it now follows the same full-wrapping requirement. |
 
 Keep Design A. This revision adds no alternatives or product features.
 Both files remove only the normal day `Back to teacher schedule` link.
 Both retain error recovery, schedule directory return, and synthetic context for adjacent days and evidence actions.
 The teacher breadcrumb provides query-free upward navigation. Existing destination defaults apply.
-The previous artifacts and evidence remain in [design-002](../../.sdlc/CRM-014/revisions/design-002/).
+The previous artifacts and evidence remain in design-002 (historical local evidence unavailable at cleanup).
 UX does not change approved requirements, architecture, application files, or the State Ledger.
 
 ## Interaction, layout, and accessibility
@@ -86,18 +86,18 @@ Retry restores the resolved breadcrumb. Retry does not restore the retired norma
 The normal teacher ancestor uses `/teachers/t_0fa2ff7f` or its `/uk` or `/pl` equivalent without parameters.
 The language selector retains its existing behavior. Breadcrumbs use the resulting route and locale.
 
-## Test impact contract
+## Verification trace (historical)
 
-The [test impact contract](../workflow/test-impact-contract.md) controls independent case-level planning.
+This section records the original verification scope for this design.
 Thirteen AC rows propose Add behavior. Five P rows retain Preserve expectations. R01 authorizes one narrowly scoped Retire disposition.
-The Verificator must identify exact normal-return assertions before Gate 4. Tests for error recovery and other return controls remain active.
+The original verification identified exact normal-return assertions for retirement. Tests for error recovery and other return controls remained active.
 AC12 requires a negative assertion for normal-day link absence. Retire evidence must not substitute for this assertion.
 Layout and positional locators can change. Those changes do not authorize additional business changes.
 No Replace disposition or further removal is authorized. Prototype checks do not prove the application baseline or candidate behavior.
 
 ## Contrast and fresh verification
 
-[Contrast evidence](../../.sdlc/CRM-014/ux-evidence/contrast.json) remains applicable because this revision changes no colors.
+Contrast evidence (historical local evidence unavailable at cleanup) remains applicable because this revision changes no colors.
 WCAG relative luminance measurements pass 4.5:1 for text and 3:1 for essential control or graphic boundaries.
 
 | State | Foreground / background | Ratio |
@@ -115,7 +115,7 @@ WCAG relative luminance measurements pass 4.5:1 for text and 3:1 for essential c
 Underlines, chevrons, and leaf weight supplement color cues. The pale card border is decorative.
 The 14px breadcrumb does not use the large-text exception.
 
-Fresh Chrome checks on 14 October 2026 produced [browser evidence](../../.sdlc/CRM-014/ux-evidence/browser-checks.json).
+Fresh Chrome checks on 14 October 2026 produced browser evidence (historical local evidence unavailable at cleanup).
 
 | Check | Result |
 |---|---|
@@ -130,7 +130,7 @@ Fresh Chrome checks on 14 October 2026 produced [browser evidence](../../.sdlc/C
 | Other day context | Both retained synthetic previous/next context and lesson/Zoom detail disclosures. Actual adjacent-day behavior remains an application check. |
 | Variable depth | Both standalone renderers retained order and leaf semantics at depths 0, 1, 2, 3, and 5. |
 
-[Renderer evidence](../../.sdlc/CRM-014/ux-evidence/renderer-checks.json) covers only the standalone preview.
+Renderer evidence (historical local evidence unavailable at cleanup) covers only the standalone preview.
 Chrome's existing zoom affects device overrides. Measurements read actual CSS viewport dimensions immediately after each override.
 The configured focus outline is 3 CSS pixels. Chrome reported approximately 2.67px under its existing zoom.
 One screenshot attempt timed out. No retries occurred. Fresh visual screenshot verification remains unavailable for this revision.
@@ -142,4 +142,3 @@ Reduced-motion CSS remains present. Browser preference emulation remains unverif
 
 The recommendation remains Design A full wrapping with aligned text and removal of the duplicate normal day return link.
 No product blocker remains. The browser screenshot limit is explicit.
-The orchestrator must obtain renewed human design approval. This document neither records that approval nor authorizes implementation.
