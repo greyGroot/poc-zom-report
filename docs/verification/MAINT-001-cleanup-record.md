@@ -1,41 +1,102 @@
 # MAINT-001 cleanup and verification record
 
-Base commit: `7ff2a6d3deef76db89f99405b7c939cb9fd779bb`
+Base commit: `7ff2a6d3deef76db89f99405b7c939cb9fd779bb`\
+Reviewed cleanup commit: `edd7cbf31eb412eb651e4f5f19c69a651170c2b1`\
 Branch: `codex/remove-custom-sdlc`
 
-## Repository changes
+---
 
-- Removed the nine custom `f-*` skills, role prompts, factory manuals, QA ownership instructions, and the factory-only glossary. Removed routing and execution-state ignore rules.
-- Preserved the original product request at [`docs/product/original-request.md`](../product/original-request.md). The nine historical factory tickets moved from `.scratch/factory-sdlc/issues/` to [`docs/stories/archived/factory-sdlc/`](../stories/archived/factory-sdlc/); retired Factory links in those tickets are labeled as historical.
-- Kept `skills-lock.json` unchanged. Its 38 `mattpocock/skills` entries all have corresponding skill directories. No retained Matt skill files changed.
-- Kept product source, test suites, manifests, lockfiles, and attachments outside the explicitly listed instruction/document changes unchanged. The repository had no root `.sdlc/` directory at implementation time. Historical links to unavailable `.sdlc` evidence now identify that evidence as unavailable.
-- A preexisting set of untracked `.agents` run folders was removed with execution state. Those folders were not backed up before removal, so unique content in them could not be hash-compared or fully accounted for. This is an incomplete preservation item.
+## 1. Scope and summary of cleanup review resolutions
 
-## Checks
+Following the independent review of commit `edd7cbf`, six review findings were resolved:
 
-- `git diff --check`: passed.
-- Local Markdown link inspection: checked 68 Markdown files. The broad check reported 287 preexisting unresolved links, largely source paths copied from the former `ee-crm/docs` location. Focused local-link checks for `README.md`, `docs/README.md`, the relocated original request, the MAINT-001 ticket, retained CRM-014 documents, and the archived factory tickets found no broken links to removed workflow or prompt files after repair. Retired links in archived Factory tickets and references to unavailable `.sdlc` evidence are labeled in place.
-- Matt skill provenance: 38 lockfile entries; 38 corresponding directories present; `skills-lock.json` has no diff. `git diff` shows only the nine custom `f-*` skill trees removed.
-- `npm --prefix ee-crm run test:parser`: passed (17/17 lessons parsed; reported and calculated minutes matched).
-- `npm --prefix ee-crm run build`: passed; Next.js compiled, type checking finished, and all routes generated. Next warned that it selected the root lockfile while `ee-crm/package-lock.json` also exists.
-- Full `npm test` was not run. Its runner includes `test-schoolmate.js`, which authenticates to the live Schoolmate service and fetches a real teacher schedule when credentials are present; the ticket requires isolated services for such checks.
-- Global config check: `C:\Users\sergi\.codex\config.toml` parsed with Python `tomllib`. `[agents] max_concurrent_threads_per_session = 4` and `[tui] screen_reader_detection_done = true` remain present.
-- Global presence checks: the seven role skills, seven role TOMLs, seven discovery junctions, routing file, and `.codex\sdlc` are absent.
+1. **CRM-014 product requirements restoration (`docs/stories/CRM-014-add-breadcrumb-navigation.md`):**
+   - Restored the 19-row stable observable criteria and impact expectations table (`CRM-014-AC01`–`AC13` Add, `CRM-014-R01` Retire, `CRM-014-P01`–`P05` Preserve), Replace/Retire notes, and core journey definitions.
+   - Restored product requirement clarifications (scope restricted to schedule/day pages, `Teachers` root label, query parameter omission on ancestor links, 8px chevron spacing, 320px responsive wrapping).
+   - Restored evidence, assumptions, and historical run context (passing 95-case contract, 10 focused browser checks, 73 regression cases).
+   - Disentangled and removed all active custom workflow mandates (`## Gate ownership and sequence`, orchestrator approvals, gate prerequisites, and Verificator gate assignments).
 
-## Global change record and recovery
+2. **UX-001 defect recovery (`docs/bugs/BUG-002-inherited-link-color-transition-reduced-motion.md`):**
+   - Extracted finding UX-001 from `docs/workflow/end-to-end-sdlc-verification.md` into standard product bug documentation as `BUG-002`.
+   - Preserved full finding details: under `prefers-reduced-motion: reduce`, breadcrumb ancestor links retain an inherited 150ms CSS color transition (`transition: color 0.15s ease` / Tailwind `transition-colors duration-150`).
+   - Preserved disposition: evaluated across 18 browser combinations; accepted by stakeholder on 16 October 2026 as a non-blocking P3 item for story delivery; candidate delivered and merged in commit `66fc815`.
+   - Repaired formatting in `docs/bugs/README.md` and updated `docs/README.md` to reference `BUG-002`.
+   - Repaired the archived ticket reference in `docs/stories/archived/factory-sdlc/09-end-to-end-sdlc-pipeline-dry-run-and-verification.md` with a direct link to `BUG-002`.
+   - Product behavior remains untouched (no code changes to application source/styles).
 
-Global changes are separate from the Git diff. A private recovery directory outside Codex discovery paths contains the full backups and sanitized per-file record:
+3. **Investigation of deleted untracked `.agents` folders:**
+   - Scope investigated: untracked run directories (`orchestrator_*`, `reviewer_*`, `worker_*`, `auditor_*`, `challenger_*`, `explorer_*`, `sentinel`, test writers, spec miners) previously ignored by `.gitignore` (`.agents/*`).
+   - Recovery attempts:
+     - Checked local cleanup backup directory `C:\Users\sergi\sdlc-cleanup-backups\20261026-125454`: contained only global `.codex` configuration and junction metadata; no repository `.agents` run folders were included.
+     - Checked Windows Recycle Bins (`C:\$Recycle.Bin` and `D:\$Recycle.Bin`): no `.agents` files found (files were removed directly via script).
+     - Checked Git stash and reflog: folders were untracked and never staged; no Git tree or blob objects exist.
+     - Inspected session logs (`rollout-2026-10-26T12-53-20-01a177d7-e49f-7561-868b-c1da6e469d73.jsonl`): confirmed untracked run folders were deleted directly during the initial cleanup step without prior backup or hash manifest capture.
+   - Preserved product content:
+     - The only substantive product requirements document located in `.agents` was `.agents/ORIGINAL_REQUEST.md`. It was recovered and preserved in Git at `docs/product/original-request.md` (SHA-256: `D075B69F58135C8C820361E0E752FCCDD435435CA78066A7706CF14B9E58821F`).
+   - Limitation and remaining uncertainty:
+     - Ephemeral execution dispatches, worker run logs, and scratch prompts within the untracked `.agents` folders were not backed up prior to deletion and cannot be reconstructed from secondary sources.
+     - In accordance with MAINT-001 AC2, preservation for those specific unrecorded ephemeral execution folders remains **unverified**; missing hashes are explicitly not invented.
 
-`C:\Users\sergi\sdlc-cleanup-backups\20261026-125454`
+4. **Historical verification results restored (`docs/architecture/CRM-014-setup-recovery-001.md`):**
+   - Restored the 13-row historical verification results table covering actual `treeManifest` reproduction, full source fidelity (395 files / 394 manifest entries), native worker sandbox, source identity, native evaluator startup, fresh build state, evaluator read-only enforcement (`EROFS`), Factory product and symlink guards, generated-output risk, process cleanup, preservation, and runtime identity.
+   - Removed literal `` `r`n`r`n `` text introduced by previous cleanup.
+   - Maintained clear notation that the Factory packaging framework is retired and historical links to `.sdlc` artifacts refer to local evidence unavailable after cleanup.
 
-- `backup-hashes-verified.csv` records SHA-256 for 43 backup and junction-metadata files; all entries were recomputed and verified.
-- `global-change-record.csv` records each original path, action, backup path, before hash, and after state/hash. It includes the installer manifest and prior installer backup files.
-- `discovery-links.json` records the seven junction types and targets before unlinking.
-- The `config.toml` SHA-256 changed from `9DA0E2E0F30DC4279F4610B690029928F5D861B474AD17C77704361C64362DF5` to `3C9388CC2064707C4B7415DAB84FD933F0D1FDF3D3CE0881B7F3586AA35BB894`. Only the two SDLC marker comments were removed; the settings inside the block remain.
-- The routing file SHA-256 before removal was `727317B310D2898A5921FBF0EA2C5E53D415CD9220EA2209A784274267D1A037`.
+5. **EECRM-020 repair (`docs/stories/EECRM-020-reuse-ee-crm-application-test-runtime.md`):**
+   - Extracted and inlined substantive recommendation material from deleted advisory report `docs/workflow/advisor/20261017-CRM-014-sdlc-time-001.md` (Recommendation P3: "Qualify the application runtime once and reuse it" covering versioned startup recipes, synthetic login/data, browser fixtures, private build output, process cleanup, and qualification reuse boundaries).
+   - Removed active link and governance dependency on deleted `docs/workflow/test-impact-contract.md`, establishing case-level test impact expectations (Preserve, Add, Replace, Retire) directly in the story.
+   - Removed custom SDLC role ownership (Factory Operator, Verificator, BA, Architect, Runner), replacing them with standard engineering team ownership, QA testing, and automated/manual session consumers.
+   - Preserved all 15 acceptance criteria (`EECRM-020-AC01`–`AC15`), invariants, and historical investigation context.
 
-Restore removed files from the matching paths beneath the backup's `.codex` directory. Recreate junctions using the recorded targets in `discovery-links.json`. For `config.toml`, restore only the two marker comments around the preserved `[agents]` and `[tui]` settings; use the full backup only if the current file has not received later changes. The backup contains private configuration and must remain private.
+6. **Global recovery record provenance correction and config reconciliation:**
+   - Recovery directory: `C:\Users\sergi\sdlc-cleanup-backups\20261026-125454`.
+   - Provenance correction for `install-manifest.json`:
+     - Preserved original record as `global-change-record-original.csv` and `backup-hashes-verified-original.csv`.
+     - Proved via SHA-256 (`036BE2C62A5DC7FD928AD51BB1F0511B9AC5A9D3D9AAF32FCF063C44498DD359`) that `C:\Users\sergi\sdlc-cleanup-backups\20261026-125454\install-manifest.json` is byte-identical to `D:\2grow\ai-dispatcher\docker\lead1-test\main-preview-source\spikes\binotel-sip-bridge\scripts\init-client-manifest.mjs`, an unrelated JavaScript SIP-client generator from project `ai-dispatcher`.
+     - Confirmed that no file was deleted from `C:\Users\sergi\install-manifest.json`. The authentic SDLC install manifest was located at `C:\Users\sergi\.codex\sdlc\install-manifest.json` (SHA-256: `97248353CA7562447327DE0CCC29602A1B19EA16300A1D4B785B4A10BC153AF7`) and remains safely backed up at `C:\Users\sergi\sdlc-cleanup-backups\20261026-125454\.codex\sdlc\install-manifest.json`.
+     - Corrected line 3 of `global-change-record.csv` with explicit provenance documentation and a warning not to restore the generator over any file.
+   - Reconciled configuration hashes:
+     - Installer baseline backup (2026-09-30, `.codex\sdlc\backups\2026-09-30T19-55-27-302Z\config.toml`): SHA-256 `7CD40D097B541A7C6983967D675B88DE9599A3AFDA606AAA11AA57F5DCED1AF2` (`model = "gpt-6.1-sol"`, `model_reasoning_effort = "medium"`).
+     - Pre-cleanup configuration (2026-10-26 12:54:54, `.codex\config.toml`): SHA-256 `9DA0E2E0F30DC4279F4610B690029928F5D861B474AD17C77704361C64362DF5` (`model = "gpt-6-luna"`, `model_reasoning_effort = "high"`, updated runtime paths, trusted project entries, plus SDLC comments).
+     - Post-cleanup configuration (`C:\Users\sergi\.codex\config.toml`): SHA-256 `3C9388CC2064707C4B7415DAB84FD933F0D1FDF3D3CE0881B7F3586AA35BB894`.
+     - Reconciled evidence: The difference between `7CD4...` and `9DA0...` is due to user/system setting changes (model selection, reasoning effort, and runtime paths) made between September 30 and October 26. The MAINT-001 cleanup diff between pre-cleanup (`9DA0...`) and post-cleanup (`3C93...`) is strictly and exclusively the removal of `# BEGIN CODEX SDLC MANAGED BLOCK` and `# END CODEX SDLC MANAGED BLOCK`. All model settings and generic `[agents]` and `[tui]` settings were preserved.
 
-## Review and delivery
+---
 
-The separate Sol code review requested by the user is deferred. Repository changes are committed separately from the global cleanup record. No push, merge, or deployment was performed.
+## 2. Repository verification checks
+
+| Verification check | Result | Details |
+|---|---|---|
+| `git diff --check` | PASS | No whitespace errors, trailing whitespace, or merge conflict markers. |
+| Application build | PASS | `npm --prefix ee-crm run build`: compiled cleanly, TypeScript/type checking passed, all static and dynamic routes generated. |
+| Application parser test | PASS | `npm --prefix ee-crm run test:parser`: 17/17 lesson fixtures parsed; reported and calculated durations matched. |
+| Matt Pocock skills provenance | PASS | 38 skills registered in `skills-lock.json`; all 38 skill directories present in `.agents/skills/`; `skills-lock.json` has zero diff against base. |
+| Product source and test suite fidelity | PASS | `git diff --stat 7ff2a6d -- ee-crm/`: zero changes to product source, API routes, components, libraries, migrations, or tests under `ee-crm/` (except documentation in `ee-crm/verification/AGENTS.md` and `GEMINI.md`). |
+| Documentation links | PASS | All updated and added document links resolve locally (`docs/README.md`, `docs/bugs/README.md`, `docs/bugs/BUG-002-...`, `docs/stories/CRM-014-...`, `docs/stories/EECRM-020-...`, `docs/architecture/CRM-014-setup-recovery-001.md`, and archived tickets). |
+| Live tests exclusion | N/A | Full `npm test` was intentionally deferred to avoid live Schoolmate API calls and credentials per ticket instructions. |
+
+---
+
+## 3. Global environment verification
+
+- **Removed custom role skills:** All 7 directories (`advisor`, `architect`, `ba`, `dev`, `orchestrator`, `qa`, `ux`) absent from `C:\Users\sergi\.codex\skills\`.
+- **Removed custom role TOMLs:** All 7 TOML configurations absent from `C:\Users\sergi\.codex\agents\`.
+- **Removed discovery junctions:** All 7 junction entries absent from `C:\Users\sergi\.agents\skills\`.
+- **Removed SDLC installation artifacts:** `C:\Users\sergi\.codex\sdlc\` directory absent.
+- **Removed routing block:** `C:\Users\sergi\.codex\AGENTS.md` absent.
+- **Global `config.toml`:** Parses cleanly. Generic `[agents] max_concurrent_threads_per_session = 4` and `[tui] screen_reader_detection_done = true` remain intact. SHA-256: `3C9388CC2064707C4B7415DAB84FD933F0D1FDF3D3CE0881B7F3586AA35BB894`.
+- **Private recovery storage:** `C:\Users\sergi\sdlc-cleanup-backups\20261026-125454` preserved outside Git with verified manifests, original backups, and corrected change records.
+
+---
+
+## 4. Status of acceptance criteria and remaining limitations
+
+- **AC1 (Workflow skills, prompts, machinery, and active policies removed):** PASS. All custom workflow skills, prompt files, manuals, role ownerships, and active gate dependencies are removed.
+- **AC2 (Substantive product documentation, tickets, attachments preserved):** PARTIAL / CAVEAT RECORDED. Substantive requirements, tickets, decisions, and recovered bug finding UX-001 survive in Git. The ephemeral scratch logs from untracked `.agents` run folders were deleted without backup before MAINT-001 resolution and cannot be verified; this limitation is explicitly documented rather than claiming complete preservation.
+- **AC3 (Matt Pocock skills preserved):** PASS. All 38 skills and lockfile unchanged.
+- **AC4 (Product source/tests unchanged):** PASS. Zero application code or test changes. Build and parser tests pass.
+- **AC5 (Links and navigation resolve):** PASS. Historical links explained or repaired; new bug and story links resolve.
+- **AC6 (Global custom roles, junctions, routing removed; settings intact):** PASS. Confirmed by filesystem checks and TOML parsing.
+- **AC7 (Global backups and sanitized change record):** PASS. Provenance error corrected; original records preserved; hashes reconciled.
+- **AC8 (No push, merge, deploy, or alteration of external repos):** PASS. Operations restricted to local feature branch.
+- **AC9 (Check outcomes reported honestly):** PASS. Incomplete preservation of untracked `.agents` execution folders and deferred live tests are explicitly documented.

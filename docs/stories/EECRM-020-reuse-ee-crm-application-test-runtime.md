@@ -1,15 +1,15 @@
 # EECRM-020 — Reuse the EE-CRM application test runtime
 
 **Story ID:** EECRM-020\
-**Status:** Draft for user review. No requirements approval, workflow dispatch, or release authorization exists.\
-**Type:** Workflow infrastructure enabling story.\
+**Status:** Draft for review. Open technical specification.\
+**Type:** Test and development infrastructure enabling story.\
 **Created:** 17 October 2026.\
-**Actors:** QA, the Factory Operator, and the manual-test runner.\
-**Estimate:** Pending team estimation after planning. BA, UX, and Architect provide scope, uncertainty, and dependency assessments. The team owns the story-point estimate and execution-flow decision.
+**Actors:** Engineering, QA, and automated/manual test runners.\
+**Estimate:** Pending team estimation. Scope, uncertainty, and dependency assessments are evaluated by the engineering team.
 
 ## Outcome
 
-As a QA agent, Factory Operator, or manual-test runner, I want one supported application startup procedure.
+As an engineer, QA tester, or test runner, I want one supported application startup procedure.
 I can then prepare a trustworthy test session without designing another environment for each story.
 
 “Reusable runtime” means a versioned procedure and its checked inputs. Each invocation can create fresh processes, data, and build output.
@@ -17,14 +17,14 @@ It does not mean a permanent server or transferable feature-test results.
 
 ## Observed evidence
 
-- The [CRM-014 recovery report](../architecture/CRM-014-setup-recovery-001.md) records a Factory scan failure under nested `ee-crm/node_modules`.
+- The [CRM-014 recovery report](../architecture/CRM-014-setup-recovery-001.md) records a setup scan failure under nested `ee-crm/node_modules`.
 - That report records generated `.next` files changing the source digest when they remain on the host.
-- The recovery verified process-local dependency access and fresh build output. It preserved source identity and the existing Factory guards.
+- The recovery verified process-local dependency access and fresh build output. It preserved source identity and layout guards.
 - The manual-session procedure (historical local evidence unavailable at cleanup) records an initial startup failure under system Node 18.
 - The corrected session selected the bundled Node runtime. It reused the sealed browser setup and added a manual-browser entry point.
 - That session used synthetic data, a local external-service fixture, and a synthetic signed login. It did not use production services.
-- [The application manifest](../../ee-crm/package.json) provides application scripts. It does not declare a common session procedure for these three consumers.
-- [P3 in the advisor report](../workflow/advisor/20261017-CRM-014-sdlc-time-001.md#p3-qualify-the-application-runtime-once-and-reuse-it) recommends shared startup and bounded qualification reuse.
+- [The application manifest](../../ee-crm/package.json) provides application scripts. It does not declare a common session procedure for these consumers.
+- Historical advisory analysis (extracted from CRM-014 runtime recommendation P3: "Qualify the application runtime once and reuse it") recommended creating one versioned startup recipe for dependencies, synthetic login/data, browser fixtures, readiness, private build output, and process cleanup, qualifying the application runtime once and reusing it within declared dependency, runtime, configuration, and boundary identities.
 
 These observations support shared setup work. They do not prove that the CRM-014 setup supports every future feature or host.
 
@@ -33,23 +33,23 @@ These observations support shared setup work. They do not prove that the CRM-014
 The following scope is a reviewable proposal. Pending decisions below remain open.
 
 1. Provide one documented, versioned startup procedure for the local EE-CRM application.
-2. Let QA, Factory, and the manual runner consume this procedure through role-specific invocation settings.
+2. Let QA, automated testing, and manual exploratory sessions consume this procedure through consumer-specific invocation settings.
 3. Select explicit runtime and dependency inputs before application startup.
 4. Provide synthetic data and a test login for authenticated local checks.
 5. Check application readiness and source identity before reporting a session ready.
-6. Check compatibility with the actual Factory source scanner and execution boundary before worker dispatch.
+6. Check compatibility with repository layout, dependency boundaries, and source scanner integrity checks before test execution.
 7. Keep build output private to each invocation. Preserve authoritative source visibility and integrity checks.
 8. Record enough process identity to stop only resources owned by that session.
 9. Define which input changes require renewed qualification.
 10. Separate common setup from story-specific fixtures and acceptance assertions.
 
-Architecture must select the implementation after examining the existing helpers. This story does not mandate bubblewrap or a new package.
+The implementation will be selected after examining existing helpers. This story does not mandate bubblewrap or a new package.
 
 ## Invariants and preserved behavior
 
 - The evaluator uses the authoritative candidate source. Startup does not substitute an unverified copy or compiled implementation.
-- Worker write permissions and evaluator read permissions retain their approved boundaries.
-- Factory still detects source changes and forbidden source symlinks. Setup does not conceal non-empty source directories.
+- Worker write permissions and evaluator read permissions retain approved boundaries.
+- Tooling still detects source changes and forbidden source symlinks. Setup does not conceal non-empty source directories.
 - Each evaluator invocation starts with fresh build output. Worker-generated output cannot establish acceptance.
 - Synthetic login does not authorize changes to production authentication or access rules.
 - Local tests do not read production credentials or contact production services through this procedure.
@@ -61,23 +61,21 @@ Architecture must select the implementation after examining the existing helpers
 
 ## Dependencies and ownership
 
-The implementation depends on the installed Factory scanner, its execution boundary, supported Node and Next versions, and the application dependency lockfile.
+The implementation depends on supported Node and Next versions, repository layout boundaries, and the application dependency lockfile.
 It also depends on synthetic fixture support and a supported way to establish a local test session.
 
-The Operator owns runtime qualification. QA owns independent evaluator setup and its test-impact review.
-The manual runner owns session readiness, restart, and shutdown. The Architect proposes the common interface and role-specific boundaries.
-The user decides the pending scope questions. This draft assigns no implementation agent or delivery date.
+Engineering owns runtime qualification and the common setup interface. QA owns independent evaluator verification and test-impact assessment. Test runners own session readiness, restart, and shutdown. The product owner/user decides pending scope questions.
 
 ## Acceptance criteria
 
 | ID | Observable result |
 |---|---|
-| EECRM-020-AC01 | QA, Factory, and the manual runner start the same application source through one documented procedure. Each records its consumer mode and exact inputs. |
+| EECRM-020-AC01 | QA, automated evaluators, and manual session runners start the same application source through one documented procedure. Each records its consumer mode and exact inputs. |
 | EECRM-020-AC02 | Startup records runtime version, dependency identity, recipe version, fixture version, configuration identity, execution boundary, and source identity. Records exclude secret values. |
 | EECRM-020-AC03 | An unsupported runtime, missing dependency input, invalid boundary, or unexpected source identity causes a diagnostic before the session reports readiness. |
 | EECRM-020-AC04 | A fresh session supplies known synthetic records and an authenticated local entry point for both automated and human browsers. No production credentials are required. |
 | EECRM-020-AC05 | Readiness checks an application response, authenticated access, and expected fixture content. A failed check preserves diagnostics and leaves the session unavailable. |
-| EECRM-020-AC06 | A pre-dispatch probe runs the installed Factory source scanner against the intended candidate layout. It reproduces the historical nested-dependency failure on a negative fixture. |
+| EECRM-020-AC06 | A pre-execution probe validates candidate source layout against directory boundaries. It reproduces the historical nested-dependency failure on a negative fixture. |
 | EECRM-020-AC07 | The supported layout passes that scan. A deliberate application source change changes its source identity. A forbidden source symlink still fails. |
 | EECRM-020-AC08 | Each evaluator starts with fresh build output. Generated output does not alter the host's authoritative source identity after session shutdown. |
 | EECRM-020-AC09 | Worker and evaluator probes exercise their real boundaries. The evaluator cannot write source. Approved worker source writes remain possible and detectable. |
@@ -93,8 +91,7 @@ The implementation must document its method for selecting affected probes. It mu
 
 ## Test impact proposal
 
-The [test impact contract](../workflow/test-impact-contract.md) governs the independent case-level plan.
-This table states BA intent. QA must discover actual tests and define the final plan.
+The test impact expectations define case-level planning across Preserve, Add, Replace, and Retire categories:
 
 | Behavior | Disposition | Before | After |
 |---|---|---|---|
@@ -105,10 +102,10 @@ This table states BA intent. QA must discover actual tests and define the final 
 | Existing application journeys and authentication, AC15 | Preserve | Existing behavior assertions pass on the baseline. | The same behavior assertions pass through shared setup. |
 
 No business behavior receives Replace or Retire authorization.
-QA must classify already-satisfied criteria as Preserve. QA must not manufacture RED failures for existing behavior.
+Already-satisfied criteria are classified as Preserve without manufacturing artificial RED failures for existing behavior.
 Migrating setup consumers can change runner code. Such changes require an exact impact plan and review before sealed evaluator use.
 
-## Pending BA questions
+## Pending questions
 
 1. **Is the first delivery limited to the current local Linux environment?**
    Recommendation: yes. CRM-014 evidence supports this environment only. Other hosts require separate qualification.
@@ -123,7 +120,7 @@ Migrating setup consumers can change runner code. Such changes require an exact 
    Recommendation: yes. Real OAuth and external-service credentials require a separate integration-testing scope.
    Status: pending user answer. The selected scope determines AC04 and the stated coverage limits.
 
-These answers can revise draft scope. Agents must not treat recommendations as approved requirements.
+These answers can revise draft scope. Recommendations remain subject to team and user review.
 
 ## Non-goals
 
@@ -135,7 +132,5 @@ These answers can revise draft scope. Agents must not treat recommendations as a
 
 ## Draft verification and remaining limits
 
-The BA inspected the glossary, test-impact contract, application scripts, CRM-014 recovery helper, and manual-session lifecycle evidence.
-The BA checked this ID for collisions under `docs/stories/` before creating this file.
-The BA created only this story. No runtime, application test, or Factory invocation ran for this draft.
-No estimate or architecture selection exists. The pending questions require answers before requirements approval.
+Historical context: The initial draft inspected application scripts, CRM-014 recovery helpers, and manual-session lifecycle evidence. The story ID was checked for collisions under `docs/stories/`.
+No runtime or application test invocation ran for this initial specification draft. Implementation and architectural selection will follow once pending questions are resolved.

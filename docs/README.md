@@ -13,7 +13,7 @@ Welcome to the centralized documentation repository for **Empire English CRM (EE
 | [**`stories/`**](stories/) | User Stories & Backlog | Active stories (`CRM-009`, `CRM-010`, `CRM-011`, `CRM-013`, `CRM-014`, `CRM-018`, `CRM-019`), [`archived/`](stories/archived/) |
 | [**`ux/`**](ux/) | User Experience Specifications | Feature UX specs (`CRM-001`, `CRM-004`, `CRM-012`, `CRM-013`, schedule evidence review) |
 | [**`qa/`**](qa/) | Verification Reports & Quality Gates | [`CRM-001-e2e-report.md`](qa/CRM-001-e2e-report.md) |
-| [**`bugs/`**](bugs/) | Bug Documentation & Remediations | [`BUG-001`](bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md) |
+| [**`bugs/`**](bugs/) | Bug Documentation & Remediations | [`BUG-001`](bugs/BUG-001-stale-imports-in-verification-e2e-test-suites.md), [`BUG-002`](bugs/BUG-002-inherited-link-color-transition-reduced-motion.md) |
 | [`product/`](product/) | Original product requirements | [`original-request.md`](product/original-request.md) |
 
 ---

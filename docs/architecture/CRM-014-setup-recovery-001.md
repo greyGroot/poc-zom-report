@@ -42,13 +42,31 @@ No new abstraction, route, package dependency, product configuration, or asserti
 
 ## Actual verification
 
-The recovery artifacts and run evidence were part of the retired Factory workflow and are no longer active project instructions. This document is retained as a historical record of the investigation and selected correction.`r`n`r`nDependencies came from a fresh offline `npm ci --ignore-scripts --no-audit --no-fund` using unchanged app manifests and lockfile.
+The recovery artifacts and run evidence were part of the retired Factory workflow (historical local evidence under `.sdlc/CRM-014/setup-recovery-001/` unavailable at cleanup). This document is retained as a historical record of the investigation and selected correction. The historical verification results are preserved below:
+
+| Check | Observed result |
+|---|---|
+| Actual `treeManifest` reproduction | Retained candidate fails with the exact npm-link error in about 0.2 seconds. A one-link fixture fails in under 1 ms. |
+| Full source fidelity | The fixture contains all 395 original source files. All 394 operator-manifest entries match, including dirty/untracked product changes. |
+| Native worker sandbox | The existing Codex sandbox command runs inside the proposed mounts without an inference turn. Source writes remain available. Dependencies and primary remain read-only. |
+| Source identity | Worker and evaluator observe the same source inode and device as the host fixture. The namespace does not substitute source content. |
+| Native evaluator startup | The unchanged v2 `setupBrowser` starts Next 16.3.5 from its hardcoded native path. An authenticated `/uk/logs` request returns 200 and renders the retained breadcrumb source. |
+| Fresh build state | The evaluator sees an initially empty `.next`, then newly generated `dev` output. Worker output is not reused. |
+| Evaluator source writes | A source-write probe fails with `EROFS`. |
+| Factory product guard | A harmless fixture product mutation changes the actual Factory digest. The native worker's fixture source write also changes it. |
+| Factory symlink guard | A symlink in fixture application source still fails the actual scan. |
+| Generated-output risk | A fixture `.next` file changes the Factory digest when it exists on the host. Process-local build writes leave the host empty and its digest unchanged. |
+| Cleanup | Both host mount points remain empty after worker and evaluator namespace exit. No owned application server remains. |
+| Preservation | Original source, controls v1/v2, State Ledger, selected run/store, and original execution evidence match their before snapshots. |
+| Runtime identity | Factory digest remains `ce7ce2a20b5ee8bd1817f7042598eaf9226d2579c6cf382eddfc08570d7f13dd`. Original model, reasoning, budgets, config, and credentials were not changed. |
+
+Dependencies came from a fresh offline `npm ci --ignore-scripts --no-audit --no-fund` using unchanged app manifests and lockfile.
 They came from the npm cache, not the worker's dependency directory.
 Dependency inventory (historical local evidence unavailable at cleanup) fingerprints 12,348 files and seven npm links.
 Dependencies remain read-only in the process. The mounted `.next` directory starts fresh for each invocation.
 The selected setup changes no Next app config, directory names, package scripts, or lockfiles.
 
-## Worker boundary and role handoff
+## Worker boundary and role handoff (historical)
 
 Factory scans immediately after worker completion, before task preparation. Preparation alone cannot correct this failure.
 The Operator must add dependency and fresh `.next` mounts to the worker adapter's existing outer boundary before worker startup.
